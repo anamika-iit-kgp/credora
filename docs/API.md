@@ -196,6 +196,10 @@ Loan taken, In progress and Disbursed need terms the bank has agreed to. The com
 
 The offer and the status stay in step. A proposal moves the status from Assigned or Contacted to Negotiating. Once the status is Loan taken or later, the RM cannot propose new terms and loan operations cannot reject the offer (`409`). Each `GET /api/loan-status` row also carries `offer_id`, `offer_stage`, `offer_block` (why Loan taken is not open yet, or null) and `next_statuses`, which the My companies screen uses to enable its options.
 
+More endpoints and their responses.
+
+| Endpoint | Response |
+|---|---|
 | `GET /api/decisions` | `{items:[DecisionRow + hard_fails], total, page, size, run_id}`, ordered by rank. `raroc` is `RAROC_OFFER`. |
 | `GET /api/top50` | `[Top50Row + skyline_layer, rm_id, assigned_rm_id]`. `stage` is the CRM stage. `rm_id` is the customer master's owner and `assigned_rm_id` is who works the company now. |
 | `GET /api/companies/{cif}/report` | `Report` plus `hard_fails:[...]` and `raroc_floor`. `reasons[].contribution` is the feature's change to PD in **percentage points** (from `SCORES.CONTRIBUTIONS`, PD with the feature against PD at the portfolio median). A positive value raises risk, and the report lists up to 4 drivers each way. `steps` are the 13 `RUN_ANALYSIS` steps with that run's `RUN_LOG` duration and the real script text (step 10 is the anomaly flag, step 13 the shadow challenger). `anomaly` is `{score, flagged, reasons:[...]}` from `CREDORA.ANOMALY`, or `null` for runs without that step. A flagged company that would be approved is referred and its `hard_fails` carry `Anomaly: ...`. An RM gets the full report of an assigned company (features and sources), read through `V_RM_DECISIONS`, `V_RM_SCORES`, `V_RM_FEATURES` and `V_RM_COMPANY`. Any other company returns `403`. `anomaly` is `null` for RMs because `CREDORA_RM` may not read `CREDORA.ANOMALY`. An RM sees the flag only as that reason. |
