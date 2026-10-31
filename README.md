@@ -1,8 +1,9 @@
-# Credora
+# <img src="sites/_assets/credora-gem.svg" alt="" width="34" height="34"> Credora
 
 [![CI](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml/badge.svg)](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Exasol Personal 2026.1](https://img.shields.io/badge/Exasol%20Personal-2026.1-1ba0e2.svg)](https://github.com/exasol/exasol-personal)
+[![Exasol Personal Local Starterkit 0.2.3](https://img.shields.io/badge/Exasol%20Personal%20Local%20Starterkit-0.2.3-1ba0e2.svg)](https://github.com/exasol-labs/exasol-personal-local-starterkit)
+[![Exasol Personal 2.3.0](https://img.shields.io/badge/Exasol%20Personal-2.3.0-1ba0e2.svg)](https://github.com/exasol/exasol-personal)
 [![ExaThon India 2026](https://img.shields.io/badge/ExaThon-India%202026-0b3d91.svg)](https://credora.loan)
 
 Credora helps a bank lend to its own business customers before they ask. For every corporate customer of Sapphire Bank it decides whether to make a pre-approved loan offer, sets the amount, rate and tenure, and sets how far the relationship manager may negotiate. All of the analysis runs inside Exasol Personal, where the bank's data already meets.
