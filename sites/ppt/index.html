@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Credora · ExaThon India 2026 presentation</title>
+<meta name="description" content="Credora. Pre-approved corporate credit, decided inside Exasol. The ExaThon India 2026 presentation, with animated architecture diagrams.">
+<link rel="icon" type="image/svg+xml" href="../_assets/credora-gem.svg">
+<link rel="preload" href="../_assets/fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="deck.css">
+</head>
+<body>
+
+<!-- Icon sprite (lucide-style, 24px grid) and arrow markers, shared by every diagram. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#64748b"/></marker>
+    <marker id="ah-db" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#a78bfa"/></marker>
+    <marker id="ah-ext" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker>
+    <marker id="ah-exa" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5fc33b"/></marker>
+    <marker id="ah-fe" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#22d3ee"/></marker>
+    <marker id="ah-svc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#34d399"/></marker>
+    <marker id="ah-q" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fb923c"/></marker>
+    <marker id="ah-sec" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fb7185"/></marker>
+    <marker id="ah-cloud" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#fbbf24"/></marker>
+  </defs>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2l8 5H4z"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-notes" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H7"/><path d="M17 12H7"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-network" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.7 4.73a2 2 0 0 0 2.1 0L20.7 7"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+  <symbol id="i-issue" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+</svg>
+
+<div class="progress" aria-hidden="true"><i id="prog"></i></div>
+
+<main class="viewport" id="viewport">
+<div class="stage" id="stage">
+
+<!-- ============================================================ 1 · title -->
+<section class="slide" id="s1" aria-label="Title">
+  <div class="ti-brand" data-a="rise"><img src="../_assets/credora-gem.svg" alt=""><b>Credora<span>for Sapphire Bank</span></b></div>
+  <h1 class="ti-h" data-a="rise" data-d="90">Pre-approved corporate credit, decided inside Exasol.</h1>
+  <p class="ti-p" data-a="rise" data-d="180">An ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS. Sapphire Bank is fictional and all data is synthetic.</p>
+  <p class="ti-by" data-a="rise" data-d="260">Anamika <span>· Product Manager @ Equitas Small Finance Bank</span></p>
+  <div class="ti-links" data-a="rise" data-d="320">
+    <a href="https://credora.loan"><svg class="ic"><use href="#i-monitor"/></svg><b>credora.loan</b> the app</a>
+    <a href="https://docs.credora.loan"><svg class="ic"><use href="#i-book"/></svg><b>docs.credora.loan</b></a>
+    <a href="https://credora.link"><svg class="ic"><use href="#i-globe"/></svg><b>credora.link</b> 3rd party data via API</a>
+  </div>
+  <div class="ti-ex" data-a="fade" data-d="500">Built for ExaThon India 2026 · Powered by <img src="../_assets/Exasol_Logo_2025_Bright.svg" alt="Exasol"> Personal</div>
+
+  <svg class="vis" viewBox="0 0 720 640" role="img" aria-label="Six sources flow into Exasol, which produces pre-approved offers">
+    <text x="0" y="24" class="cap" data-a="fade">Sapphire Bank, read in place</text>
+    <text x="0" y="318" class="cap" data-a="fade">3rd party data, via API</text>
+    <g>
+      <path class="e c-db thin" d="M220 73 C 268 73 252 320 300 320" data-a="draw" data-d="300" data-pk="db" data-dur="2.2" data-beg="0.9"/>
+      <path class="e c-db thin" d="M220 155 C 268 155 252 320 300 320" data-a="draw" data-d="360" data-pk="db" data-dur="2.2" data-beg="1.2"/>
+      <path class="e c-db thin" d="M220 237 C 268 237 252 320 300 320" data-a="draw" data-d="420" data-pk="db" data-dur="2.2" data-beg="1.5"/>
+      <path class="e c-ext thin" d="M220 367 C 268 367 252 320 300 320" data-a="draw" data-d="480" data-pk="ext" data-dur="2.2" data-beg="1.0"/>
+      <path class="e c-ext thin" d="M220 449 C 268 449 252 320 300 320" data-a="draw" data-d="540" data-pk="ext" data-dur="2.2" data-beg="1.35"/>
+      <path class="e c-ext thin" d="M220 531 C 268 531 252 320 300 320" data-a="draw" data-d="600" data-pk="ext" data-dur="2.2" data-beg="1.7"/>
+      <path class="e c-fe thin" d="M450 320 C 488 320 482 238 518 238" data-a="draw" data-d="900" data-pk="fe" data-dur="1.6" data-beg="1.9"/>
+      <path class="e c-fe thin" d="M450 320 L 518 320" data-a="draw" data-d="950" data-pk="fe" data-dur="1.6" data-beg="2.2"/>
+      <path class="e c-fe thin" d="M450 320 C 488 320 482 402 518 402" data-a="draw" data-d="1000" data-pk="fe" data-dur="1.6" data-beg="2.5"/>
+    </g>
+    <g class="n t-db" transform="translate(0,40)" data-a="rise" data-d="80"><rect width="220" height="66" rx="10"/><use href="#i-db" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">Core banking</text><text x="50" y="50" class="mn-s">Oracle · VS_CBS</text></g>
+    <g class="n t-db" transform="translate(0,122)" data-a="rise" data-d="130"><rect width="220" height="66" rx="10"/><use href="#i-db" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">Customer master</text><text x="50" y="50" class="mn-s">MySQL · VS_CIF</text></g>
+    <g class="n t-db" transform="translate(0,204)" data-a="rise" data-d="180"><rect width="220" height="66" rx="10"/><use href="#i-db" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">Loan origination</text><text x="50" y="50" class="mn-s">PostgreSQL · VS_LOS</text></g>
+    <g class="n t-ext" transform="translate(0,334)" data-a="rise" data-d="230"><rect width="220" height="66" rx="10"/><use href="#i-gauge" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">CIBIL</text><text x="50" y="50" class="mn-s">cibil.credora.link</text></g>
+    <g class="n t-ext" transform="translate(0,416)" data-a="rise" data-d="280"><rect width="220" height="66" rx="10"/><use href="#i-receipt" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">GSTN</text><text x="50" y="50" class="mn-s">gst.credora.link</text></g>
+    <g class="n t-ext" transform="translate(0,498)" data-a="rise" data-d="330"><rect width="220" height="66" rx="10"/><use href="#i-wallet" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">Account Aggregator</text><text x="50" y="50" class="mn-s">aa.credora.link</text></g>
+    <g class="n t-exa" data-a="pop" data-d="620"><rect x="300" y="245" width="150" height="150" rx="22"/><image href="../_assets/exasol-x-on-dark.svg" x="339" y="272" width="72" height="68"/><text x="375" y="372" class="lbl-s mid">Exasol</text></g>
+    <text x="375" y="428" class="mn mid" data-a="fade" data-d="800">RUN_ANALYSIS</text>
+    <text x="375" y="450" class="cap mid" data-a="fade" data-d="820">one call</text>
+    <g class="n t-sap" transform="translate(520,205)" data-a="rise" data-d="1100"><rect width="200" height="66" rx="10"/><text x="16" y="29" class="lbl-s">Pre-approved offer</text><text x="16" y="50" class="cap">amount · ROI · tenure</text></g>
+    <g class="n t-sap" transform="translate(520,287)" data-a="rise" data-d="1160"><rect width="200" height="66" rx="10"/><text x="16" y="29" class="lbl-s">Negotiation limit</text><text x="16" y="50" class="cap">floor ROI · max amount</text></g>
+    <g class="n t-sap" transform="translate(520,369)" data-a="rise" data-d="1220"><rect width="200" height="66" rx="10"/><text x="16" y="29" class="lbl-s">Ranked top 50</text><text x="16" y="50" class="cap">PREFERRING · to RMs</text></g>
+  </svg>
+  <aside class="sn">Credora is an ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS. It is Sapphire Bank's way to make pre-approved corporate loan offers, and the whole decision happens inside Exasol. Six sources go in. Three are bank databases read in place, and three are 3rd party APIs (CIBIL, GSTN, Account Aggregator) fetched on demand. One call to RUN_ANALYSIS comes out with an offer, a negotiation limit and a ranking for every company. It is live at credora.loan, the docs are at docs.credora.loan, and credora.link serves the 3rd party data via API.</aside>
+</section>
+
+<!-- ============================================================ 2 · the problem -->
+<section class="slide" id="s2" aria-label="The banking problem">
+  <div class="hd">
+    <h2 data-a="rise">The bank already holds the data. Offers are still slow and manual.</h2>
+    <p data-a="rise" data-d="80">To make a corporate customer a credit offer, someone has to visit six systems, three in the bank and three 3rd party.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="600" role="img" aria-label="Today a credit officer visits six systems one company at a time. With Credora all six feed one Exasol call">
+      <g>
+        <path class="e c-ext thin dash nm" d="M400 300 L 160 68" data-a="fade" data-d="500" data-pk="ext" data-dur="8.4" data-win="0-0.16" data-bounce/>
+        <path class="e c-ext thin dash nm" d="M400 300 L 650 48" data-a="fade" data-d="540" data-pk="ext" data-dur="8.4" data-win="0.167-0.327" data-bounce/>
+        <path class="e c-ext thin dash nm" d="M400 300 L 690 268" data-a="fade" data-d="580" data-pk="ext" data-dur="8.4" data-win="0.333-0.493" data-bounce/>
+        <path class="e c-ext thin dash nm" d="M400 300 L 140 298" data-a="fade" data-d="620" data-pk="ext" data-dur="8.4" data-win="0.5-0.66" data-bounce/>
+        <path class="e c-ext thin dash nm" d="M400 300 L 190 518" data-a="fade" data-d="660" data-pk="ext" data-dur="8.4" data-win="0.667-0.827" data-bounce/>
+        <path class="e c-ext thin dash nm" d="M400 300 L 630 498" data-a="fade" data-d="700" data-pk="ext" data-dur="8.4" data-win="0.833-0.993" data-bounce/>
+      </g>
+      <g class="n t-db" transform="translate(30,20) rotate(-3)" data-a="pop" data-d="100"><rect width="260" height="96" rx="10"/><use href="#i-db" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Core banking · Oracle</text><text x="16" y="60" class="sub">accounts, ~850,000 transactions</text><text x="16" y="82" class="cap">Sapphire Bank</text></g>
+      <g class="n t-db" transform="translate(520,0) rotate(2.5)" data-a="pop" data-d="160"><rect width="260" height="96" rx="10"/><use href="#i-db" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Customer master · MySQL</text><text x="16" y="60" class="sub">companies, partners, KYC</text><text x="16" y="82" class="cap">Sapphire Bank</text></g>
+      <g class="n t-db" transform="translate(560,220) rotate(-2)" data-a="pop" data-d="220"><rect width="260" height="96" rx="10"/><use href="#i-db" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Loans · PostgreSQL</text><text x="16" y="60" class="sub">credit need, 5,000 past loans</text><text x="16" y="82" class="cap">Sapphire Bank</text></g>
+      <g class="n t-ext" transform="translate(10,250) rotate(2)" data-a="pop" data-d="280"><rect width="260" height="96" rx="10"/><use href="#i-gauge" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">CIBIL · credit bureau</text><text x="16" y="60" class="sub">partner and company reports</text><text x="16" y="82" class="cap">3rd party</text></g>
+      <g class="n t-ext" transform="translate(60,470) rotate(-2.5)" data-a="pop" data-d="340"><rect width="260" height="96" rx="10"/><use href="#i-receipt" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">GSTN · tax network</text><text x="16" y="60" class="sub">2–10 years of GST returns</text><text x="16" y="82" class="cap">3rd party</text></g>
+      <g class="n t-ext" transform="translate(500,450) rotate(3)" data-a="pop" data-d="400"><rect width="260" height="96" rx="10"/><use href="#i-wallet" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Account Aggregator</text><text x="16" y="60" class="sub">partners' other-bank accounts</text><text x="16" y="82" class="cap">3rd party, with consent</text></g>
+      <g class="n t-fe" data-a="pop" data-d="0"><circle class="b" cx="400" cy="300" r="48"/><use href="#i-user" class="ic" x="380" y="280" width="40" height="40"/></g>
+      <text x="400" y="372" class="lbl-s mid" data-a="fade" data-d="200">Credit officer</text>
+      <text x="400" y="396" class="cap mid" data-a="fade" data-d="200" id="s2count">company 1 of 1,000</text>
+      <text x="410" y="592" class="sub mid" data-a="fade" data-d="800">Today, one company at a time, one system at a time</text>
+
+      <g data-f="1">
+        <rect x="880" y="0" width="560" height="560" rx="14" fill="#0b1222"/>
+        <g>
+          <path class="e c-db thin" d="M1110 65 C 1160 65 1150 270 1200 270" data-pk="db" data-dur="1.8" data-beg="0.3" data-n="2"/>
+          <path class="e c-db thin" d="M1110 143 C 1160 143 1150 270 1200 270" data-pk="db" data-dur="1.8" data-beg="0.3" data-n="2"/>
+          <path class="e c-db thin" d="M1110 221 C 1160 221 1150 270 1200 270" data-pk="db" data-dur="1.8" data-beg="0.3" data-n="2"/>
+          <path class="e c-ext thin" d="M1110 299 C 1160 299 1150 270 1200 270" data-pk="ext" data-dur="1.8" data-beg="0.3" data-n="2"/>
+          <path class="e c-ext thin" d="M1110 377 C 1160 377 1150 270 1200 270" data-pk="ext" data-dur="1.8" data-beg="0.3" data-n="2"/>
+          <path class="e c-ext thin" d="M1110 455 C 1160 455 1150 270 1200 270" data-pk="ext" data-dur="1.8" data-beg="0.3" data-n="2"/>
+        </g>
+        <g class="n t-db" transform="translate(900,40)"><rect width="210" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Core banking</text></g>
+        <g class="n t-db" transform="translate(900,118)"><rect width="210" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Customer master</text></g>
+        <g class="n t-db" transform="translate(900,196)"><rect width="210" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Loans</text></g>
+        <g class="n t-ext" transform="translate(900,274)"><rect width="210" height="50" rx="9"/><text x="16" y="31" class="lbl-s">CIBIL</text></g>
+        <g class="n t-ext" transform="translate(900,352)"><rect width="210" height="50" rx="9"/><text x="16" y="31" class="lbl-s">GSTN</text></g>
+        <g class="n t-ext" transform="translate(900,430)"><rect width="210" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Account Aggregator</text></g>
+        <g class="n t-exa"><rect x="1200" y="185" width="190" height="170" rx="20"/><image href="../_assets/exasol-x-on-dark.svg" x="1257" y="208" width="76" height="72"/><text x="1295" y="318" class="lbl-s mid">Exasol</text><text x="1295" y="340" class="mn-s mid">RUN_ANALYSIS</text></g>
+        <text x="1295" y="410" class="big mid">1,000 companies</text>
+        <text x="1295" y="440" class="sub mid">in <tspan data-k="RUN_TOTAL"></tspan>, one call</text>
+        <text x="1160" y="592" class="sub mid">With Credora, all six at once, inside Exasol</text>
+      </g>
+    </svg>
+  </div>
+  <aside class="sn">Here is the problem. Sapphire Bank has a large book of corporate current-account customers, and it already holds most of what it needs to lend to them. Transactions sit in Oracle core banking, partners and KYC in the MySQL customer master, the credit need on file and five thousand past loans in PostgreSQL. The rest is 3rd party data from CIBIL, GST returns and the Account Aggregator. Today a credit officer visits these one company at a time. Press next. Credora reads all six at once, inside one Exasol call, in about twenty-five seconds for all thousand companies.</aside>
+</section>
+
+<!-- ============================================================ 3 · the idea and the terms -->
+<section class="slide" id="s3" aria-label="The idea and the banking terms">
+  <div class="hd">
+    <h2 data-a="rise">Analyse the customers we have, then offer them credit first.</h2>
+  </div>
+  <div class="bd">
+    <div class="flowline" data-a="rise" data-d="60">
+      <div class="fl-step"><b>Every corporate customer</b>existing current-account customers, 2 to 5 partners each</div>
+      <div class="fl-arr"><svg class="ic"><use href="#i-arrow"/></svg></div>
+      <div class="fl-step exa"><b>Analysed in Exasol</b>bank data, bureau, GST and AA data, risk model, policy</div>
+      <div class="fl-arr"><svg class="ic"><use href="#i-arrow"/></svg></div>
+      <div class="fl-step off"><b>Pre-approved offer</b>amount, ROI (rate) and tenure, plus a negotiation limit</div>
+      <div class="fl-arr"><svg class="ic"><use href="#i-arrow"/></svg></div>
+      <div class="fl-step"><b>RM calls the customer</b>and negotiates inside the limit, no trip back to credit</div>
+    </div>
+    <div class="terms">
+      <div class="term" data-a="rise" data-d="200">
+        <svg viewBox="0 0 112 96" aria-hidden="true">
+          <g data-a="fade" data-d="300"><rect x="4" y="44" width="14" height="14" rx="2" fill="#34d399"/><rect x="19" y="44" width="14" height="14" rx="2" fill="#6ee7b7"/><rect x="34" y="44" width="14" height="14" rx="2" fill="#a3e635"/><rect x="49" y="44" width="14" height="14" rx="2" fill="#facc15"/><rect x="64" y="44" width="14" height="14" rx="2" fill="#fbbf24"/><rect x="79" y="44" width="14" height="14" rx="2" fill="#fb923c"/><rect x="94" y="44" width="14" height="14" rx="2" fill="#fb7185"/></g>
+          <path d="M41 26 L49 38 L57 26 Z" fill="#f1f5f9" data-a="slide" data-d="500"/>
+          <text x="4" y="80" class="cap" style="font-size:13px">A1</text><text x="108" y="80" class="cap end" style="font-size:13px">D</text>
+        </svg>
+        <div><h3>PD<small>probability of default</small></h3><p>How likely the company is not to repay, from a model trained on the bank's own past loans. Graded A1 (under 1%) to D (12% and above).</p></div>
+      </div>
+      <div class="term" data-a="rise" data-d="260">
+        <svg viewBox="0 0 112 96" aria-hidden="true">
+          <rect x="22" y="22" width="26" height="62" rx="3" fill="#5fc33b" data-a="growy" data-d="420"/>
+          <rect x="62" y="52" width="26" height="32" rx="3" fill="#475569" data-a="growy" data-d="480"/>
+          <path d="M8 40 H104" stroke="#fbbf24" stroke-width="2" stroke-dasharray="5 4"/>
+          <text x="108" y="16" class="cap end" style="font-size:13px;fill:#fbbf24">hurdle 15%</text>
+        </svg>
+        <div><h3>RAROC<small>risk-adjusted return</small></h3><p>(Rate − cost of funds − operating cost − PD × loss given default) ÷ capital held. Every offer must clear the 15% hurdle.</p></div>
+      </div>
+      <div class="term" data-a="rise" data-d="320">
+        <svg viewBox="0 0 112 96" aria-hidden="true">
+          <rect x="16" y="18" width="30" height="66" rx="3" fill="#34d399" data-a="growy" data-d="480"/>
+          <rect x="62" y="38" width="30" height="46" rx="3" fill="#a78bfa" data-a="growy" data-d="540"/>
+          <text x="31" y="12" class="cap mid" style="font-size:12px">cash</text><text x="77" y="32" class="cap mid" style="font-size:12px">debt</text>
+        </svg>
+        <div><h3>DSCR<small>debt service coverage</small></h3><p>Cash the company generates ÷ what the loan costs it each year. At least 1.25 for the offer, 1.10 at the negotiation limit.</p></div>
+      </div>
+      <div class="term" data-a="rise" data-d="380">
+        <svg viewBox="0 0 112 96" aria-hidden="true">
+          <g fill="#94a3b8">
+            <rect x="4" y="50" width="6" height="34" rx="1" data-a="growy" data-d="500"/><rect x="13" y="44" width="6" height="40" rx="1" data-a="growy" data-d="520"/><rect x="22" y="54" width="6" height="30" rx="1" data-a="growy" data-d="540"/><rect x="31" y="40" width="6" height="44" rx="1" data-a="growy" data-d="560"/><rect x="40" y="46" width="6" height="38" rx="1" data-a="growy" data-d="580"/><rect x="49" y="36" width="6" height="48" rx="1" data-a="growy" data-d="600"/><rect x="58" y="42" width="6" height="42" rx="1" data-a="growy" data-d="620"/><rect x="67" y="30" width="6" height="54" rx="1" data-a="growy" data-d="640"/><rect x="76" y="38" width="6" height="46" rx="1" data-a="growy" data-d="660"/><rect x="85" y="26" width="6" height="58" rx="1" data-a="growy" data-d="680"/><rect x="94" y="34" width="6" height="50" rx="1" data-a="growy" data-d="700"/><rect x="103" y="22" width="6" height="62" rx="1" data-a="growy" data-d="720"/>
+          </g>
+          <text x="4" y="14" class="cap" style="font-size:12px">12 monthly returns</text>
+        </svg>
+        <div><h3>GST<small>goods and services tax</small></h3><p>Monthly sales each company files with the tax network, GSTN, for 2 to 10 years per company. Late filings and a gap to bank credits are warning signs.</p></div>
+      </div>
+      <div class="term" data-a="rise" data-d="440">
+        <svg viewBox="0 0 112 96" aria-hidden="true">
+          <path d="M14 78 A 42 42 0 0 1 98 78" fill="none" stroke="#334155" stroke-width="10" stroke-linecap="round"/>
+          <path d="M14 78 A 42 42 0 0 1 98 78" fill="none" stroke="#94a3b8" stroke-width="10" stroke-linecap="round" pathLength="1" stroke-dasharray="0.72 1" data-a="fade" data-d="500"/>
+          <line x1="56" y1="78" x2="84" y2="50" stroke="#f1f5f9" stroke-width="3" stroke-linecap="round" data-a="swing" data-d="560" style="transform-box:view-box;transform-origin:56px 78px"/>
+          <circle cx="56" cy="78" r="5" fill="#f1f5f9"/>
+        </svg>
+        <div><h3>CIBIL<small>India's credit bureau</small></h3><p>A score for every partner and a commercial rank (CMR) for every company. A partner below 600 or a CMR of 9 or worse means no offer.</p></div>
+      </div>
+      <div class="term" data-a="rise" data-d="500">
+        <svg viewBox="0 0 112 96" aria-hidden="true">
+          <g class="ic" style="color:#94a3b8"><use href="#i-bank" x="2" y="30" width="34" height="34"/><use href="#i-bank" x="76" y="30" width="34" height="34"/></g>
+          <path d="M38 47 H74" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" fill="none" data-pk="ext" data-dur="1.6" data-beg="0.8"/>
+          <g class="ic" style="color:#fbbf24"><use href="#i-key" x="46" y="8" width="20" height="20"/></g>
+          <text x="56" y="88" class="cap mid" style="font-size:12px">consent, then purge</text>
+        </svg>
+        <div><h3>AA<small>Account Aggregator</small></h3><p>With the customer's consent, the partners' accounts at other banks. The consent expires, so Exasol purges the data on time, with proof.</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="sn">The idea is simple. Instead of waiting for customers to come in, the bank analyses the companies it already serves and approaches the best of them with a pre-approved offer. That is an amount, a rate and a tenure, plus a negotiation limit the relationship manager can move within. Six terms carry the rest of the talk. PD is the chance a company does not repay. RAROC is the return after expected loss and costs, over the capital held, and every offer must clear fifteen percent. DSCR asks whether the company's cash covers the repayments. GST returns, CIBIL and the Account Aggregator are the 3rd party evidence, fetched via API.</aside>
+</section>
+
+<!-- ============================================================ 4 · big picture -->
+<section class="slide" id="s4" aria-label="The big picture">
+  <div class="hd">
+    <h2 data-a="rise">Everything meets in Exasol, and leaves as a decision.</h2>
+    <p data-a="rise" data-d="80">Bank data is read in place, 3rd party data is fetched via API by UDFs, and every person and the AI read results as their own Exasol user.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="580" role="img" aria-label="Sources flow into Exasol. The web app and Ask Credora read from Exasol, and offers go to the CRM">
+      <text x="0" y="14" class="zlbl" fill="#a78bfa" data-a="fade">Sapphire Bank · private RDS</text>
+      <text x="0" y="300" class="zlbl" fill="#94a3b8" data-a="fade">3rd party data via API · credora.link</text>
+      <g>
+        <path class="e c-db" d="M250 61 C 310 61 320 95 384 95" data-a="draw" data-d="500" data-pk="db" data-dur="1.8" data-beg="1.2"/>
+        <path class="e c-db" d="M250 141 C 310 141 320 95 384 95" data-a="draw" data-d="540" data-pk="db" data-dur="1.8" data-beg="1.5"/>
+        <path class="e c-db" d="M250 221 C 310 221 320 95 384 95" data-a="draw" data-d="580" data-pk="db" data-dur="1.8" data-beg="1.8"/>
+        <path class="e c-ext" d="M250 347 C 320 347 320 155 384 155" data-a="draw" data-d="640" data-pk="ext" data-dur="2" data-beg="1.3"/>
+        <path class="e c-ext" d="M250 427 C 320 427 320 155 384 155" data-a="draw" data-d="680" data-pk="ext" data-dur="2" data-beg="1.6"/>
+        <path class="e c-ext" d="M250 507 C 320 507 320 155 384 155" data-a="draw" data-d="720" data-pk="ext" data-dur="2" data-beg="1.9"/>
+        <path class="e c-fe" d="M860 165 L 978 165" data-a="draw" data-d="1100" data-pk="fe" data-dur="1.4" data-beg="2.2" data-n="2"/>
+        <path class="e c-q dash" d="M980 445 L 862 445" data-a="fade" data-d="1200" data-pk="q" data-dur="1.6" data-beg="2.6" data-bounce/>
+        <path class="e c-db" d="M1220 165 L 1288 165" data-a="draw" data-d="1300" data-pk="db" data-dur="1.2" data-beg="2.9"/>
+      </g>
+      <g class="num c-db" data-a="pop" data-d="600"><circle cx="300" cy="60" r="13"/><text x="300" y="60">1</text></g>
+      <g class="num c-ext" data-a="pop" data-d="700"><circle cx="300" cy="300" r="13"/><text x="300" y="300">2</text></g>
+      <g class="num c-fe" data-a="pop" data-d="1150"><circle cx="920" cy="140" r="13"/><text x="920" y="140">3</text></g>
+      <g class="num c-q" data-a="pop" data-d="1250"><circle cx="920" cy="420" r="13"/><text x="920" y="420">4</text></g>
+      <g class="num c-db" data-a="pop" data-d="1350"><circle cx="1255" cy="140" r="13"/><text x="1255" y="140">5</text></g>
+      <text x="920" y="196" class="elbl mid" data-a="fade" data-d="1150">SQL as the</text>
+      <text x="920" y="214" class="elbl mid" data-a="fade" data-d="1150">role's user</text>
+      <text x="920" y="476" class="elbl mid" data-a="fade" data-d="1250">MCP, same</text>
+      <text x="920" y="494" class="elbl mid" data-a="fade" data-d="1250">grants</text>
+
+      <g class="n t-db" transform="translate(0,28)" data-a="rise" data-d="60"><rect width="250" height="66" rx="10"/><use href="#i-db" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">Oracle · core banking</text><text x="50" y="51" class="mn-s">CBS · ACCOUNT, TXN</text></g>
+      <g class="n t-db" transform="translate(0,108)" data-a="rise" data-d="100"><rect width="250" height="66" rx="10"/><use href="#i-db" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">MySQL · customers</text><text x="50" y="51" class="mn-s">cif · company, partner</text></g>
+      <g class="n t-db" transform="translate(0,188)" data-a="rise" data-d="140"><rect width="250" height="66" rx="10"/><use href="#i-db" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">PostgreSQL · loans</text><text x="50" y="51" class="mn-s">los · past_loan</text></g>
+      <g class="n t-ext" transform="translate(0,314)" data-a="rise" data-d="180"><rect width="250" height="66" rx="10"/><use href="#i-gauge" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">CIBIL relay</text><text x="50" y="51" class="mn-s">cibil.credora.link</text></g>
+      <g class="n t-ext" transform="translate(0,394)" data-a="rise" data-d="220"><rect width="250" height="66" rx="10"/><use href="#i-receipt" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">GSTN relay</text><text x="50" y="51" class="mn-s">gst.credora.link</text></g>
+      <g class="n t-ext" transform="translate(0,474)" data-a="rise" data-d="260"><rect width="250" height="66" rx="10"/><use href="#i-wallet" class="ic" x="14" y="21" width="24" height="24"/><text x="50" y="29" class="lbl-s">Account Aggregator</text><text x="50" y="51" class="mn-s">aa.credora.link</text></g>
+
+      <g data-a="fade" data-d="200">
+        <rect class="zone exa" x="360" y="0" width="500" height="590" rx="16"/>
+        <image href="../_assets/Exasol_Logo_2025_Bright.svg" x="384" y="20" height="24" width="110"/>
+        <text x="506" y="38" class="sub">Personal 2026.1 · EC2 r6i.xlarge</text>
+      </g>
+      <g class="n t-db" transform="translate(384,70)" data-a="left" data-d="300"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Virtual schemas</text><text x="436" y="31" class="mn-s end">VS_CBS · VS_CIF · VS_LOS</text></g>
+      <g class="n t-svc" transform="translate(384,130)" data-a="left" data-d="350"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">API UDFs, Python SET</text><text x="436" y="31" class="mn-s end">16 in parallel</text></g>
+      <g class="n t-q" transform="translate(384,190)" data-a="left" data-d="400"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">RUN_ANALYSIS, Lua</text><text x="436" y="31" class="mn-s end">13 logged steps</text></g>
+      <g class="n t-svc" transform="translate(384,250)" data-a="left" data-d="450"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">ML in UDFs</text><text x="436" y="31" class="mn-s end">TRAIN_PD · PD_SCORE · ANOMALY_FLAG</text></g>
+      <g class="n t-svc" transform="translate(384,310)" data-a="left" data-d="500"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Skyline ranking</text><text x="436" y="31" class="mn-s end">PREFERRING · top 50</text></g>
+      <g class="n t-db" transform="translate(384,370)" data-a="left" data-d="550"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Semantic layer</text><text x="436" y="31" class="mn-s end">CREDORA_SEM.PORTFOLIO</text></g>
+      <g class="n t-sec" transform="translate(384,430)" data-a="left" data-d="600"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Roles, row security</text><text x="436" y="31" class="mn-s end">a user per role · V_RM_*</text></g>
+      <g class="n t-sec" transform="translate(384,490)" data-a="left" data-d="650"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Purge with proof</text><text x="436" y="31" class="mn-s end">PURGE_EXPIRED · SHA-256</text></g>
+
+      <g class="n t-fe" transform="translate(980,40)" data-a="rise" data-d="900"><rect width="240" height="270" rx="12"/><use href="#i-monitor" class="ic" x="16" y="18" width="24" height="24"/><text x="50" y="37" class="lbl-s">Web app</text><text x="16" y="62" class="mn-s">credora.loan</text>
+        <text x="16" y="98" class="sub">Admin</text><text x="16" y="117" class="mn-s">CREDORA_ADMIN</text>
+        <text x="16" y="145" class="sub">Data scientist</text><text x="16" y="164" class="mn-s">CREDORA_DATASCI</text>
+        <text x="16" y="192" class="sub">Loan operations</text><text x="16" y="211" class="mn-s">CREDORA_LOANOPS</text>
+        <text x="16" y="239" class="sub">Relationship manager</text><text x="16" y="258" class="mn-s">CREDORA_RM</text></g>
+      <g class="n t-q" transform="translate(980,380)" data-a="rise" data-d="1000"><rect width="240" height="130" rx="12"/><use href="#i-message" class="ic" x="16" y="18" width="24" height="24"/><text x="50" y="37" class="lbl-s">Ask Credora</text><text x="16" y="70" class="sub">Claude + exasol-mcp-server</text><text x="16" y="94" class="sub">as the signed-in role's</text><text x="16" y="114" class="sub">own Exasol user</text></g>
+      <g class="n t-db" transform="translate(1290,120)" data-a="rise" data-d="1200"><rect width="150" height="110" rx="12"/><use href="#i-users" class="ic" x="16" y="16" width="24" height="24"/><text x="48" y="35" class="lbl-s">CRM</text><text x="16" y="64" class="mn-s">PostgreSQL crm</text><text x="16" y="88" class="cap">offers, status</text></g>
+    </svg>
+    <div class="lg" data-a="fade" data-d="1400" style="left:auto;right:0;bottom:64px;flex-direction:column;gap:8px">
+      <span><i class="db"></i>Store</span><span><i class="svc"></i>Compute in Exasol</span><span><i class="q"></i>Orchestration, AI</span><span><i class="sec"></i>Security</span><span><i class="ext"></i>3rd party API</span><span><i class="fe"></i>People, web</span>
+    </div>
+  </div>
+  <aside class="sn">The whole system on one page. On the left, the bank's three databases, read in place through virtual schemas, and the three 3rd party APIs, which Python UDFs call on demand. In the middle, Exasol does everything. Federation, API calls, the risk models, the decision, ranking, the semantic layer and security. On the right, the web app and Ask Credora read the results, each logged in as the signed-in person's own Exasol user. Offers go to the CRM, where relationship managers work them.</aside>
+</section>
+
+<!-- ============================================================ 5 · why Exasol -->
+<section class="slide" id="s5" aria-label="Why Exasol">
+  <div class="hd">
+    <h2 data-a="rise">One engine does seven jobs, and the data never leaves it.</h2>
+    <p data-a="rise" data-d="80">Exasol Personal used to the full, with open-source extensions from both GitHub organisations, exasol and exasol-labs.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="560" role="img" aria-label="Seven Exasol capabilities around one engine">
+      <g>
+        <path class="e c-exa nm" d="M720 290 L 720 92" data-a="draw" data-d="300" data-pk="exa" data-dur="1.4" data-beg="1.4" data-bounce/>
+        <path class="e c-exa nm" d="M720 290 L 1126 140" data-a="draw" data-d="360" data-pk="exa" data-dur="1.4" data-beg="1.6" data-bounce/>
+        <path class="e c-exa nm" d="M720 290 L 1227 344" data-a="draw" data-d="420" data-pk="exa" data-dur="1.4" data-beg="1.8" data-bounce/>
+        <path class="e c-exa nm" d="M720 290 L 946 506" data-a="draw" data-d="480" data-pk="exa" data-dur="1.4" data-beg="2.0" data-bounce/>
+        <path class="e c-exa nm" d="M720 290 L 494 506" data-a="draw" data-d="540" data-pk="exa" data-dur="1.4" data-beg="2.2" data-bounce/>
+        <path class="e c-exa nm" d="M720 290 L 213 344" data-a="draw" data-d="600" data-pk="exa" data-dur="1.4" data-beg="2.4" data-bounce/>
+        <path class="e c-exa nm" d="M720 290 L 314 140" data-a="draw" data-d="660" data-pk="exa" data-dur="1.4" data-beg="2.6" data-bounce/>
+      </g>
+      <g class="n t-exa" data-a="pop" data-d="0"><circle class="b" cx="720" cy="290" r="96" style="fill:#07140a"/><image href="../_assets/exasol-x-on-dark.svg" x="681" y="232" width="78" height="74"/><text x="720" y="336" class="lbl-s mid">Exasol</text></g>
+      <g class="n t-db" transform="translate(560,0)" data-a="pop" data-d="420"><rect width="320" height="92" rx="12"/><text x="18" y="32" class="lbl">Federation</text><text x="18" y="56" class="mn-s">VS_CBS · VS_CIF · VS_LOS</text><text x="18" y="78" class="cap">oracle-virtual-schema · adbc-vs-rs</text></g>
+      <g class="n t-svc" transform="translate(966,94)" data-a="pop" data-d="480"><rect width="320" height="92" rx="12"/><text x="18" y="32" class="lbl">UDFs fetch 3rd party data</text><text x="18" y="56" class="mn-s">CIBIL · GST · AA, 16 at once</text><text x="18" y="78" class="cap">script-languages-release (Python 3)</text></g>
+      <g class="n t-svc" transform="translate(1067,298)" data-a="pop" data-d="540"><rect width="320" height="92" rx="12"/><text x="18" y="32" class="lbl">Machine learning</text><text x="18" y="56" class="mn-s">TRAIN_PD · PD_SCORE · ANOMALY_FLAG</text><text x="18" y="78" class="cap">models as files in BucketFS</text></g>
+      <g class="n t-q" transform="translate(786,460)" data-a="pop" data-d="600"><rect width="320" height="92" rx="12"/><text x="18" y="32" class="lbl">Lua orchestration</text><text x="18" y="56" class="mn-s">RUN_ANALYSIS · 13 steps</text><text x="18" y="78" class="cap">plus TRAIN_MODEL, PURGE_EXPIRED</text></g>
+      <g class="n t-svc" transform="translate(334,460)" data-a="pop" data-d="660"><rect width="320" height="92" rx="12"/><text x="18" y="32" class="lbl">Ranking</text><text x="18" y="56" class="mn-s">PREFERRING skyline</text><text x="18" y="78" class="cap">no hand-tuned weights</text></g>
+      <g class="n t-db" transform="translate(53,298)" data-a="pop" data-d="720"><rect width="320" height="92" rx="12"/><text x="18" y="32" class="lbl">Semantics</text><text x="18" y="56" class="mn-s">CREDORA_SEM.PORTFOLIO</text><text x="18" y="78" class="cap">semantic-views · preprocessor-framework</text></g>
+      <g class="n t-sec" transform="translate(154,94)" data-a="pop" data-d="780"><rect width="320" height="92" rx="12"/><text x="18" y="32" class="lbl">Security, for people and AI</text><text x="18" y="56" class="mn-s">a user per role · V_RM_* views</text><text x="18" y="78" class="cap">mcp-server logs in as the role</text></g>
+      <g data-f="1">
+        <text x="720" y="590" class="sub mid">Without it you need an ETL tool, an API gateway, an ML platform, a scheduler, a ranking service, a metrics layer and an access proxy.</text>
+      </g>
+    </svg>
+  </div>
+  <aside class="sn">Why Exasol? Because one engine does seven jobs here, and we used Exasol Personal to the full, with its open-source extensions from both GitHub organisations. Federation reads the bank's databases in place through oracle-virtual-schema and adbc-vs-rs. Python UDFs fetch 3rd party data via API. UDFs train and score the models, stored in BucketFS. Lua runs the whole pipeline as one call. PREFERRING ranks. exasol-semantic-views and the preprocessor framework give one definition of every metric. And roles, grants and views decide who sees what, for people and for the AI through the Exasol MCP server. Press next for the alternative, seven separate products with the data copied between them.</aside>
+</section>
+
+<!-- ============================================================ 6 · virtual schemas -->
+<section class="slide" id="s6" aria-label="Virtual schemas push queries down">
+  <div class="hd">
+    <h2 data-a="rise">Virtual schemas push the work down. Nothing is copied.</h2>
+    <p data-a="rise" data-d="80">Feature step 7 aggregates core banking by account and month. Exasol hands the join, the filter and the GROUP BY to Oracle.</p>
+  </div>
+  <div class="bd">
+    <div class="code" data-a="rise" data-d="150" style="position:absolute;left:0;top:0;width:560px;font-size:15.5px"><span class="c">-- RUN_ANALYSIS, step 7</span>
+<span class="k">INSERT INTO</span> CREDORA_STAGE.CA_MONTHLY
+<span class="k">SELECT</span> t.ACCOUNT_NO, a.OWNER_ID,
+       <span class="f">TRUNC</span>(t.TXN_DATE, <span class="s">'MM'</span>) MON,
+       <span class="f">SUM</span>(<span class="k">CASE WHEN</span> t.DR_CR = <span class="s">'C'</span>
+           <span class="k">THEN</span> t.AMOUNT <span class="k">ELSE</span> 0 <span class="k">END</span>),
+       ...  <span class="f">COUNT</span>(*) N
+<span class="k">FROM</span> <span class="o">VS_CBS</span>.TXN t
+<span class="k">JOIN</span> <span class="o">VS_CBS</span>.ACCOUNT a
+  <span class="k">ON</span> a.ACCOUNT_NO = t.ACCOUNT_NO
+<span class="k">WHERE</span> a.ACCT_TYPE = <span class="s">'CA'</span>
+<span class="k">GROUP BY</span> t.ACCOUNT_NO, a.OWNER_ID,
+         <span class="f">TRUNC</span>(t.TXN_DATE, <span class="s">'MM'</span>)</div>
+    <p data-f="2" style="position:absolute;left:0;top:486px;width:560px;font-size:21px;line-height:1.45;color:var(--ink)">Monthly totals per account come back. The ~850,000 transactions stay in Oracle, and the bank keeps one system of record.</p>
+    <svg viewBox="0 0 840 600" width="840" height="590" style="position:absolute;left:600px;top:0" role="img" aria-label="Queries flow from Exasol virtual schemas through adapters to RDS and aggregated rows return">
+      <g data-a="fade" data-d="100">
+        <rect class="zone exa" x="0" y="0" width="840" height="262" rx="14"/>
+        <image href="../_assets/Exasol_Logo_2025_Bright.svg" x="20" y="16" height="22" width="100"/>
+        <rect class="zone db" x="0" y="318" width="840" height="270" rx="14"/>
+        <text x="20" y="344" class="zlbl" fill="#a78bfa">RDS, private subnets · read in place</text>
+      </g>
+      <g>
+        <path class="e c-q nm" d="M140 134 L 140 380" style="stroke-opacity:.55" data-pk="q" data-tok="pushdown SQL" data-dur="4.4" data-beg="0.9" data-win="0-0.4"/>
+        <path class="e nm" d="M140 134 L 140 380" style="stroke-opacity:0" data-pk="exa" data-tok="monthly totals" data-dur="4.4" data-beg="0.9" data-win="0.52-0.95" data-rev/>
+        <path class="e c-q nm" d="M420 134 L 420 380" style="stroke-opacity:.55" data-f="1" data-pk="q" data-tok="SQL" data-dur="4.4" data-beg="0.2" data-win="0-0.4"/>
+        <path class="e nm" d="M420 134 L 420 380" style="stroke-opacity:0" data-f="1" data-pk="exa" data-tok="Arrow batches" data-dur="4.4" data-beg="0.2" data-win="0.52-0.95" data-rev/>
+        <path class="e c-q nm" d="M700 134 L 700 380" style="stroke-opacity:.55" data-f="1" data-pk="q" data-tok="SQL" data-dur="4.4" data-beg="0.5" data-win="0-0.4"/>
+        <path class="e nm" d="M700 134 L 700 380" style="stroke-opacity:0" data-f="1" data-pk="exa" data-tok="Arrow batches" data-dur="4.4" data-beg="0.5" data-win="0.52-0.95" data-rev/>
+      </g>
+      <g class="n t-db" transform="translate(30,54)" data-a="rise" data-d="200"><rect width="220" height="80" rx="10"/><text x="16" y="32" class="mn" style="font-size:19px;fill:#f1f5f9">VS_CBS</text><text x="16" y="58" class="cap">virtual schema · Oracle</text></g>
+      <g class="n t-db" transform="translate(310,54)" data-a="rise" data-d="260"><rect width="220" height="80" rx="10"/><text x="16" y="32" class="mn" style="font-size:19px;fill:#f1f5f9">VS_CIF</text><text x="16" y="58" class="cap">virtual schema · MySQL</text></g>
+      <g class="n t-db" transform="translate(590,54)" data-a="rise" data-d="320"><rect width="220" height="80" rx="10"/><text x="16" y="32" class="mn" style="font-size:19px;fill:#f1f5f9">VS_LOS</text><text x="16" y="58" class="cap">virtual schema · PostgreSQL</text></g>
+      <g class="n t-svc" transform="translate(20,160)" data-a="rise" data-d="380"><rect width="256" height="86" rx="10"/><text x="16" y="28" class="lbl-s">Oracle adapter 6.0</text><text x="16" y="50" class="cap">Java · JDBC · ojdbc17</text><use href="#i-github" class="ic" x="16" y="60" width="15" height="15" style="color:#94a3b8"/><text x="37" y="73" class="mn-s">exasol/oracle-virtual-schema</text></g>
+      <g class="n t-svc" transform="translate(310,160)" data-a="rise" data-d="440"><rect width="500" height="86" rx="10"/><text x="16" y="28" class="lbl-s">adbc-vs-rs 0.7 · one adapter, two engines</text><text x="16" y="50" class="cap">Rust + Arrow, in the Rust script language container 0.23.1</text><use href="#i-github" class="ic" x="16" y="60" width="15" height="15" style="color:#94a3b8"/><text x="37" y="73" class="mn-s">exasol-labs/adbc-vs-rs · exasol-labs/language-container-rs</text></g>
+      <g class="n t-db" transform="translate(30,380)" data-a="rise" data-d="500"><rect width="220" height="180" rx="10"/><use href="#i-db" class="ic" x="16" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Oracle SE2</text><text x="16" y="58" class="mn-s">CBS.TXN</text><text x="16" y="78" class="cap">~850,000 rows stay here</text>
+        <g fill="#a78bfa" opacity=".55"><rect x="16" y="94" width="188" height="5" rx="1"/><rect x="16" y="103" width="188" height="5" rx="1"/><rect x="16" y="112" width="188" height="5" rx="1"/><rect x="16" y="121" width="188" height="5" rx="1"/><rect x="16" y="130" width="188" height="5" rx="1"/><rect x="16" y="139" width="188" height="5" rx="1"/><rect x="16" y="148" width="188" height="5" rx="1"/><rect x="16" y="157" width="188" height="5" rx="1"/></g></g>
+      <g class="n t-db" transform="translate(310,380)" data-a="rise" data-d="560"><rect width="220" height="180" rx="10"/><use href="#i-db" class="ic" x="16" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">MySQL 8.4</text><text x="16" y="58" class="mn-s">cif.company, partner</text><text x="16" y="78" class="cap">~3,500 partners, KYC</text></g>
+      <g class="n t-db" transform="translate(590,380)" data-a="rise" data-d="620"><rect width="220" height="180" rx="10"/><use href="#i-db" class="ic" x="16" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">PostgreSQL 16</text><text x="16" y="58" class="mn-s">los.application</text><text x="16" y="78" class="cap">credit need on file,</text><text x="16" y="98" class="cap">5,000 past loans</text></g>
+      <g class="num c-q" data-a="pop" data-d="700"><circle cx="112" cy="296" r="13"/><text x="112" y="296">1</text></g>
+      <g class="num c-exa" data-a="pop" data-d="760"><circle cx="168" cy="296" r="13"/><text x="168" y="296">2</text></g>
+      <text x="196" y="301" class="elbl" data-a="fade" data-d="760">JDBC :1521</text>
+      <text x="448" y="301" class="elbl" data-f="1">ADBC :3306</text>
+      <text x="728" y="301" class="elbl" data-f="1">ADBC :5432</text>
+    </svg>
+  </div>
+  <aside class="sn">Virtual schemas are how Exasol reads the bank without copying it. VS_CBS sits over Oracle core banking through Exasol's Oracle virtual schema adapter, from the exasol organisation. When step 7 asks for monthly totals, Exasol pushes the join, filter and GROUP BY down to Oracle, and only the totals come back. Next, MySQL and PostgreSQL go through adbc-vs-rs from exasol-labs, one Rust adapter for both engines, running in the Rust script language container from BucketFS and moving Arrow batches instead of rows. Next comes the point. The transactions never leave Oracle.</aside>
+</section>
+
+<!-- ============================================================ 7 · 3rd party data via API -->
+<section class="slide" id="s7" aria-label="UDFs fetch 3rd party data via API">
+  <div class="hd">
+    <h2 data-a="rise">Python UDFs fetch 3rd party data via API, 16 at a time.</h2>
+    <p data-a="rise" data-d="80">A SET script groups the keys into 16 buckets by the first hex digit of an MD5 hash, and Exasol runs one UDF instance per bucket, in parallel.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="560" role="img" aria-label="Sixteen UDF instances call the CIBIL, GSTN and Account Aggregator APIs through CONNECTION objects. Replies are staged and purged with proof">
+      <g data-a="fade" data-d="0">
+        <rect class="zone exa" x="0" y="0" width="570" height="600" rx="14"/>
+        <image href="../_assets/Exasol_Logo_2025_Bright.svg" x="20" y="16" height="22" width="100"/>
+        <use href="#i-github" class="ic" x="300" y="18" width="15" height="15" style="color:#94a3b8"/><text x="320" y="31" class="mn-s">script-languages-release</text>
+        <rect class="zone ext" x="1040" y="100" width="400" height="420" rx="14"/>
+        <text x="1060" y="128" class="zlbl" fill="#94a3b8">3rd party data APIs · credora.link</text>
+      </g>
+      <g data-a="rise" data-d="100">
+        <text x="20" y="74" class="mn"><tspan fill="#93c5fd">SELECT</tspan> CREDORA.CIBIL_CONSUMER_FETCH(</text>
+        <text x="20" y="96" class="mn">         <tspan fill="#f9a8d4">'MOCK_CIBIL'</tspan>, pan)</text>
+        <text x="20" y="118" class="mn"><tspan fill="#93c5fd">FROM</tspan> (<tspan fill="#93c5fd">SELECT DISTINCT</tspan> pan,</text>
+        <text x="20" y="140" class="mn">  SUBSTR(HASH_MD5(pan), 1, 1) b</text>
+        <text x="20" y="162" class="mn">  <tspan fill="#93c5fd">FROM</tspan> <tspan fill="#5fc33b">VS_CIF</tspan>."partner" ...)</text>
+        <text x="20" y="184" class="mn"><tspan fill="#93c5fd">GROUP BY</tspan> b</text>
+      </g>
+      <g id="s7fan"></g>
+      <g id="s7bars"></g>
+      <g>
+        <path class="e c-ext" d="M820 195 L 1058 195" data-a="draw" data-d="900" data-pk="ext" data-tok="JSON" data-dur="2" data-beg="1.6" data-bounce/>
+        <path class="e c-ext" d="M820 310 L 1058 310" data-a="draw" data-d="960" data-pk="ext" data-tok="JSON" data-dur="2" data-beg="1.9" data-bounce/>
+        <path class="e c-ext" d="M820 425 L 1058 425" data-a="draw" data-d="1020" data-pk="ext" data-tok="JSON" data-dur="2" data-beg="2.2" data-bounce/>
+      </g>
+      <g class="n t-sec" transform="translate(640,150)" data-a="pop" data-d="700"><rect width="180" height="90" rx="10"/><use href="#i-key" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="mn" style="fill:#f1f5f9;font-size:14.5px">MOCK_CIBIL</text><text x="14" y="58" class="cap">CONNECTION with</text><text x="14" y="76" class="cap">address + token</text></g>
+      <g class="n t-sec" transform="translate(640,265)" data-a="pop" data-d="760"><rect width="180" height="90" rx="10"/><use href="#i-key" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="mn" style="fill:#f1f5f9;font-size:14.5px">MOCK_GSTN</text><text x="14" y="58" class="cap">never written</text><text x="14" y="76" class="cap">in the SQL text</text></g>
+      <g class="n t-sec" transform="translate(640,380)" data-a="pop" data-d="820"><rect width="180" height="90" rx="10"/><use href="#i-key" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="mn" style="fill:#f1f5f9;font-size:14.5px">MOCK_AA</text><text x="14" y="58" class="cap">granted per role</text></g>
+      <g class="n t-ext" transform="translate(1060,150)" data-a="rise" data-d="1000"><rect width="360" height="90" rx="10"/><use href="#i-gauge" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">cibil.credora.link</text><text x="16" y="66" class="sub">3,490 consumer reports in 0.7 s</text></g>
+      <g class="n t-ext" transform="translate(1060,265)" data-a="rise" data-d="1060"><rect width="360" height="90" rx="10"/><use href="#i-receipt" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">gst.credora.link</text><text x="16" y="66" class="sub">71,217 GST returns in 1.4 s</text></g>
+      <g class="n t-ext" transform="translate(1060,380)" data-a="rise" data-d="1120"><rect width="360" height="90" rx="10"/><use href="#i-wallet" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">aa.credora.link</text><text x="16" y="66" class="sub">5,810 accounts in 3.2 s, with consent ids</text></g>
+
+      <g class="n t-db" transform="translate(20,214)" data-a="rise" data-d="500"><rect width="350" height="112" rx="10"/><use href="#i-table" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s mn" style="fill:#f1f5f9">CREDORA_STAGE</text><text x="14" y="58" class="mn-s">CIBIL_CONSUMER · CIBIL_COMMERCIAL</text><text x="14" y="78" class="mn-s">GST_FILING · AA_ACCOUNT</text><text x="14" y="99" class="cap">every row carries PURGE_AT</text></g>
+      <g data-f="1">
+        <path class="e c-sec" d="M195 326 L 195 384"/>
+        <g class="n t-sec" transform="translate(20,388)"><rect width="350" height="190" rx="10"/><use href="#i-trash" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s mn" style="fill:#f1f5f9">PURGE_EXPIRED · Lua</text><text x="14" y="60" class="sub">deletes rows past PURGE_AT,</text><text x="14" y="82" class="sub">every 15 minutes</text>
+          <use href="#i-hash" class="ic" x="14" y="104" width="20" height="20"/><text x="44" y="120" class="mn" style="fill:#f1f5f9">PURGE_LOG</text><text x="14" y="146" class="sub">row count + SHA-256 fingerprint</text><text x="14" y="168" class="cap">proof without keeping the data</text></g>
+      </g>
+    </svg>
+  </div>
+  <aside class="sn">3rd party data comes in via API, through Python SET UDFs, running in Exasol's Python 3 script language container. The SQL spreads the keys over sixteen buckets, and Exasol runs one UDF instance per bucket in parallel. Each calls a bulk endpoint on credora.link. The address and token live in CONNECTION objects, never in the SQL text. That is 3,490 CIBIL reports in under a second. Replies land in CREDORA_STAGE with a purge time. Next, PURGE_EXPIRED deletes them on time and keeps only a row count and a SHA-256 fingerprint as proof.</aside>
+</section>
+
+<!-- ============================================================ 8 · RUN_ANALYSIS -->
+<section class="slide" id="s8" aria-label="RUN_ANALYSIS in Lua">
+  <div class="hd">
+    <h2 data-a="rise">One Lua call runs the whole analysis, step by logged step.</h2>
+    <p data-a="rise" data-d="80"><code>EXECUTE SCRIPT CREDORA.RUN_ANALYSIS('&lt;run&gt;')</code> commits after every step, so the web app can watch the run as it happens.</p>
+  </div>
+  <div class="bd">
+    <div class="run">
+      <ol class="steps" id="s8steps" aria-label="Steps of RUN_ANALYSIS"></ol>
+      <div class="runside">
+        <div class="clock"><div class="v" id="s8clock"></div><p>Measured on the live deployment for 1,000 companies, on one r6i.xlarge node.</p></div>
+        <div class="runlog" aria-label="CREDORA.RUN_LOG"><div class="h">CREDORA.RUN_LOG</div><div class="h">STEP STATUS   ROWS_OUT       MS</div><div id="s8log"></div></div>
+        <p style="font-size:17px;line-height:1.45;color:var(--ink-2)">A failed step is logged with its error and stops the run. The last published run stays visible in the app.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="sn">This is the heart of it. One Lua script, RUN_ANALYSIS, runs thirteen steps. It refreshes the virtual schemas, reads the credit needs on file, fetches CIBIL, GST and Account Aggregator data, computes thirteen features with an Oracle pushdown, scores with the model, flags anomalies, decides the offer and the limit, ranks with PREFERRING, and shadow-scores the challenger. Each step commits and writes a row to RUN_LOG with its row count and time, so the web app shows the run live. The 850,000 core-banking transactions are grouped by month inside Oracle through the pushdown, so feature building takes about 3.6 seconds. The whole run takes 17.5 seconds.</aside>
+</section>
+
+<!-- ============================================================ 9 · ML inside Exasol -->
+<section class="slide" id="s9" aria-label="Machine learning inside Exasol">
+  <div class="hd">
+    <h2 data-a="rise">The models are trained, stored and scored inside Exasol.</h2>
+    <p data-a="rise" data-d="80">Past loans are read live from PostgreSQL. Two models train on the same loans and the same hold-out. Only the active one decides.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="560" role="img" aria-label="TRAIN_PD and TRAIN_SCORECARD write pickles to BucketFS and rows to MODEL_REGISTRY. PD_SCORE loads the active pickle, and ANOMALY_FLAG refers unusual companies">
+      <g>
+        <path class="e c-db" d="M250 95 C 295 95 295 60 338 60" data-a="draw" data-d="300" data-pk="db" data-dur="1.6" data-beg="1.1"/>
+        <path class="e c-db" d="M250 95 C 295 95 295 160 338 160" data-a="draw" data-d="340" data-pk="db" data-dur="1.6" data-beg="1.3"/>
+        <path class="e c-svc" d="M610 60 L 698 60" data-a="draw" data-d="600" data-pk="svc" data-tok=".pkl" data-dur="1.6" data-beg="1.8"/>
+        <path class="e c-svc" d="M610 160 L 698 160" data-a="draw" data-d="640" data-pk="svc" data-tok=".pkl" data-dur="1.6" data-beg="2.1"/>
+        <path class="e c-svc dash" d="M560 200 C 560 300 650 330 758 330" data-a="fade" data-d="700"/>
+        <path class="e c-db dash" d="M720 200 C 720 330 430 330 430 450" data-a="fade" data-d="900" data-pk="db" data-tok="active .pkl" data-dur="2.2" data-beg="2.6"/>
+        <path class="e c-db" d="M220 520 L 298 520" data-a="draw" data-d="1000" data-pk="db" data-dur="1.4" data-beg="2.8"/>
+        <path class="e c-svc" d="M560 520 L 638 520" data-a="draw" data-d="1050" data-pk="svc" data-dur="1.4" data-beg="3"/>
+      </g>
+      <text x="548" y="262" class="elbl end" data-a="fade" data-d="700">AUC, Gini, MODEL_PATH</text>
+      <text x="418" y="436" class="elbl end" data-a="fade" data-d="900">loads the active pickle</text>
+
+      <g class="n t-db" transform="translate(0,40)" data-a="rise" data-d="0"><rect width="250" height="110" rx="10"/><use href="#i-db" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Past loans</text><text x="14" y="58" class="mn-s">VS_LOS."past_loan_training"</text><text x="14" y="80" class="cap">5,000 loans, ~8% defaulted</text><text x="14" y="98" class="cap">read live from PostgreSQL</text></g>
+      <g class="n t-svc" transform="translate(340,20)" data-a="rise" data-d="200"><rect width="270" height="80" rx="10"/><text x="14" y="30" class="lbl-s mn" style="fill:#f1f5f9">TRAIN_PD · champion</text><text x="14" y="54" class="cap">gradient-boosted trees,</text><text x="14" y="71" class="cap">monotonic credit constraints</text></g>
+      <g class="n t-svc" transform="translate(340,120)" data-a="rise" data-d="260"><rect width="270" height="80" rx="10"/><text x="14" y="30" class="lbl-s mn" style="fill:#f1f5f9">TRAIN_SCORECARD</text><text x="14" y="54" class="cap">challenger, logistic</text><text x="14" y="71" class="cap">regression scorecard</text></g>
+      <g class="n t-db" transform="translate(700,20)" data-a="rise" data-d="500"><rect width="260" height="180" rx="10"/><use href="#i-box" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">BucketFS</text><text x="14" y="62" class="mn-s">models/pd_&lt;version&gt;.pkl</text><text x="14" y="84" class="mn-s">models/pd_&lt;version&gt;-lr.pkl</text><text x="14" y="116" class="cap">every version kept, next to</text><text x="14" y="134" class="cap">the Rust SLC, the adapter</text><text x="14" y="152" class="cap">and the JDBC driver</text></g>
+
+      <g class="n t-db" transform="translate(760,250)" data-a="rise" data-d="700"><rect width="430" height="170" rx="10"/><use href="#i-table" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s mn" style="fill:#f1f5f9">CREDORA.MODEL_REGISTRY</text>
+        <text x="14" y="62" class="cap">MODEL</text><text x="170" y="62" class="cap">AUC</text><text x="250" y="62" class="cap">GINI</text><text x="336" y="62" class="cap">IS_ACTIVE</text>
+        <text x="14" y="98" class="sub" style="fill:#f1f5f9">boosting</text><text x="170" y="98" class="mn" style="fill:#f1f5f9" data-k="AUC_CHAMPION"></text><text x="250" y="98" class="mn" data-k="GINI_CHAMPION"></text>
+        <text x="14" y="140" class="sub" style="fill:#f1f5f9">scorecard</text><text x="170" y="140" class="mn" style="fill:#f1f5f9" data-k="AUC_CHALLENGER"></text><text x="250" y="140" class="mn" data-k="GINI_CHALLENGER"></text>
+        <text x="96" y="98" class="cap">&lt;v&gt;</text><text x="96" y="140" class="cap">&lt;v&gt;-lr</text>
+        <g transform="translate(340,82)"><rect width="44" height="24" rx="12" fill="#5fc33b" id="s9track"/><circle cx="32" cy="12" r="9" fill="#04110a" id="s9knob"/></g>
+        <g transform="translate(340,124)"><rect width="44" height="24" rx="12" fill="#334155"/><circle cx="12" cy="12" r="9" fill="#94a3b8"/></g>
+      </g>
+
+      <g class="n t-db" transform="translate(0,470)" data-a="rise" data-d="800"><rect width="220" height="100" rx="10"/><text x="14" y="32" class="lbl-s mn" style="fill:#f1f5f9">FEATURES</text><text x="14" y="58" class="cap">13 per company,</text><text x="14" y="78" class="cap">from step 7</text></g>
+      <g class="n t-svc" transform="translate(300,452)" data-a="rise" data-d="860"><rect width="260" height="128" rx="10"/><text x="14" y="32" class="lbl-s mn" style="fill:#f1f5f9">PD_SCORE</text><text x="14" y="58" class="cap">4 parallel instances, ~1.9 s</text><text x="14" y="78" class="cap">PD and each feature's</text><text x="14" y="98" class="cap">effect on it</text></g>
+      <g class="n t-db" transform="translate(640,470)" data-a="rise" data-d="920"><rect width="220" height="100" rx="10"/><text x="14" y="32" class="lbl-s mn" style="fill:#f1f5f9">SCORES</text><text x="14" y="58" class="cap">PD, grade A1 to D,</text><text x="14" y="78" class="cap">contributions</text></g>
+
+      <g data-f="1">
+        <g class="n t-svc" transform="translate(900,452)"><rect width="270" height="128" rx="10"/><text x="14" y="30" class="lbl-s mn" style="fill:#f1f5f9">ANOMALY_FLAG</text><text x="14" y="54" class="cap">Isolation Forest, 200 trees</text><text x="14" y="76" class="sub" style="fill:#f1f5f9"><tspan data-k="ANOMALY_FLAGGED"></tspan> of 1,000 flagged (3%)</text><text x="14" y="100" class="sub" style="fill:#fbbf24"><tspan data-k="ANOMALY_REFERRED"></tspan> APPROVE → REFER,</text><text x="14" y="119" class="cap">none declined on the flag</text></g>
+        <g class="n t-ext" transform="translate(1200,452)"><rect width="240" height="128" rx="10"/><text x="14" y="30" class="lbl-s">Challenger, shadow</text><text x="14" y="54" class="cap">same run, never decides.</text><text x="14" y="76" class="sub" style="fill:#f1f5f9">would change <tspan data-k="CHALLENGER_GRADES"></tspan> grades</text><text x="14" y="98" class="sub" style="fill:#f1f5f9">and <tspan data-k="CHALLENGER_DECISIONS"></tspan> decisions</text></g>
+      </g>
+      <g data-f="2">
+        <path class="e c-sec" d="M1238 335 L 1194 335" data-pk="sec" data-dur="1.2" data-beg="0.2"/>
+        <g class="n t-sec" transform="translate(1240,250)"><rect width="200" height="176" rx="10"/><use href="#i-shield" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Admin approves</text><text x="14" y="58" class="cap">the data scientist requests</text><text x="14" y="76" class="cap">activation of a version.</text><text x="14" y="94" class="cap">Only then it decides.</text><text x="14" y="126" class="mn-s">SET IS_ACTIVE =</text><text x="14" y="146" class="mn-s">(VERSION = :v)</text></g>
+      </g>
+    </svg>
+  </div>
+  <aside class="sn">Machine learning never leaves the database. TRAIN_PD reads five thousand past loans live from PostgreSQL through VS_LOS, trains gradient-boosted trees with monotonic credit constraints, measures them on a hold-out, and writes the pickle to BucketFS and a row to MODEL_REGISTRY, with AUC 0.756. TRAIN_SCORECARD trains a logistic regression challenger on the same loans and the same hold-out, with AUC 0.769. PD_SCORE loads the active pickle and scores a thousand companies in about two seconds. Next, an Isolation Forest flagged 30 unusual companies, and 4 that would have been approved were referred to a person instead. The challenger shadow-scores every run. It would change 713 grades and 62 decisions. Next, it decides nothing until the admin approves activation.</aside>
+</section>
+
+<!-- ============================================================ 10 · PREFERRING -->
+<section class="slide" id="s10" aria-label="PREFERRING skyline ranking">
+  <div class="hd">
+    <h2 data-a="rise">PREFERRING ranks on three goals at once, with no weights.</h2>
+    <p data-a="rise" data-d="80">The skyline is every approved company that no other beats on return, risk and amount together. Peel it off, take the next skyline, until 50 are ranked.</p>
+  </div>
+  <div class="bd">
+    <div class="sky">
+      <svg viewBox="0 0 860 560" id="s10svg" role="img" aria-label="Illustrative scatter of approved companies, peeled into skyline layers">
+        <rect x="60" y="0" width="800" height="500" fill="#0b1222" rx="10"/>
+        <path d="M60 500 H 860" stroke="#475569" stroke-width="1.5"/>
+        <path d="M60 0 V 500" stroke="#475569" stroke-width="1.5"/>
+        <text x="460" y="534" class="sub mid">probability of default · lower is better</text>
+        <text x="-250" y="36" class="sub mid" transform="rotate(-90)">RAROC at the offer · higher is better</text>
+        <text x="844" y="26" class="cap end">dot size = offer amount · illustrative companies</text>
+        <g id="s10dots"></g>
+      </svg>
+      <div class="sky-side">
+        <div class="code" style="font-size:15px"><span class="k">UPDATE</span> CREDORA.DECISIONS
+   <span class="k">SET</span> SKYLINE_LAYER = :l
+ <span class="k">WHERE</span> APP_ID <span class="k">IN</span> (
+  <span class="k">SELECT</span> APP_ID <span class="k">FROM</span> CREDORA.DECISIONS
+  <span class="k">WHERE</span> DECISION = <span class="s">'APPROVE'</span>
+    <span class="k">AND</span> SKYLINE_LAYER <span class="k">IS NULL</span>
+  <span class="o">PREFERRING HIGH</span> RAROC_OFFER
+     <span class="o">PLUS LOW</span> PD
+     <span class="o">PLUS HIGH</span> OFFER_AMOUNT)</div>
+        <div class="meter"><div class="v" id="s10v"></div><div class="track"><i id="s10bar"></i></div><p id="s10p"></p></div>
+        <p style="font-size:17px;line-height:1.45;color:var(--ink-2)">On the measured run the layers held 83 companies by the time 50 were reached, in 0.02 s. The best 50 approved go to the relationship managers.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="sn">Ranking is where Exasol's PREFERRING clause shines. Instead of inventing weights for return, risk and size, we ask for the skyline, the companies no other company beats on all three at once. Those are layer one. We mark them, ask again for the next skyline, and repeat until fifty are ranked. These dots are illustrative. On the real run the layers held 83 companies, and the whole step took two hundredths of a second.</aside>
+</section>
+
+<!-- ============================================================ 11 · semantic layer -->
+<section class="slide" id="s11" aria-label="Semantic layer and preprocessor">
+  <div class="hd">
+    <h2 data-a="rise">One certified definition serves the app, the analyst and the AI.</h2>
+    <p data-a="rise" data-d="80">CREDORA_SEM.PORTFOLIO holds <span data-k="CERTIFIED_METRICS"></span> certified metrics. The SQL preprocessor compiles semantic queries per role, inside Exasol.</p>
+  </div>
+  <div class="bd">
+    <div class="code" data-a="rise" data-d="120" style="position:absolute;left:0;top:0;width:540px;font-size:16px"><span class="k">METRIC</span> <span class="t">approval_rate</span>
+  <span class="k">AS</span> approved_companies
+     / <span class="f">NULLIF</span>(companies_analysed, 0)
+  <span class="k">ON ENTITY</span> decision
+  <span class="k">FORMAT</span> <span class="s">'percentage'</span>
+  <span class="k">DISPLAY</span> <span class="s">'Approval rate'</span>
+  <span class="k">SYNONYMS</span> (<span class="s">'approval ratio'</span>, <span class="s">'hit rate'</span>)
+  <span class="k">RATIO PUBLIC</span> <span class="o">CERTIFIED</span></div>
+    <svg viewBox="0 0 1440 600" width="1440" height="560" class="dg" role="img" aria-label="A semantic query is compiled by the preprocessor per role into SQL over the latest-run views and serves three consumers">
+      <g>
+        <path class="e c-db" d="M540 140 L 618 140" data-a="draw" data-d="400"/>
+        <path class="e c-exa" d="M880 220 C 940 220 940 70 998 70" data-a="draw" data-d="700" data-pk="exa" data-tok="approval_rate" data-dur="2" data-beg="1.4"/>
+        <path class="e c-exa" d="M880 220 L 998 220" data-a="draw" data-d="760" data-pk="exa" data-tok="approval_rate" data-dur="2" data-beg="1.6"/>
+        <path class="e c-exa" d="M880 220 C 940 220 940 370 998 370" data-a="draw" data-d="820" data-pk="exa" data-tok="approval_rate" data-dur="2" data-beg="1.8"/>
+      </g>
+      <text x="580" y="128" class="elbl mid" data-a="fade" data-d="400">model</text>
+      <g class="n t-db" transform="translate(620,40)" data-a="pop" data-d="500"><rect width="260" height="340" rx="12"/><use href="#i-layers" class="ic" x="16" y="16" width="24" height="24"/><text x="48" y="35" class="lbl-s mn" style="fill:#f1f5f9">CREDORA_SEM</text><text x="16" y="62" class="mn" style="fill:#f1f5f9">.PORTFOLIO</text>
+        <text x="16" y="96" class="cap">one row per company of</text><text x="16" y="114" class="cap">the latest published run</text>
+        <text x="16" y="148" class="sub">approved companies</text><text x="16" y="172" class="sub">approval rate</text><text x="16" y="196" class="sub">pre-approved amount</text><text x="16" y="220" class="sub">negotiation headroom</text><text x="16" y="244" class="sub">expected loss</text><text x="16" y="268" class="sub">anomaly-flagged companies</text><text x="16" y="300" class="cap">synonyms · verified questions</text></g>
+      <g data-a="fade" data-d="600"><use href="#i-github" class="ic" x="620" y="390" width="15" height="15" style="color:#94a3b8"/><text x="641" y="403" class="mn-s">exasol-labs/exasol-semantic-views 0.5.1</text></g>
+      <g class="n t-fe" transform="translate(1000,30)" data-a="rise" data-d="900"><rect width="440" height="80" rx="10"/><use href="#i-monitor" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">Web app screens</text><text x="16" y="64" class="cap">dashboards per role, the same numbers</text></g>
+      <g class="n t-q" transform="translate(1000,180)" data-a="rise" data-d="960"><rect width="440" height="80" rx="10"/><use href="#i-message" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">Ask Credora</text><text x="16" y="64" class="cap">Claude answers from the semantic layer first</text></g>
+      <g class="n t-ext" transform="translate(1000,330)" data-a="rise" data-d="1020"><rect width="440" height="80" rx="10"/><use href="#i-terminal" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">Any SQL client</text><text x="16" y="64" class="cap">an analyst's GROUP BY gets the same rule</text></g>
+
+      <g data-f="1">
+        <text x="0" y="444" class="lbl-s">One semantic statement, as the RM</text>
+        <use href="#i-github" class="ic" x="300" y="431" width="15" height="15" style="color:#94a3b8"/><text x="320" y="444" class="mn-s">exasol-labs/preprocessor-framework 0.9.1</text>
+        <path class="e c-q" d="M300 500 L 334 500"/>
+        <path class="e c-q" d="M576 500 L 610 500"/>
+        <path class="e c-q" d="M852 500 L 886 500"/>
+        <path class="e c-q" d="M1128 500 L 1162 500"/>
+        <path class="e nm" d="M150 556 L 1300 556" style="stroke-opacity:0" data-pk="q" data-tok="approval_rate by industry" data-dur="5" data-beg="0.4" data-win="0-0.9"/>
+        <g class="n t-fe" transform="translate(0,462)"><rect width="300" height="76" rx="10"/><text x="14" y="30" class="mn-s" style="fill:#f1f5f9">SELECT industry, approval_rate</text><text x="14" y="52" class="mn-s" style="fill:#f1f5f9">FROM CREDORA_SEM.PORTFOLIO</text></g>
+        <g class="n t-q" transform="translate(336,462)"><rect width="240" height="76" rx="10"/><text x="14" y="30" class="mn-s" style="fill:#f1f5f9">PREPROC_RT.MASTER</text><text x="14" y="54" class="cap">owns the one system slot</text></g>
+        <g class="n t-sec" transform="translate(612,462)"><rect width="240" height="76" rx="10"/><text x="14" y="30" class="lbl-s">Rule for R_RM</text><text x="14" y="54" class="cap">one rule per role, fail-open</text></g>
+        <g class="n t-svc" transform="translate(888,462)"><rect width="240" height="76" rx="10"/><text x="14" y="30" class="mn-s" style="fill:#f1f5f9">SEMANTIC_VIEWS_V1</text><text x="14" y="54" class="cap">semantic-views 0.5.1 compiler</text></g>
+        <g class="n t-db" transform="translate(1164,462)"><rect width="276" height="76" rx="10"/><text x="14" y="30" class="lbl-s">Plain SQL over</text><text x="14" y="54" class="mn-s">V_LATEST_* (granted per role)</text></g>
+        <text x="0" y="596" class="cap">About 4 ms per statement for routed roles. CREDORA_SVC, which runs the jobs, has no rule and pays nothing.</text>
+      </g>
+    </svg>
+  </div>
+  <aside class="sn">Numbers like the approval rate are defined once, in the semantic model CREDORA_SEM.PORTFOLIO, built with exasol-semantic-views from exasol-labs, with sixteen certified metrics with synonyms and verified questions. The web app, an analyst's SQL client and Ask Credora all read the same definition, so the AI cannot invent its own version of a metric. Next, how it works. Exasol has one SQL preprocessor slot. The preprocessor framework, also from exasol-labs, owns it and runs one rule per role. For the RM, the semantic module compiles the query into plain SQL over the latest-run views the RM may read. It costs about four milliseconds.</aside>
+</section>
+
+<!-- ============================================================ 12 · roles -->
+<section class="slide" id="s12" aria-label="Roles enforced by Exasol">
+  <div class="hd">
+    <h2 data-a="rise">Exasol, not the app, decides who sees what.</h2>
+    <p data-a="rise" data-d="80">Four people, four Exasol users. A relationship manager reads only the V_RM_* views, which return the companies assigned to CURRENT_USER.</p>
+  </div>
+  <div class="bd">
+    <svg viewBox="0 0 820 600" width="820" height="560" style="position:absolute;left:0;top:0" role="img" aria-label="Rings of visibility. 3rd party data, bank data and results, and the RM's views">
+      <g data-a="fade" data-d="0">
+        <rect x="6" y="6" width="808" height="584" rx="44" fill="rgba(136,19,55,0.12)" stroke="#fb7185" stroke-width="1.6"/>
+        <text x="40" y="44" class="lbl-s" fill="#fb7185">Raw 3rd party data · CREDORA_STAGE</text>
+        <text x="40" y="66" class="cap">admin and data scientist only</text>
+      </g>
+      <g data-a="fade" data-d="150">
+        <rect x="56" y="92" width="708" height="478" rx="36" fill="rgba(76,29,149,0.22)" stroke="#a78bfa" stroke-width="1.6"/>
+        <text x="90" y="128" class="lbl-s" fill="#a78bfa">Bank databases and all results · + loan operations</text>
+        <text x="90" y="150" class="cap">read through virtual schemas, or straight from the CREDORA schema</text>
+      </g>
+      <g class="n t-db" transform="translate(96,172)" data-a="rise" data-d="300"><rect width="200" height="44" rx="8"/><text x="14" y="28" class="mn" style="fill:#f1f5f9">CREDORA.DECISIONS</text></g>
+      <g class="n t-db" transform="translate(316,172)" data-a="rise" data-d="340"><rect width="190" height="44" rx="8"/><text x="14" y="28" class="mn" style="fill:#f1f5f9">CREDORA.FEATURES</text></g>
+      <g class="n t-db" transform="translate(526,172)" data-a="rise" data-d="380"><rect width="200" height="44" rx="8"/><text x="14" y="28" class="mn" style="fill:#f1f5f9">VS_CBS.TXN</text></g>
+      <g data-a="fade" data-d="300">
+        <rect x="146" y="254" width="528" height="296" rx="28" fill="rgba(6,78,59,0.3)" stroke="#34d399" stroke-width="2"/>
+        <text x="176" y="288" class="lbl-s" fill="#34d399">The RM's views · V_RM_*</text>
+        <text x="176" y="310" class="mn-s">… JOIN RM_ASSIGNMENT ON EXA_USER = CURRENT_USER</text>
+      </g>
+      <g class="n t-svc" transform="translate(176,330)" data-a="rise" data-d="450"><rect width="220" height="40" rx="8"/><text x="14" y="26" class="mn-s" style="fill:#f1f5f9">V_RM_DECISIONS</text></g>
+      <g class="n t-svc" transform="translate(414,330)" data-a="rise" data-d="490"><rect width="230" height="40" rx="8"/><text x="14" y="26" class="mn-s" style="fill:#f1f5f9">V_RM_COMPANY (full PAN)</text></g>
+      <g id="s12rows" transform="translate(176,390)"></g>
+      <g class="n t-fe" transform="translate(300,488)" data-a="pop" data-d="600"><rect width="220" height="48" rx="24"/><use href="#i-user" class="ic" x="14" y="12" width="24" height="24"/><text x="46" y="30" class="lbl-s">CREDORA_RM</text></g>
+      <g class="n t-fe" transform="translate(360,14)" data-a="pop" data-d="650"><rect width="214" height="30" rx="15"/><text x="107" y="20" class="mn-s mid" style="fill:#f1f5f9">CREDORA_ADMIN</text></g>
+      <g class="n t-fe" transform="translate(586,14)" data-a="pop" data-d="700"><rect width="214" height="30" rx="15"/><text x="107" y="20" class="mn-s mid" style="fill:#f1f5f9">CREDORA_DATASCI</text></g>
+      <g class="n t-fe" transform="translate(536,77)" data-a="pop" data-d="750"><rect width="190" height="30" rx="15"/><text x="95" y="20" class="mn-s mid" style="fill:#f1f5f9">CREDORA_LOANOPS</text></g>
+      <path id="p12a" d="M410 488 C 410 400 230 330 214 254" fill="none" stroke="none"/>
+      <path id="p12b" d="M410 488 C 410 440 300 400 286 372" fill="none" stroke="none"/>
+      <g data-f="1">
+        <g transform="translate(214,254)"><circle r="20" fill="#020617" stroke="#fb7185" stroke-width="2.5"/><path d="M-7 -7 L7 7 M7 -7 L-7 7" stroke="#fb7185" stroke-width="3" stroke-linecap="round"/></g>
+      </g>
+    </svg>
+    <div style="position:absolute;left:870px;top:0;width:570px;display:flex;flex-direction:column;gap:16px">
+      <div class="console" aria-label="Queries as CREDORA_RM">
+        <div class="pr">-- signed in to Exasol as CREDORA_RM (role R_RM)</div>
+        <div data-f="1"><span class="who">CREDORA_RM&gt;</span> SELECT * FROM CREDORA.DECISIONS;</div>
+        <div data-f="1" class="err">insufficient privileges</div>
+        <div data-f="2"><span class="who">CREDORA_RM&gt;</span> SELECT * FROM CREDORA.V_RM_DECISIONS;</div>
+        <div data-f="2" class="okk"><span data-k="RM_BOOK"></span> rows, the companies assigned to</div>
+        <div data-f="2" class="okk">CREDORA_RM, from published runs</div>
+      </div>
+      <div class="code" style="font-size:15px" data-a="rise" data-d="300"><span class="k">CREATE VIEW</span> CREDORA.V_RM_DECISIONS <span class="k">AS</span>
+<span class="k">SELECT</span> d.* <span class="k">FROM</span> CREDORA.DECISIONS d
+<span class="k">JOIN</span> CREDORA.RM_ASSIGNMENT a
+  <span class="k">ON</span> a.CIF_ID = d.CIF_ID
+ <span class="k">AND</span> a.EXA_USER = <span class="o">CURRENT_USER</span>
+<span class="k">JOIN</span> CREDORA.RUN_PUBLISH p
+  <span class="k">ON</span> p.RUN_ID = d.RUN_ID;</div>
+      <p style="font-size:17px;line-height:1.45;color:var(--ink-2)" data-a="fade" data-d="500">The view runs with its owner's rights, so R_RM needs no grant on the tables underneath. In production each RM gets an own Exasol user, and the same views work unchanged.</p>
+    </div>
+  </div>
+  <aside class="sn">Access is enforced by the database. Each role has its own Exasol user, and every screen reads as that user. The rings show reach. Admin and data scientist see raw 3rd party data. Loan operations sees the bank databases and all results. The relationship manager sees only the V_RM views. Next, the RM tries to read DECISIONS directly, and Exasol answers insufficient privileges. Next, the RM reads V_RM_DECISIONS instead, which joins the assignments on CURRENT_USER, and gets exactly the companies loan operations assigned, at full detail. In the demo that is a book of 25 companies.</aside>
+</section>
+
+<!-- ============================================================ 13 · Ask Credora -->
+<section class="slide" id="s13" aria-label="Ask Credora sequence">
+  <div class="hd">
+    <h2 data-a="rise">Ask Credora logs in as you, so the AI cannot read more than you.</h2>
+    <p data-a="rise" data-d="80">Claude reaches Exasol only through the official Exasol MCP server (exasol/mcp-server), started for each question on the app host as the signed-in role's own Exasol user.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 610" width="1440" height="560" role="img" aria-label="Sequence of person, backend, MCP server, Exasol, Claude">
+      <g data-a="fade" data-d="0">
+        <rect class="zone fe" x="270" y="-6" width="590" height="610" rx="14"/>
+        <text x="290" y="596" class="cap">EC2 app host</text>
+      </g>
+      <g data-a="fade" data-d="100" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 6">
+        <path d="M110 64 V 590"/><path d="M420 64 V 590"/><path d="M710 64 V 590"/><path d="M1010 64 V 590"/><path d="M1310 64 V 590"/>
+      </g>
+      <g class="n t-fe" transform="translate(10,6)" data-a="rise" data-d="0"><rect width="200" height="56" rx="10"/><use href="#i-user" class="ic" x="14" y="16" width="24" height="24"/><text x="46" y="27" class="lbl-s">Person</text><text x="46" y="46" class="cap">signed in as rm</text></g>
+      <g class="n t-svc" transform="translate(300,6)" data-a="rise" data-d="60"><rect width="240" height="56" rx="10"/><use href="#i-server" class="ic" x="14" y="16" width="24" height="24"/><text x="46" y="27" class="lbl-s">Backend</text><text x="46" y="46" class="cap">FastAPI, pyexasol</text></g>
+      <g class="n t-svc" transform="translate(590,6)" data-a="rise" data-d="120"><rect width="240" height="56" rx="10"/><use href="#i-network" class="ic" x="14" y="16" width="24" height="24"/><text x="46" y="27" class="lbl-s">exasol-mcp-server</text><text x="46" y="46" class="cap">2.3.0, stdio, writes off</text></g>
+      <g class="n t-exa" transform="translate(900,6)" data-a="rise" data-d="180"><rect width="220" height="56" rx="10"/><image href="../_assets/exasol-x-on-dark.svg" x="14" y="16" width="25" height="24"/><text x="48" y="27" class="lbl-s">Exasol</text><text x="48" y="46" class="cap">checks R_RM grants</text></g>
+      <g class="n t-cloud" transform="translate(1200,6)" data-a="rise" data-d="240"><rect width="220" height="56" rx="10"/><use href="#i-bot" class="ic" x="14" y="16" width="24" height="24"/><text x="48" y="27" class="lbl-s">Claude</text><text x="48" y="46" class="cap">Anthropic API or Bedrock</text></g>
+
+      <g data-f="1">
+        <path class="e c-fe" d="M112 100 L 416 100" data-pk="fe" data-once data-dur="0.9"/>
+        <g class="num c-fe"><circle cx="134" cy="100" r="12"/><text x="134" y="100">1</text></g><text x="156" y="88" class="elbl">question + login token (role rm)</text>
+        <path class="e c-cloud" d="M422 142 L 1306 142" data-pk="cloud" data-once data-dur="1.2" data-beg="0.5"/>
+        <g class="num c-cloud"><circle cx="444" cy="142" r="12"/><text x="444" y="142">2</text></g><text x="466" y="130" class="elbl">topic gate asks if this is about Credora's analysis, IN or OUT, no tools</text>
+        <path class="e c-cloud dash" d="M1308 184 L 424 184" data-pk="cloud" data-once data-dur="1.2" data-beg="1.4"/>
+        <g class="num c-cloud"><circle cx="1286" cy="184" r="12"/><text x="1286" y="184">3</text></g><text x="1264" y="172" class="elbl end">IN (OUT is refused here, and Exasol is never queried)</text>
+      </g>
+      <g data-f="2">
+        <rect x="408" y="206" width="24" height="70" rx="4" fill="#34d399" opacity=".5"/>
+        <g class="num c-svc"><circle cx="452" cy="226" r="12"/><text x="452" y="226">4</text></g><text x="474" y="231" class="elbl" style="fill:#f1f5f9">exasol_login(rm) → CREDORA_RM</text>
+        <path class="e c-svc" d="M432 262 L 706 262" data-pk="svc" data-once data-dur="0.8" data-beg="0.5"/>
+        <g class="num c-svc"><circle cx="454" cy="262" r="12"/><text x="454" y="262">5</text></g><text x="476" y="284" class="elbl">start as CREDORA_RM</text>
+      </g>
+      <g data-f="3">
+        <path class="e c-cloud" d="M422 318 L 1306 318" data-pk="cloud" data-once data-dur="1.2"/>
+        <g class="num c-cloud"><circle cx="444" cy="318" r="12"/><text x="444" y="318">6</text></g><text x="466" y="306" class="elbl">question + MCP tool list (semantic layer first)</text>
+        <path class="e c-cloud" d="M1308 360 L 714 360" data-pk="cloud" data-once data-dur="1" data-beg="1.1"/>
+        <g class="num c-cloud"><circle cx="1286" cy="360" r="12"/><text x="1286" y="360">7</text></g><text x="1264" y="348" class="elbl end">tool call with SQL</text>
+        <path class="e c-svc" d="M712 402 L 1006 402" data-pk="svc" data-once data-dur="0.8" data-beg="2"/>
+        <g class="num c-svc"><circle cx="734" cy="402" r="12"/><text x="734" y="402">8</text></g><text x="756" y="390" class="elbl">SQL as CREDORA_RM</text>
+        <path class="e c-exa dash" d="M1008 444 L 714 444" data-pk="exa" data-once data-dur="0.8" data-beg="2.8"/>
+        <g class="num c-exa"><circle cx="986" cy="444" r="12"/><text x="986" y="444">9</text></g><text x="964" y="432" class="elbl end">rows inside the grants, or</text>
+        <text x="964" y="468" class="elbl end" style="fill:#fb7185">insufficient privileges</text>
+      </g>
+      <g data-f="4">
+        <path class="e c-svc dash" d="M712 508 L 1306 508" data-pk="svc" data-once data-dur="1"/>
+        <g class="num c-svc"><circle cx="734" cy="508" r="12"/><text x="734" y="508">10</text></g><text x="756" y="496" class="elbl">result rows</text>
+        <path class="e c-cloud dash" d="M1308 546 L 424 546" data-pk="cloud" data-once data-dur="1.2" data-beg="0.9"/>
+        <g class="num c-cloud"><circle cx="1286" cy="546" r="12"/><text x="1286" y="546">11</text></g><text x="1264" y="534" class="elbl end">answer</text>
+        <path class="e c-fe dash" d="M418 578 L 114 578" data-pk="fe" data-once data-dur="0.9" data-beg="2"/>
+        <g class="num c-fe"><circle cx="396" cy="578" r="12"/><text x="396" y="578">12</text></g><text x="374" y="566" class="elbl end">answer + every SQL it ran</text>
+      </g>
+    </svg>
+  </div>
+  <aside class="sn">Ask Credora is plain-English questions over the analysis. Watch the role travel. In step one the question arrives with the login token, here as the RM. In two and three a topic gate asks Claude, with no tools, whether this is about Credora, and anything else is refused before Exasol is touched. In four and five exasol_login maps the role to its Exasol user, and the backend starts the official Exasol MCP server, from the exasol organisation, as CREDORA_RM with writes switched off. In six to nine Claude picks tools and writes SQL, and Exasol checks the RM's grants on every statement. In ten to twelve the answer comes back with every SQL statement it ran. A jailbroken prompt still cannot read more than the person who signed in.</aside>
+</section>
+
+<!-- ============================================================ 14 · workflow -->
+<section class="slide" id="s14" aria-label="The workflow end to end">
+  <div class="hd">
+    <h2 data-a="rise">From a published run to a disbursed loan, in four roles.</h2>
+    <p data-a="rise" data-d="80">Each hand-off is a row in Exasol or the CRM, so admin, data scientist and loan operations can track every company.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="570" role="img" aria-label="Swimlanes for data scientist, admin, loan operations and relationship manager">
+      <g data-a="fade" data-d="0">
+        <rect x="0" y="0" width="1440" height="112" rx="10" fill="#0b1222"/>
+        <rect x="0" y="122" width="1440" height="112" rx="10" fill="#0b1222"/>
+        <rect x="0" y="244" width="1440" height="112" rx="10" fill="#0b1222"/>
+        <rect x="0" y="366" width="1440" height="112" rx="10" fill="#0b1222"/>
+        <rect x="0" y="488" width="1440" height="112" rx="10" fill="#0b1222"/>
+        <text x="20" y="50" class="lbl-s">Data scientist</text><text x="20" y="72" class="mn-s">CREDORA_DATASCI</text>
+        <text x="20" y="172" class="lbl-s">Admin</text><text x="20" y="194" class="mn-s">CREDORA_ADMIN</text>
+        <text x="20" y="294" class="lbl-s">Loan operations</text><text x="20" y="316" class="mn-s">CREDORA_LOANOPS</text>
+        <text x="20" y="410" class="lbl-s">Relationship</text><text x="20" y="432" class="lbl-s">manager</text><text x="20" y="454" class="mn-s">CREDORA_RM</text>
+        <text x="20" y="538" class="lbl-s">Loan status</text><text x="20" y="560" class="cap">logged by the RM</text>
+      </g>
+      <g>
+        <path class="e c-sec" d="M280 88 L 280 144" data-a="draw" data-d="500"/>
+        <path class="e c-sec" d="M370 178 C 400 178 396 56 418 56" data-a="draw" data-d="700"/>
+        <path class="e c-svc" d="M600 56 L 628 56" data-a="draw" data-d="800"/>
+        <path class="e c-svc" d="M720 88 C 720 200 860 220 860 264" data-a="draw" data-d="900"/>
+        <path class="e c-svc" d="M950 298 C 1010 298 1070 340 1070 386" data-a="draw" data-d="1000"/>
+        <path class="e c-fe" d="M1160 420 L 1208 420" data-a="draw" data-d="1100"/>
+        <path class="e c-fe" d="M1310 452 L 1310 510" data-a="draw" data-d="1200"/>
+        <path class="e c-ext dash" d="M700 512 C 700 400 990 360 1038 314" data-a="fade" data-d="1400"/>
+        <path d="M510 56 L 720 56 C 720 200 860 220 860 298 C 1010 298 1070 340 1070 420 L 1310 420 L 1310 534 L 1360 534" fill="none" stroke="none" data-pk="cloud" data-tok="C000229" data-dur="7" data-beg="1.6"/>
+      </g>
+      <g class="n t-svc" transform="translate(190,24)" data-a="rise" data-d="100"><rect width="180" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Train · what-if</text><text x="14" y="50" class="cap">proposes model, policy</text></g>
+      <g class="n t-sec" transform="translate(190,146)" data-a="rise" data-d="400"><rect width="180" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Approves</text><text x="14" y="50" class="cap">IS_ACTIVE · CONFIG</text></g>
+      <text x="410" y="150" class="elbl" data-a="fade" data-d="700">official rerun as CREDORA_SVC</text>
+      <g class="n t-q" transform="translate(420,24)" data-a="rise" data-d="600"><rect width="180" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Run analysis</text><text x="14" y="50" class="mn-s">RUN_ANALYSIS</text></g>
+      <g class="n t-svc" transform="translate(630,24)" data-a="rise" data-d="800"><rect width="180" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Publish the run</text><text x="14" y="50" class="mn-s">RUN_PUBLISH</text></g>
+      <g class="n t-svc" transform="translate(770,266)" data-a="rise" data-d="900"><rect width="180" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Assign to RMs</text><text x="14" y="50" class="mn-s">RM_ASSIGNMENT</text></g>
+      <g class="n t-ext" transform="translate(1040,266)" data-a="rise" data-d="1400"><rect width="220" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Track every company</text><text x="14" y="50" class="cap">admin and data scientist too</text></g>
+      <g class="n t-fe" transform="translate(980,388)" data-a="rise" data-d="1000"><rect width="180" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Sees own book</text><text x="14" y="50" class="mn-s">V_RM_* · full detail</text></g>
+      <g class="n t-fe" transform="translate(1210,388)" data-a="rise" data-d="1100"><rect width="226" height="64" rx="10"/><text x="14" y="28" class="lbl-s">Negotiates</text><text x="14" y="50" class="cap">inside the limit, or escalates</text></g>
+      <g transform="translate(640,512)">
+        <g class="n t-fe" data-a="pop" data-d="1250"><rect x="0" width="140" height="44" rx="22"/><text x="70" y="28" class="lbl-s mid">Contacted</text></g>
+        <g class="n t-fe" data-a="pop" data-d="1300"><rect x="156" width="150" height="44" rx="22"/><text x="231" y="28" class="lbl-s mid">Negotiating</text></g>
+        <g class="n t-fe" data-a="pop" data-d="1350"><rect x="322" width="140" height="44" rx="22"/><text x="392" y="28" class="lbl-s mid">Loan taken</text></g>
+        <g class="n t-fe" data-a="pop" data-d="1400"><rect x="478" width="140" height="44" rx="22"/><text x="548" y="28" class="lbl-s mid">In progress</text></g>
+        <g class="n t-exa" data-a="pop" data-d="1450"><rect x="634" width="140" height="44" rx="22"/><text x="704" y="28" class="lbl-s mid">Disbursed</text></g>
+      </g>
+    </svg>
+  </div>
+  <aside class="sn">Here is the people side, end to end. The data scientist trains models and runs what-if on policy, but cannot switch them on. The admin approves model activation and policy proposals, which writes the new CONFIG and starts an official rerun as the service user. The data scientist publishes the run. Loan operations assigns companies to relationship managers. The RM sees only the assigned companies, at full detail, negotiates inside the limit, and logs the status from contacted to disbursed. Admin, data scientist and loan operations track every company along the way.</aside>
+</section>
+
+<!-- ============================================================ 15 · AWS -->
+<section class="slide" id="s15" aria-label="AWS deployment">
+  <div class="hd">
+    <h2 data-a="rise">Started on the starter kit, deployed to AWS with one command.</h2>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 480" width="1440" height="480" role="img" aria-label="AWS deployment in ap-south-1">
+      <g data-a="fade" data-d="0">
+        <rect class="zone cloud" x="290" y="0" width="1150" height="476" rx="16"/>
+        <text x="310" y="24" class="zlbl" fill="#fbbf24">AWS · ap-south-1 (Mumbai)</text>
+        <rect class="zone ext" x="310" y="36" width="850" height="428" rx="14"/>
+        <text x="330" y="60" class="zlbl" fill="#94a3b8">VPC 172.30.0.0/16 · created by the Exasol launcher</text>
+        <rect class="zone fe" x="330" y="72" width="810" height="176" rx="12"/>
+        <text x="348" y="94" class="cap">Public subnet 172.30.1.0/24</text>
+        <rect class="zone db" x="330" y="290" width="810" height="160" rx="12"/>
+        <text x="348" y="312" class="cap">Private subnets 172.30.2.0/24 + 172.30.3.0/24 · RDS not publicly accessible</text>
+      </g>
+      <g>
+        <path class="e c-cloud" d="M130 84 L 130 124" data-a="draw" data-d="600"/>
+        <path class="e c-fe" d="M240 50 C 300 50 330 140 348 150" data-a="draw" data-d="700" data-pk="fe" data-dur="1.6" data-beg="1.4"/>
+        <path class="e c-exa" d="M740 170 L 798 170" data-a="draw" data-d="800" data-pk="exa" data-dur="1.2" data-beg="1.8" data-bounce/>
+        <path class="e c-db" d="M880 240 C 880 290 470 280 470 328" data-a="draw" data-d="900" data-pk="db" data-dur="1.8" data-beg="2.2"/>
+        <path class="e c-db" d="M940 240 C 940 290 730 290 730 328" data-a="draw" data-d="940" data-pk="db" data-dur="1.8" data-beg="2.4"/>
+        <path class="e c-db" d="M1000 240 L 1000 328" data-a="draw" data-d="980" data-pk="db" data-dur="1.8" data-beg="2.6"/>
+        <path class="e c-ext dash" d="M1060 108 C 1060 40 560 40 560 106" data-a="fade" data-d="1100" data-pk="ext" data-dur="2.2" data-beg="2.8"/>
+        <path class="e c-sec dash" d="M240 375 C 600 375 760 270 960 242" data-a="fade" data-d="1200"/>
+        <path class="e c-cloud dash" d="M740 130 C 900 130 1080 90 1184 82" data-a="fade" data-d="1250"/>
+        <path class="e c-cloud dash" d="M240 440 C 300 440 330 230 348 225" data-a="fade" data-d="1300"/>
+      </g>
+      <g class="num c-fe" data-a="pop" data-d="750"><circle cx="292" cy="80" r="12"/><text x="292" y="80">1</text></g>
+      <g class="num c-exa" data-a="pop" data-d="850"><circle cx="770" cy="146" r="12"/><text x="770" y="146">2</text></g>
+      <g class="num c-db" data-a="pop" data-d="950"><circle cx="860" cy="278" r="12"/><text x="860" y="278">3</text></g>
+      <g class="num c-ext" data-a="pop" data-d="1150"><circle cx="810" cy="58" r="12"/><text x="810" y="58">4</text></g>
+      <text x="836" y="63" class="elbl" data-a="fade" data-d="1150">UDFs → cibil./gst./aa.credora.link, out and back in</text>
+      <text x="770" y="196" class="elbl mid" data-a="fade" data-d="850">:8563</text>
+
+      <g class="n t-fe" transform="translate(20,16)" data-a="rise" data-d="100"><rect width="220" height="68" rx="10"/><use href="#i-users" class="ic" x="14" y="22" width="24" height="24"/><text x="48" y="31" class="lbl-s">User (web)</text><text x="48" y="52" class="cap">HTTPS :443</text></g>
+      <g class="n t-cloud" transform="translate(20,126)" data-a="rise" data-d="160"><rect width="220" height="196" rx="10"/><use href="#i-globe" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Route 53</text><text x="14" y="62" class="mn-s" style="fill:#f1f5f9">credora.loan</text><text x="14" y="82" class="cap">@ www docs video ppt</text><text x="14" y="114" class="mn-s" style="fill:#f1f5f9">credora.link</text><text x="14" y="134" class="cap">@ www cibil gst aa</text><text x="14" y="166" class="cap">every record → the app</text><text x="14" y="184" class="cap">host's Elastic IP</text></g>
+      <g class="n t-sec" transform="translate(20,342)" data-a="rise" data-d="220"><rect width="220" height="64" rx="10"/><use href="#i-lock" class="ic" x="14" y="20" width="22" height="22"/><text x="44" y="29" class="lbl-s">Admin IPs (/32)</text><text x="44" y="50" class="cap">:22 :2581 :8443 :8563</text></g>
+      <g class="n t-cloud" transform="translate(20,412)" data-a="rise" data-d="280"><rect width="220" height="56" rx="10"/><use href="#i-bot" class="ic" x="14" y="16" width="22" height="22"/><text x="44" y="27" class="lbl-s">Anthropic API</text><text x="44" y="45" class="cap">or Amazon Bedrock</text></g>
+
+      <g class="n t-fe" transform="translate(350,108)" data-a="rise" data-d="300"><rect width="390" height="132" rx="10"/><use href="#i-server" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">App host · EC2 t3.large</text><text x="14" y="56" class="mn-s">172.30.1.20 · Elastic IP · Docker Compose</text><text x="14" y="82" class="cap">caddy · frontend · backend + exasol-mcp-server</text><text x="14" y="102" class="cap">generator · mock cibil, gstn, aa · mockdb</text><text x="14" y="122" class="cap">Caddy, automatic HTTPS for both domains</text></g>
+      <g class="n t-exa" transform="translate(800,108)" data-a="rise" data-d="360"><rect width="320" height="132" rx="10"/><image href="../_assets/exasol-x-on-dark.svg" x="14" y="13" width="23" height="22"/><text x="44" y="31" class="lbl-s">Exasol Personal 2026.1.0</text><text x="14" y="56" class="mn-s">EC2 r6i.xlarge · 172.30.1.11</text><text x="14" y="82" class="cap">:8563 SQL (TLS) · :8443 admin UI</text><text x="14" y="102" class="cap">:2581 BucketFS · :22 SSH</text><text x="14" y="122" class="cap">exasol/exasol-personal launcher 2.3.0</text></g>
+      <g class="n t-db" transform="translate(350,330)" data-a="rise" data-d="420"><rect width="240" height="104" rx="10"/><use href="#i-db" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">RDS Oracle SE2</text><text x="14" y="58" class="mn-s">:1521 JDBC · CBS</text><text x="14" y="82" class="cap">ACCOUNT · TXN (~850k)</text></g>
+      <g class="n t-db" transform="translate(610,330)" data-a="rise" data-d="460"><rect width="240" height="104" rx="10"/><use href="#i-db" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">RDS MySQL 8.4</text><text x="14" y="58" class="mn-s">:3306 ADBC · cif</text><text x="14" y="82" class="cap">company · partner · rm</text></g>
+      <g class="n t-db" transform="translate(870,330)" data-a="rise" data-d="500"><rect width="250" height="104" rx="10"/><use href="#i-db" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">RDS PostgreSQL 16</text><text x="14" y="58" class="mn-s">:5432 ADBC · los, crm</text><text x="14" y="82" class="cap">application · past_loan · offer</text></g>
+      <g class="n t-cloud" transform="translate(1186,50)" data-a="rise" data-d="560"><rect width="230" height="72" rx="10"/><use href="#i-key" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Secrets Manager</text><text x="14" y="58" class="cap">DB, API and Exasol users</text></g>
+      <g class="n t-cloud" transform="translate(1186,140)" data-a="rise" data-d="600"><rect width="230" height="72" rx="10"/><use href="#i-box" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Amazon S3</text><text x="14" y="58" class="cap">ground truth, model archive</text></g>
+      <g class="n t-cloud" transform="translate(1186,230)" data-a="rise" data-d="640"><rect width="230" height="72" rx="10"/><use href="#i-shield" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">IAM instance role</text><text x="14" y="58" class="cap">reads the runtime secret</text></g>
+      <g class="n t-cloud" transform="translate(1186,320)" data-a="rise" data-d="680"><rect width="230" height="72" rx="10"/><use href="#i-bot" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Amazon Bedrock</text><text x="14" y="58" class="cap">optional, AI_PROVIDER=bedrock</text></g>
+    </svg>
+    <div class="deprow">
+      <div class="dep-kit" data-a="rise" data-d="1500"><b>Before AWS, on a laptop</b>Exasol Personal Local Starter Kit (exakit 0.2.3) with local Exasol, MCP setup, exapump, pyexasol</div>
+      <div class="code dep-cmd"><span class="c">$&nbsp;</span><span id="s15cmd" class="t">python deploy/credora.py deploy --env &lt;name&gt;</span></div>
+      <div class="deps">
+        <div data-a="rise" data-d="1800">Exasol on EC2, launcher 2.3.0</div>
+        <div data-a="rise" data-d="1950">RDS ×3, app host, S3, DNS (OpenTofu)</div>
+        <div data-a="rise" data-d="2100">App, mocks, sites (Compose)</div>
+        <div data-a="rise" data-d="2250">1,000 synthetic companies</div>
+        <div data-a="rise" data-d="2400">SLC, adapters, UDFs, Lua, roles, semantics</div>
+        <div data-a="rise" data-d="2550">First training and analysis</div>
+      </div>
+    </div>
+  </div>
+  <aside class="sn">Credora started on a laptop, on the Exasol Personal Local Starter Kit, exakit 0.2.3, with exapump and pyexasol. Then we deployed Exasol Personal to AWS with the official launcher, version 2.3.0, running Exasol 2026.1.0. One region, Mumbai. The launcher creates the VPC and the Exasol node, an r6i.xlarge. OpenTofu adds three private RDS databases, the app host, S3, Secrets Manager and Route 53 for both domains, credora.loan for the bank and credora.link for the 3rd party data APIs. Only ports 80 and 443 are open to the world. And all of it is one command, in any AWS account, with nothing account-specific in the code.</aside>
+</section>
+
+<!-- ============================================================ 16 · numbers -->
+<section class="slide" id="s16" aria-label="Scale and numbers">
+  <div class="hd">
+    <h2 data-a="rise">Realistic volumes for a mid-size corporate book.</h2>
+    <p data-a="rise" data-d="80">The data is synthetic, but the volumes are not small. Rows per source on a log scale, and what one run costs.</p>
+  </div>
+  <div class="bd">
+    <div class="stats">
+      <div>
+        <div class="vol" id="s16vol"></div>
+        <div class="vol-axis"><span></span><div><span>1k</span><span>10k</span><span>100k</span><span>1M</span></div><span></span></div>
+      </div>
+      <div class="figs">
+        <div class="fig exa" data-a="rise" data-d="200"><div class="v"><span data-k="RUN_SECONDS" data-count></span><small>s</small></div><p>the full analysis of 1,000 companies, 13 steps, one Exasol call</p></div>
+        <div class="fig" data-a="rise" data-d="260"><div class="v" data-k="AUC_CHAMPION"></div><p>AUC of the champion. The challenger scorecard reaches <span data-k="AUC_CHALLENGER"></span></p></div>
+        <div class="fig" data-a="rise" data-d="320"><div class="v"><span data-count="16">16</span></div><p>UDF instances fetching 3rd party data via API in parallel</p></div>
+        <div class="fig" data-a="rise" data-d="380"><div class="v"><span data-k="ANOMALY_FLAGGED" data-count></span></div><p>companies flagged by the Isolation Forest, and <span data-k="ANOMALY_REFERRED"></span> approvals became referrals</p></div>
+        <div class="fig wide" data-a="rise" data-d="440"><div class="v">~<span data-count="75">75</span><small>s</small></div><p>to regenerate all the synthetic data, with 1,000 companies, ~3,500 partners, every source rebuilt consistently. Semantic routing adds ~4 ms per statement.</p></div>
+      </div>
+    </div>
+  </div>
+  <aside class="sn">Some numbers, all measured on the live deployment. Eight hundred and fifty thousand current-account transactions in Oracle, four hundred thousand other-bank transactions behind the Account Aggregator, seventy-one thousand GST returns, five thousand past loans to learn from. One RUN_ANALYSIS call over all of it takes 17.5 seconds on a single node. The champion model reaches an AUC of 0.756, the challenger 0.769. The anomaly flag picked out 30 companies. And the whole synthetic world regenerates in about seventy-five seconds.</aside>
+</section>
+
+<!-- ============================================================ 17 · security and failure -->
+<section class="slide" id="s17" aria-label="Security and failure modes">
+  <div class="hd">
+    <h2 data-a="rise">Narrow doors, and failures that stay contained.</h2>
+  </div>
+  <div class="bd">
+    <div class="sec2">
+      <div class="layers">
+        <div class="lay" data-a="left" data-d="100"><svg class="ic" style="color:var(--fe)"><use href="#i-globe"/></svg><div><b>Network</b><p>Only 80 and 443 are public. Exasol's ports open to admin IPs only, and RDS sits in private subnets.</p></div></div>
+        <div class="lay" data-a="left" data-d="170"><svg class="ic" style="color:var(--sec)"><use href="#i-shield"/></svg><div><b>Database grants</b><p>A user per role. A refused query reaches the app as <code>403 Exasol denied access for your role</code>.</p></div></div>
+        <div class="lay" data-a="left" data-d="240"><svg class="ic" style="color:var(--q)"><use href="#i-bot"/></svg><div><b>AI in the same boundary</b><p>MCP writes off, a topic gate before any query, every SQL statement shown with the answer.</p></div></div>
+        <div class="lay" data-a="left" data-d="310"><svg class="ic" style="color:var(--cloud)"><use href="#i-key"/></svg><div><b>Secrets</b><p>Generated per deployment into Secrets Manager. API tokens live in CONNECTION objects. None in the repo.</p></div></div>
+        <div class="lay" data-a="left" data-d="380"><svg class="ic" style="color:var(--svc)"><use href="#i-trash"/></svg><div><b>Consent and retention</b><p>3rd party replies carry a purge time. PURGE_EXPIRED deletes them and keeps a SHA-256 proof.</p></div></div>
+      </div>
+      <table class="fails" aria-label="Failure modes">
+        <thead><tr><th>If this fails</th><th>What happens</th><th>Recovery</th></tr></thead>
+        <tbody>
+          <tr data-a="rise" data-d="300"><td><i></i>A bank database</td><td>That step fails and is logged, and the last published run stays visible</td><td>Re-run when it is back</td></tr>
+          <tr data-a="rise" data-d="370"><td><i></i>A 3rd party API</td><td>The fetch fails with the API's error, and nothing half-done is published</td><td>Re-run, the relays are stateless</td></tr>
+          <tr data-a="rise" data-d="440"><td><i></i>A preprocessor module</td><td>The framework skips it (fail-open), and plain SQL keeps working</td><td>Fix or remove its rule</td></tr>
+          <tr data-a="rise" data-d="510"><td><i></i>The Exasol node</td><td>The app shows the last results it can reach, and analysis and AI pause</td><td>Restart, and <code>deploy</code> recreates objects</td></tr>
+          <tr data-a="rise" data-d="580"><td><i></i>The app host</td><td>The site is down, but Exasol and the databases are unaffected</td><td><code>credora.py ship</code></td></tr>
+          <tr data-a="rise" data-d="650"><td><i></i>The MCP server</td><td>Ask Credora returns 503, and the rest of the app works</td><td>Ask again for a fresh process</td></tr>
+          <tr data-a="rise" data-d="720"><td><i></i>A question outside grants</td><td>Exasol refuses, and Claude says the role cannot see it</td><td>None, this is access control working</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <aside class="sn">Security in brief. Only the web ports are public, Exasol is limited to admin IPs, and the bank databases are private. The database enforces every role, and the AI sits inside the same boundary with writes switched off. Secrets are generated per deployment, and consent-based data is purged with proof. On the right are the failure modes, and each one is contained. A source outage fails one logged step and keeps the last published results. A broken preprocessor module is skipped. A question outside the grants is simply refused, which is the access control working.</aside>
+</section>
+
+<!-- ============================================================ 18 · demo map -->
+<section class="slide" id="s18" aria-label="Demo map">
+  <div class="hd">
+    <h2 data-a="rise">Every screen in the demo proves an Exasol feature.</h2>
+    <p data-a="rise" data-d="80">Explain mode shows it live, with an Exasol console showing the SQL behind each screen, an ⓘ glossary, and a control room.</p>
+  </div>
+  <div class="bd">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="570" role="img" aria-label="App screens linked to the Exasol features they demonstrate">
+      <g id="s18links"></g>
+      <g id="s18left"></g>
+      <g id="s18right"></g>
+    </svg>
+  </div>
+  <aside class="sn">If you open the app, here is what to look at. Sources proves federation. credora.link shows the 3rd party data APIs the UDFs call. Analysis runs and the company report show every step of the Lua script with its SQL. Risk models and approvals show training, BucketFS and activation. Top 50 is PREFERRING. The RM's book is row-level security. Ask Credora shows the semantic layer and per-role access for the AI. And explain mode puts an Exasol console, a glossary and a control room on top of every screen.</aside>
+</section>
+
+<!-- ============================================================ 19 · thank you, open source -->
+<section class="slide" id="s19" aria-label="Built with Exasol open source">
+  <div class="hd">
+    <h2 data-a="rise">Built with Exasol open source. Thank you.</h2>
+    <p data-a="rise" data-d="80">Every project below runs in the live deployment, from both GitHub organisations, exasol and exasol-labs. Thank you to the Exasol team and the contributors.</p>
+  </div>
+  <div class="bd">
+    <div class="oss" id="s19list"></div>
+  </div>
+  <aside class="sn">Credora is assembled from Exasol's own products and open-source projects, from both the exasol and the exasol-labs GitHub organisations. The starter kit is where we began, with exapump and pyexasol. Exasol Personal and its launcher run the database. The Oracle virtual schema, adbc-vs-rs and the Rust language container read the bank in place. The script language containers run our Python and Java. exasol-semantic-views and the preprocessor framework give certified metrics per role, and the Exasol MCP server lets the AI query as the signed-in role. Thank you to everyone who built them.</aside>
+</section>
+
+<!-- ============================================================ 20 · closing -->
+<section class="slide" id="s20" aria-label="Closing">
+  <div class="ti-brand" data-a="rise"><img src="../_assets/credora-gem.svg" alt=""><b>Credora<span>for Sapphire Bank</span></b></div>
+  <p class="end-h" data-a="rise" data-d="80">Contributions welcome. Want to build on Credora, adapt it, or buy or license it?</p>
+  <p class="end-p" data-a="rise" data-d="140">Raise an issue at <b>github.com/anamika-iit-kgp/credora</b>. Credora is an ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS.</p>
+  <div class="end-links">
+    <a href="https://github.com/anamika-iit-kgp/credora/issues" data-a="rise" data-d="200"><svg class="ic" style="color:var(--ink)"><use href="#i-github"/></svg><div><b>Raise an issue</b><span>github.com/anamika-iit-kgp/credora</span></div></a>
+    <a href="https://credora.loan" data-a="rise" data-d="250"><svg class="ic" style="color:var(--fe)"><use href="#i-monitor"/></svg><div><b>credora.loan</b><span>the app · one-click sign-in for all four roles</span></div></a>
+    <a href="https://docs.credora.loan" data-a="rise" data-d="300"><svg class="ic" style="color:var(--db)"><use href="#i-book"/></svg><div><b>docs.credora.loan</b><span>architecture, diagrams, why Exasol</span></div></a>
+    <a href="https://credora.link" data-a="rise" data-d="350"><svg class="ic" style="color:var(--ext)"><use href="#i-globe"/></svg><div><b>credora.link</b><span>3rd party data via API. CIBIL, GSTN, Account Aggregator</span></div></a>
+  </div>
+  <div class="end-credit" data-a="fade" data-d="500">
+    <span>Built for ExaThon India 2026 · Powered by</span><img src="../_assets/Exasol_Logo_2025_Bright.svg" alt="Exasol"><span>Personal</span>
+  </div>
+  <p class="end-by" data-a="fade" data-d="550">Project by Anamika, Product Manager @ Equitas Small Finance Bank. Sapphire Bank is fictional and all data is synthetic.</p>
+  <aside class="sn">That is Credora. A bank's scattered data, decided inside Exasol, and handed to the people who make the call. It is an ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS. Contributions are welcome. If you want to build on Credora, adapt it for your bank, or talk about buying or licensing it, raise an issue at github.com/anamika-iit-kgp/credora. Everything you saw is live at credora.loan. Thank you.</aside>
+</section>
+
+</div>
+</main>
+
+<div class="notes" id="notes" hidden aria-live="polite"><h4 id="notesTitle">Speaker notes</h4><div id="notesBody"></div></div>
+
+<nav class="bar" id="bar" aria-label="Slide controls">
+  <button type="button" id="bPrev" aria-label="Previous slide"><svg class="ic"><use href="#i-left"/></svg></button>
+  <span class="count" id="count" aria-live="polite">1 / 20</span>
+  <button type="button" id="bNext" aria-label="Next slide"><svg class="ic"><use href="#i-right"/></svg></button>
+  <button type="button" id="bNotes" aria-pressed="false" aria-label="Speaker notes (N)"><svg class="ic"><use href="#i-notes"/></svg></button>
+  <button type="button" id="bFull" class="hide-phone" aria-label="Full screen (F)"><svg class="ic"><use href="#i-max"/></svg></button>
+  <a id="bPdf" href="presentation.pdf" download><svg class="ic"><use href="#i-download"/></svg><span class="hide-phone">Download PDF</span></a>
+  <span class="views hide-phone" data-views="ppt"></span>
+</nav>
+
+<script src="deck.js"></script>
+<script src="../_assets/sites.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+# secrets and local config
+.env
+.env.*
+!.env.example
+secrets.json
+*.pem
+*.key
+
+# infrastructure state (one folder per deployment)
+infra/state/
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+exasol/launcher/deployments/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# node
+node_modules/
+dist/
+build/
+
+# models and build output
+sites/docs/dist/
+exasol/slc/.build_output/
+*.tar.gz
+exasol/models/artifacts/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# pinned release downloads (deploy/exasol_setup.py)
+deploy/.cache/
+
+# per-deployment state, keys, logs and ACCESS.md (deploy/credora.py)
+deployments/
+
+# written by deploy/credora.py ship
+deploy/remote/secret_id
+deploy/remote/region
+deploy/remote/Caddyfile
+deploy/remote/exasol_fingerprint

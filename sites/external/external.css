@@ -1,0 +1,331 @@
+/* credora.link serves the 3rd party data APIs. Same system as the bank's sites, but the accent is the API orchid
+   and the shape is the dashed ring the app uses for every external source. */
+
+.world::before {
+  background:
+    radial-gradient(50% 40% at 78% 22%, color-mix(in srgb, var(--api) 14%, transparent), transparent 70%),
+    radial-gradient(40% 35% at 8% 70%, var(--glow-a), transparent 70%);
+}
+.world-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--api);
+}
+.world-mark:hover {
+  text-decoration: none;
+}
+.world-eyebrow {
+  color: var(--api);
+}
+.world-stage {
+  gap: 36px;
+}
+
+/* route: three steps from the bank's Exasol to the mock API */
+.route {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  overflow: hidden;
+}
+.route-step {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  padding: 18px 20px;
+  position: relative;
+}
+.route-step + .route-step {
+  border-left: 1px dashed var(--line-strong);
+}
+.route-text {
+  display: block;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.route-text strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+.route-text code {
+  font-size: 0.92em;
+  color: var(--ink);
+}
+.route-shape {
+  margin-top: 4px;
+  width: 14px;
+  height: 14px;
+  justify-self: center;
+}
+.route-exa {
+  /* stock processor icon (Lucide) for Exasol */
+  background: var(--exa);
+  -webkit-mask: url("/_assets/icon-cpu.svg") center / contain no-repeat;
+  mask: url("/_assets/icon-cpu.svg") center / contain no-repeat;
+}
+.route-net {
+  height: 0;
+  width: 18px;
+  margin-top: 11px;
+  border-top: 2px dashed var(--api);
+}
+.route-api {
+  border: 2px dashed var(--api);
+  border-radius: 50%;
+}
+
+/* the three 3rd party APIs */
+.parties {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.party {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--hi-inset);
+  transition: border-color 180ms ease;
+}
+.party:hover {
+  border-color: color-mix(in srgb, var(--api) 45%, var(--line));
+}
+.party-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.party-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--api);
+  background: var(--api-tint);
+}
+.party-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.api-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  border: 1px dashed var(--api);
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--api);
+  background: var(--api-tint);
+  white-space: nowrap;
+}
+.api-tag-k {
+  font-weight: 600;
+  padding: 0 7px;
+  border-right: 1px solid color-mix(in srgb, var(--api) 40%, transparent);
+}
+.api-tag-v {
+  padding: 0 7px;
+}
+.party-title {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.party-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.party-endpoints {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  border-radius: var(--r-md);
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.party-endpoints li {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+.party-endpoints span {
+  color: var(--code-kw);
+  font-weight: 500;
+}
+.party-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.party-host {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.party-links {
+  display: inline-flex;
+  gap: 6px;
+}
+.btn-sm {
+  height: 30px;
+  padding: 0 11px;
+  font-size: 13px;
+}
+.btn-sm svg {
+  width: 13px;
+  height: 13px;
+}
+.btn-api {
+  color: var(--api);
+  border-color: color-mix(in srgb, var(--api) 50%, transparent);
+  background: var(--api-tint);
+}
+.btn-api:hover {
+  border-color: var(--api);
+}
+
+/* facts */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.fact {
+  padding: 2px 0 0 16px;
+  border-left: 2px solid var(--line-strong);
+  font-size: 14px;
+  color: var(--muted);
+}
+.fact:first-child {
+  border-left-color: var(--refer);
+}
+.fact:nth-child(2) {
+  border-left-color: var(--api);
+}
+.fact:last-child {
+  border-left-color: var(--bank);
+}
+.fact p {
+  margin: 6px 0 0;
+}
+.fact p + p {
+  margin-top: 14px;
+}
+.fact code {
+  font-size: 0.9em;
+  color: var(--ink);
+}
+.fact-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+@media (max-width: 980px) {
+  .route,
+  .parties,
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .route-step + .route-step {
+    border-left: 0;
+    border-top: 1px dashed var(--line-strong);
+  }
+}
+
+/* live counts from the relays' /status endpoints */
+.live {
+  display: grid;
+  gap: 12px;
+  margin: 8px 0 28px;
+}
+.live-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+}
+.live-head h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+#live-stamp {
+  font-size: 0.8rem;
+  color: var(--muted, #8b95a8);
+}
+.live-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.live-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.live-name {
+  font-weight: 600;
+  margin: 0;
+}
+.live-state {
+  font-size: 0.75rem;
+  color: var(--muted, #8b95a8);
+  margin: 2px 0 12px;
+}
+.live-state.is-up::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  margin-right: 6px;
+}
+.live-stats {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.live-stats dt {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.live-stats dd {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted, #8b95a8);
+}
+@media (max-width: 760px) {
+  .live-grid { grid-template-columns: 1fr; }
+}

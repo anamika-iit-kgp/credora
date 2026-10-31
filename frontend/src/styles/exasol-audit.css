@@ -1,0 +1,47 @@
+/* Exasol audit screen and the EXPLAIN VIRTUAL panel on Sources. */
+.xa-note {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+.xa-small {
+  font-size: var(--fs-xs);
+}
+.xa-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+}
+.xa-table td {
+  vertical-align: top;
+}
+.xa-sql code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: var(--fs-xs);
+}
+.xa-commit td {
+  background: var(--approve-tint);
+}
+.xa-push {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+.xa-push-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: baseline;
+}
+.xa-push-head h3 {
+  margin: 0;
+  font-size: var(--fs-md, 1rem);
+}
+.xa-arrow {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  margin: 4px 0 0;
+}

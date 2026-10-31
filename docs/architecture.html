@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credora Final</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: architecture document, one reading column with a sticky section nav; diagrams, tables and code scroll inside their own boxes */
+:root{
+  --bg:#f6f7f9; --paper:#fff; --ink:#18202e; --muted:#5a6475; --line:#d9dee7;
+  --accent:#23468f; --accent-soft:#e6ecf8;
+  --good:#1f7a4d; --good-soft:#e3f3ea; --warn:#a35f00; --warn-soft:#fbf0dc; --bad:#b0332b; --bad-soft:#f9e4e2;
+  --display:"Literata",Georgia,serif; --body:"IBM Plex Sans",system-ui,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#11151c; --paper:#181d26; --ink:#e6e9ef; --muted:#9aa4b5; --line:#2b3341;
+  --accent:#8fb0f0; --accent-soft:#1f2a40; --good:#6cc89a; --good-soft:#163024; --warn:#e6a94f; --warn-soft:#33270f; --bad:#ee8a82; --bad-soft:#3a1b19; color-scheme:dark}}
+*{box-sizing:border-box}
+html{scroll-padding-top:60px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.6}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 16px 80px;display:grid;gap:38px}
+h1,h2,h3{font-family:var(--display);line-height:1.25;margin:0;text-wrap:balance}
+h1{font-size:2.2rem} h2{font-size:1.45rem} h3{font-size:1.05rem}
+p{margin:0;max-width:74ch}
+.eyebrow{font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.meta{color:var(--muted);font-size:.9rem}
+section{display:grid;gap:14px}
+nav.toc{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 0;display:flex;flex-wrap:wrap;gap:6px}
+nav.toc a{font-size:.85rem;color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--paper);padding:4px 11px;border-radius:99px}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+.diagram{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:10px}
+.diagram svg{display:block;min-width:900px;width:100%;height:auto}
+svg text{font-family:var(--body);fill:var(--ink)}
+svg .t-s{font-size:11px;fill:var(--muted)}
+svg .t-m{font-size:12.5px}
+svg .t-b{font-size:13px;font-weight:600}
+svg .t-mono{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+svg .zone{fill:none;stroke:var(--line);stroke-width:1.5}
+svg .zone-aws{fill:none;stroke:var(--warn);stroke-width:1.5;stroke-dasharray:6 4}
+svg .zone-vpc{fill:none;stroke:var(--accent);stroke-width:1.5}
+svg .zone-pub{fill:var(--good-soft);stroke:var(--good);stroke-width:1}
+svg .zone-priv{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1}
+svg .card{fill:var(--paper);stroke:var(--line);stroke-width:1.2}
+svg .card-ex{fill:var(--paper);stroke:var(--accent);stroke-width:2}
+svg .chip{fill:var(--bg);stroke:var(--line);stroke-width:1}
+svg .flow{fill:none;stroke:var(--muted);stroke-width:1.6}
+svg .flow-admin{fill:none;stroke:var(--warn);stroke-width:1.6;stroke-dasharray:5 4}
+svg .card-int{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.2}
+svg .card-extm{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.2}
+svg .card-out{fill:var(--good-soft);stroke:var(--good);stroke-width:1.2}
+svg .card-gen{fill:var(--paper);stroke:var(--muted);stroke-width:1.2;stroke-dasharray:5 4}
+svg .lane{fill:var(--bg);stroke:var(--line)}
+svg .lane2{fill:var(--paper);stroke:var(--line)}
+svg .flow-gen{fill:none;stroke:var(--warn);stroke-width:1.6;stroke-dasharray:5 4}
+svg .tc{text-anchor:middle}
+svg .g-cloud{fill:none;stroke:var(--ink);stroke-width:1.5}
+svg .g-cloud-tag{fill:#232F3E}
+svg .g-region{fill:none;stroke:#00A4A6;stroke-width:1.3;stroke-dasharray:6 4}
+svg .g-region-t{fill:#00A4A6}
+svg .g-vpc{fill:none;stroke:#8C4FFF;stroke-width:1.5}
+svg .g-vpc-tag{fill:#8C4FFF}
+svg .g-vpc-t{fill:#8C4FFF}
+svg .g-pub{fill:#7AA116;fill-opacity:.07;stroke:#7AA116;stroke-width:1.3}
+svg .g-pub-t{fill:#7AA116;font-weight:600}
+svg .g-priv{fill:#00A4A6;fill-opacity:.07;stroke:#00A4A6;stroke-width:1.3}
+svg .g-priv-t{fill:#00A4A6;font-weight:600}
+svg .g-sg{fill:var(--paper);stroke:#DD344C;stroke-width:1.2;stroke-dasharray:5 3}
+svg .g-sg-t{fill:#DD344C}
+svg .badge circle{fill:var(--ink)}
+svg .badge-w circle{fill:var(--warn)}
+svg .badge text{fill:var(--paper);font-size:10.5px;font-weight:700;text-anchor:middle}
+ol.steps{font-size:.9rem;margin:10px 0 4px;padding-left:22px}
+ol.steps li{margin:2px 0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{display:inline-block;width:14px;height:14px;border-radius:3px;border:1.5px solid}
+.lg-int{background:var(--accent-soft);border-color:var(--accent)}
+.lg-ext{background:var(--warn-soft);border-color:var(--warn)}
+.lg-ex{background:var(--paper);border-color:var(--accent);border-width:2.5px}
+.lg-out{background:var(--good-soft);border-color:var(--good)}
+.lg-gen{background:var(--paper);border-color:var(--muted);border-style:dashed}
+svg .ah{fill:var(--muted)}
+svg .ah-w{fill:var(--warn)}
+.tablebox{overflow:visible;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:break-word}
+th{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td code{white-space:normal;overflow-wrap:anywhere}
+code,pre{font-family:var(--mono);font-size:.85rem}
+pre{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px;overflow-x:auto;margin:0;line-height:1.5}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.box{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:8px;min-width:0;align-content:start}
+.box ul,.box ol{margin:0;padding-left:1.2em;display:grid;gap:5px}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.p-pub{background:var(--good-soft);color:var(--good)}
+.p-priv{background:var(--accent-soft);color:var(--accent)}
+.p-ip{background:var(--warn-soft);color:var(--warn)}
+.p-risk{background:var(--bad-soft);color:var(--bad)}
+.note{border-left:3px solid var(--warn);background:var(--warn-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:.92rem}
+.note p{max-width:none}
+ol.seq{margin:0;padding:0;list-style:none;display:grid;gap:0;counter-reset:s;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+ol.seq li{counter-increment:s;display:grid;grid-template-columns:34px 170px 1fr;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:.92rem}
+ol.seq li:last-child{border-bottom:0}
+ol.seq li::before{content:counter(s);font-family:var(--mono);color:var(--muted)}
+ol.seq .actor{font-weight:600}
+.adr{display:grid;gap:10px}
+.adr .box h3{font-size:1rem}
+@media (max-width:640px){h1{font-size:1.75rem} ol.seq li{grid-template-columns:28px 1fr} ol.seq li span:last-child{grid-column:2}}
+
+.role-diagram { background: #020617; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; margin: 14px 0; overflow-x: auto; }
+.role-diagram svg { width: 100%; min-width: 900px; display: block; font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; }
+.role-diagram-title { color: #e2e8f0; font-size: 0.85rem; font-weight: 600; margin: 0 0 8px; }
+</style>
+<style>
+.tag{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 8px;border-radius:99px;white-space:nowrap;border:1px solid}
+.t-bank{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.t-api{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.t-exa{background:var(--good-soft);color:var(--good);border-color:var(--good)}
+.yes{color:var(--good);font-weight:600} .no{color:var(--muted)}
+.dialog{max-width:440px;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:16px;display:grid;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.dialog .btns{display:flex;gap:8px;justify-content:flex-end}
+.dialog .b{font-size:.85rem;padding:5px 12px;border-radius:6px;border:1px solid var(--line)}
+.dialog .b-danger{background:var(--bad);color:#fff;border-color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:grid;gap:10px">
+  <div class="eyebrow">Built for ExaThon India 2026 on Exasol Personal · architecture and steps</div>
+  <h1>Credora <span style="font-size:1.1rem;color:var(--muted)">for Sapphire Bank</span></h1>
+  <p><strong>Sapphire Bank</strong> has a large book of corporate current-account customers, each with 2 to 5 partners. The demo data set starts at 1,000 companies and the admin can add more with one click. Instead of waiting for companies to come in, the bank approaches its best customers with a pre-approved offer. Credora brings the bank's own data and 3rd party data via API on every company and partner (CIBIL, GST and Account Aggregator) into Exasol. Exasol scores each company with an ML model it trained itself, gives it a decision, an <strong>offer</strong> (amount, ROI, tenure) and a <strong>negotiation limit</strong>, and ranks the best 50 for the relationship managers.</p>
+  <p>Exasol is the analytics (OLAP) platform. The bank's data stays in three RDS databases (Oracle, MySQL, PostgreSQL) and is read in place through virtual schemas. CIBIL, GSTN and the Account Aggregator are <strong>mock APIs</strong>, because this is a project and not connected to the real services. Everything runs on AWS from one repo with one command. The working application is live at <code>https://credora.loan</code> (docs at <code>https://docs.credora.loan</code>). The mock 3rd party data APIs, which Exasol's UDFs call on demand, are at <code>https://credora.link</code>.</p>
+  <p>Every role reads Exasol as its own database user, and so does the AI. Ask Credora's MCP server logs in as the signed-in person's Exasol user, so Exasol's grants decide what each screen and each answer can contain. Demo logins <code>admin</code>, <code>datasci</code>, <code>loanops</code>, <code>rm</code>, password <code>Demo@123</code>, one click on the sign-in page.</p>
+  <p class="meta">All data is synthetic, created by the built-in mock data generator.</p>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#diagrams">Diagrams</a><a href="#arch">Architecture</a><a href="#mock">Mock data</a><a href="#explorer">Data explorer</a><a href="#roles">Roles</a><a href="#explain">Explain mode</a><a href="#ml">ML and AI</a><a href="#decide">Decision</a><a href="#aws">AWS deployment</a><a href="#exasol">Exasol objects</a><a href="#steps">Steps</a><a href="#repo">Repo &amp; one-command deploy</a>
+</nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-w" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+</svg>
+
+<!-- DIAGRAMS -->
+<section id="diagrams">
+  <h2>Diagrams</h2>
+  <p>Five architecture diagrams, each one page with export to PNG or PDF (<a href="diagrams/index.html" target="_blank" rel="noopener">all diagrams</a>).</p>
+  <ol class="steps">
+    <li><a href="diagrams/01-big-picture.html" target="_blank" rel="noopener"><b>Big picture</b></a>. The bank's databases and the 3rd party data APIs, Exasol's layers, the web app, the four roles and the CRM.</li>
+    <li><a href="diagrams/02-aws-deployment.html" target="_blank" rel="noopener"><b>AWS deployment</b></a>. Region, VPC, subnets, security groups, both domains on Route 53, and the ports and protocols on every path.</li>
+    <li><a href="diagrams/03-inside-exasol.html" target="_blank" rel="noopener"><b>Inside Exasol</b></a>. Runtimes and BucketFS, virtual schemas, API and ML UDFs, Lua, results, roles, the preprocessor and the semantic layer.</li>
+    <li><a href="diagrams/04-analysis-flow.html" target="_blank" rel="noopener"><b>Analysis flow</b></a>. The 13 steps of <code>RUN_ANALYSIS</code> with source, rows and timing, with the anomaly flag before the decision and the shadow challenger after the <code>PREFERRING</code> top 50 and the CRM export.</li>
+    <li><a href="diagrams/05-roles-access.html" target="_blank" rel="noopener"><b>Roles and AI access</b></a>. The four roles as rings of data, how Ask Credora logs in to Exasol as the role's own user through the MCP server, and what each role and its AI can and cannot do.</li>
+  </ol>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="arch">
+  <h2>Architecture</h2>
+  <div class="legend">
+    <span><i class="lg lg-int"></i>Sapphire Bank data (Oracle, MySQL, PostgreSQL)</span>
+    <span><i class="lg lg-ext"></i>Mock 3rd party data APIs</span>
+    <span><i class="lg lg-ex"></i>Exasol</span>
+    <span><i class="lg lg-out"></i>Results</span>
+    <span><i class="lg lg-gen"></i>Mock data generator</span>
+  </div>
+  <div class="diagram" role="img" aria-label="The admin's Generate new mock data button starts the generator, which fills Sapphire Bank's three databases (Oracle core banking, MySQL customer master, PostgreSQL loan origination and CRM) and the three mock APIs (CIBIL, GSTN, Account Aggregator). Exasol reads the databases in place through three virtual schemas and calls the mock APIs from parallel Python UDFs. An ML model trained in Exasol scores risk, SQL sets the offer and negotiation limit, and PREFERRING ranks. A web app with four roles, and an assistant that queries Exasol through the MCP server, show data, sources and results.">
+  <svg viewBox="0 0 1000 590" xmlns="http://www.w3.org/2000/svg">
+    <text class="t-s" x="400" y="11" style="fill:var(--warn)">Admin clicks "Generate new mock data", which clears all data and creates a new set</text>
+    <path class="flow-gen" d="M990 203 H996 V17 H145 V46" marker-end="url(#arw)"/>
+    <g transform="translate(0,28)">
+    <rect class="card-gen" x="20" y="20" width="250" height="56" rx="6"/><text class="t-b" x="32" y="42">Mock data generator · :8100</text><text class="t-s" x="32" y="60">seeded · 1,000 companies · about 75 s</text>
+    <path class="flow-gen" d="M20 48 H10 V454"/>
+    <path class="flow-gen" d="M10 130 H18" marker-end="url(#arw)"/>
+    <path class="flow-gen" d="M10 190 H18" marker-end="url(#arw)"/>
+    <path class="flow-gen" d="M10 257 H18" marker-end="url(#arw)"/>
+    <path class="flow-gen" d="M10 342 H18" marker-end="url(#arw)"/>
+    <path class="flow-gen" d="M10 398 H18" marker-end="url(#arw)"/>
+    <path class="flow-gen" d="M10 454 H18" marker-end="url(#arw)"/>
+
+    <text class="t-s" x="20" y="97">SAPPHIRE BANK · RDS</text>
+    <rect class="card-int" x="20" y="104" width="250" height="52" rx="6"/>
+    <text class="t-b" x="32" y="124">RDS for Oracle · CBS</text><text class="t-s" x="32" y="144">ACCOUNT · TXN (about 850,000 rows)</text>
+    <rect class="card-int" x="20" y="164" width="250" height="52" rx="6"/>
+    <text class="t-b" x="32" y="184">RDS MySQL · cif</text><text class="t-s" x="32" y="204">rm · company · partner (about 3,500)</text>
+    <rect class="card-int" x="20" y="224" width="250" height="66" rx="6"/>
+    <text class="t-b" x="32" y="244">RDS PostgreSQL · los, crm</text>
+    <text class="t-s" x="32" y="262">los · application · past_loan (5,000)</text>
+    <text class="t-s" x="32" y="280">crm · offer · offer_event</text>
+
+    <text class="t-s" x="20" y="310">MOCK 3RD PARTY DATA APIs (own database each)</text>
+    <rect class="card-extm" x="20" y="318" width="250" height="48" rx="6"/><text class="t-b" x="32" y="338">CIBIL API · :8101</text><text class="t-s" x="32" y="356">partner and company reports</text>
+    <rect class="card-extm" x="20" y="374" width="250" height="48" rx="6"/><text class="t-b" x="32" y="394">GSTN API · :8102</text><text class="t-s" x="32" y="412">2–10 years of monthly GST returns</text>
+    <rect class="card-extm" x="20" y="430" width="250" height="48" rx="6"/><text class="t-b" x="32" y="450">Account Aggregator API · :8103</text><text class="t-s" x="32" y="468">partners' accounts at other banks</text>
+
+    <path class="flow" d="M270 130 L328 72" marker-end="url(#ar)"/>
+    <path class="flow" d="M270 190 L328 90" marker-end="url(#ar)"/>
+    <path class="flow" d="M270 257 L328 108" marker-end="url(#ar)"/>
+    <path class="flow" d="M270 342 L328 160" marker-end="url(#ar)"/>
+    <path class="flow" d="M270 398 L328 176" marker-end="url(#ar)"/>
+    <path class="flow" d="M270 454 L328 192" marker-end="url(#ar)"/>
+
+    <rect class="card-ex" x="330" y="10" width="370" height="540" rx="10"/>
+    <text class="t-b" x="346" y="34">Exasol · analytics platform (OLAP)</text>
+    <rect class="chip" x="344" y="46" width="342" height="80" rx="6"/>
+    <text class="t-m" x="356" y="66">1 · Read in place via virtual schemas</text>
+    <text class="t-s" x="356" y="84">VS_CBS · Oracle VS 6.0 (Java, JDBC, ojdbc17)</text>
+    <text class="t-s" x="356" y="100">VS_CIF, VS_LOS · adbc-vs-rs 0.7 (Rust SLC, ADBC)</text>
+    <text class="t-s" x="356" y="116">queries pushed down, no copy of the bank's data</text>
+    <rect class="chip" x="344" y="134" width="342" height="80" rx="6"/>
+    <text class="t-m" x="356" y="154">2 · Fetch via API with Python SET UDFs</text>
+    <text class="t-mono" x="356" y="172">CIBIL_CONSUMER_FETCH · CIBIL_COMMERCIAL_FETCH</text>
+    <text class="t-mono" x="356" y="188">GST_FETCH · AA_FETCH</text>
+    <text class="t-s" x="356" y="204">16 in parallel · bulk endpoints → CREDORA_STAGE</text>
+    <rect class="chip" x="344" y="222" width="342" height="96" rx="6"/>
+    <text class="t-m" x="356" y="242">3 · ML in UDFs</text>
+    <text class="t-s" x="356" y="260">TRAIN_PD · monotonic boosted trees (champion)</text>
+    <text class="t-s" x="356" y="276">TRAIN_SCORECARD · logistic regression (challenger)</text>
+    <text class="t-s" x="356" y="292">PD_SCORE · PD + attribution, both models</text>
+    <text class="t-s" x="356" y="308">ANOMALY_FLAG · Isolation Forest · BucketFS</text>
+    <rect class="chip" x="344" y="326" width="342" height="96" rx="6"/>
+    <text class="t-m" x="356" y="346">4 · Decide and rank</text>
+    <text class="t-s" x="356" y="364">13 features · Oracle pushdown into CA_MONTHLY</text>
+    <text class="t-s" x="356" y="380">offer · amount · ROI · tenure · RAROC</text>
+    <text class="t-s" x="356" y="396">limit · floor ROI · max amount · max tenure</text>
+    <text class="t-s" x="356" y="412">Approve / Refer / Decline · PREFERRING top 50</text>
+    <rect class="chip" x="344" y="430" width="342" height="110" rx="6"/>
+    <text class="t-m" x="356" y="450">5 · Govern and explain</text>
+    <text class="t-s" x="356" y="468">one Exasol user per app role · masked view</text>
+    <text class="t-s" x="356" y="484">PURGE_EXPIRED (Exasol Scheduler) · SHA-256 proof</text>
+    <text class="t-s" x="356" y="500">CREDIT_MEMO UDF → Claude (if a key is set)</text>
+    <text class="t-s" x="356" y="516">RUN_ANALYSIS (Lua) · 13 logged steps,</text>
+    <text class="t-s" x="356" y="532">about 18 s for 1,000 companies</text>
+
+    <text class="t-s" x="740" y="18">4 ROLES</text>
+    <rect class="card" x="740" y="26" width="120" height="30" rx="5"/><text class="t-m tc" x="800" y="46">Admin</text>
+    <rect class="card" x="868" y="26" width="122" height="30" rx="5"/><text class="t-m tc" x="929" y="46">Data scientist</text>
+    <rect class="card" x="740" y="62" width="120" height="30" rx="5"/><text class="t-m tc" x="800" y="82">Loan operations</text>
+    <rect class="card" x="868" y="62" width="122" height="30" rx="5"/><text class="t-m tc" x="929" y="82">Relationship mgr</text>
+    <path class="flow" d="M865 94 V118" marker-end="url(#ar)"/>
+    <rect class="card" x="740" y="120" width="250" height="132" rx="8"/>
+    <text class="t-b" x="752" y="142">Web app · React + FastAPI</text>
+    <text class="t-s" x="752" y="162">Caddy · HTTPS at the domain root</text>
+    <text class="t-s" x="752" y="180">Data explorer · trees, source tags</text>
+    <text class="t-s" x="752" y="198">Exasol report on why and how</text>
+    <text class="t-s" x="752" y="216">offers · negotiation · admin tools</text>
+    <text class="t-mono" x="752" y="240">https://credora.loan</text>
+    <path class="flow" d="M702 176 H738" marker-start="url(#ar)" marker-end="url(#ar)"/>
+    <text class="t-s" x="708" y="168">SQL</text>
+
+    <path class="flow" d="M865 252 V268" marker-end="url(#ar)"/>
+    <rect class="card" x="740" y="270" width="250" height="62" rx="8"/>
+    <text class="t-b" x="752" y="290">Ask Credora</text>
+    <text class="t-s" x="752" y="308">Claude + the Exasol MCP server</text>
+    <text class="t-s" x="752" y="324">as the signed-in role's Exasol user</text>
+    <path class="flow" d="M738 301 H702" marker-end="url(#ar)"/>
+    <text class="t-s" x="705" y="293">MCP</text>
+
+    <rect class="card-out" x="740" y="350" width="250" height="146" rx="8"/>
+    <text class="t-b" x="752" y="372">Per company</text>
+    <text class="t-s" x="752" y="392">Approve / Refer / Decline + reasons</text>
+    <text class="t-s" x="752" y="410">Offer · amount · ROI · tenure</text>
+    <text class="t-s" x="752" y="428">Limit · floor ROI · max amount · tenure</text>
+    <text class="t-s" x="752" y="446">PD, grade, rank · top 50 for the RMs</text>
+    <text class="t-s" x="752" y="464">Latest run · 545 · 168 · 287</text>
+    <text class="t-s" x="752" y="482">offers tracked in PostgreSQL crm</text>
+    <path class="flow" d="M700 420 H738" marker-end="url(#ar)"/>
+    </g>
+  </svg>
+  </div>
+  <p class="meta">The latest run gave 545 approve, 168 refer and 287 decline. The backend writes each offer and every negotiation step to the bank's PostgreSQL <code>crm</code> database.</p>
+</section>
+
+<!-- MOCK DATA -->
+<section id="mock">
+  <h2>Mock data generation</h2>
+  <p>Everything starts with data. The admin screen has a <strong>Generate new mock data</strong> button. It first asks for confirmation.</p>
+  <div class="dialog">
+    <strong>Generate new mock data?</strong>
+    <span style="font-size:.92rem">Generating new mock data will clear all the existing data.</span>
+    <div class="btns"><span class="b">Cancel</span><span class="b b-danger">Clear and generate</span></div>
+  </div>
+  <p>On confirm, the generator truncates every table, creates a new data set and writes each part to the place where it would really live. Each run is seeded, and the same seed gives the same data on the same day. A full run takes about 75 seconds on AWS.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>What</th><th>How much</th><th>Stored in</th><th>Seen as</th></tr></thead>
+    <tbody>
+      <tr><td>Companies (corporate current-account customers), relationship managers</td><td>1,000</td><td>MySQL <code>cif.company</code>, <code>cif.rm</code></td><td><span class="tag t-bank">Sapphire Bank · MySQL</span></td></tr>
+      <tr><td>Partners (directors, partners, promoters)</td><td>2–5 per company, about 3,500</td><td>MySQL <code>cif.partner</code>, view <code>partner_profile</code></td><td><span class="tag t-bank">Sapphire Bank · MySQL</span></td></tr>
+      <tr><td>Company current account and its transactions</td><td>12–24 months each, about 850,000 rows</td><td>Oracle <code>CBS.ACCOUNT</code>, <code>CBS.TXN</code></td><td><span class="tag t-bank">Sapphire Bank · Oracle</span></td></tr>
+      <tr><td>Partners' savings accounts at Sapphire Bank</td><td>about 30% of partners</td><td>Oracle <code>CBS.ACCOUNT</code></td><td><span class="tag t-bank">Sapphire Bank · Oracle</span></td></tr>
+      <tr><td>Credit need on file (product, amount, tenure, purpose, collateral)</td><td>1 per company</td><td>PostgreSQL <code>los.application</code></td><td><span class="tag t-bank">Sapphire Bank · PostgreSQL</span></td></tr>
+      <tr><td>Past loans with outcomes (about 8% defaulted)</td><td>5,000</td><td>PostgreSQL <code>los.past_loan</code>, view <code>past_loan_training</code></td><td><span class="tag t-bank">Sapphire Bank · PostgreSQL</span>, used to train the ML model</td></tr>
+      <tr><td>Offers and negotiation trail</td><td>empty until the first analysis</td><td>PostgreSQL <code>crm.offer</code>, <code>crm.offer_event</code></td><td><span class="tag t-bank">Sapphire Bank · PostgreSQL</span></td></tr>
+      <tr><td>CIBIL consumer report per partner</td><td>1 per partner</td><td>Mock CIBIL database</td><td><span class="tag t-api">API · CIBIL (mock)</span></td></tr>
+      <tr><td>CIBIL commercial report per company (CMR rank)</td><td>1 per company</td><td>Mock CIBIL database</td><td><span class="tag t-api">API · CIBIL (mock)</span></td></tr>
+      <tr><td>GST registration and monthly returns</td><td>last 2–10 years, random</td><td>Mock GSTN database</td><td><span class="tag t-api">API · GSTN (mock)</span></td></tr>
+      <tr><td>Partners' accounts at other banks (SBI, HDFC Bank, ICICI Bank, Axis Bank, Kotak, PNB, Bank of Baroda, Canara Bank …)</td><td>1–3 per partner, 12 months of transactions</td><td>Mock AA database</td><td><span class="tag t-api">API · Account Aggregator (mock)</span></td></tr>
+      <tr><td>Hidden true risk per company</td><td>1 per company</td><td>mockdb <code>truth</code> and S3</td><td>Admin scorecard only. Exasol never reads it</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="two">
+    <div class="box"><h3>GST history sets the company's stage</h3>
+      <div class="tablebox"><table>
+        <thead><tr><th>Years of GST</th><th>Stage</th></tr></thead>
+        <tbody>
+          <tr><td>2–4</td><td>New</td></tr>
+          <tr><td>5–7</td><td>Mid-level</td></tr>
+          <tr><td>8–10</td><td>Stable</td></tr>
+        </tbody>
+      </table></div>
+      <p class="meta">Each month has GSTR-1 turnover, GSTR-3B tax paid, due date and filing date (unfiled returns are empty). The GSTIN registration date matches the history.</p>
+    </div>
+    <div class="box"><h3>A CIBIL report, as it usually looks</h3><ul>
+      <li><strong>Partner (consumer).</strong> Name, PAN, date of birth, score 300–900 (or no history), accounts (lender, type, sanctioned amount, balance, overdue, 36-month DPD history), enquiries in the last 6 and 12 months.</li>
+      <li><strong>Company (commercial).</strong> CMR rank 1–10, total exposure, overdue, number of facilities, suit-filed and wilful-default flags.</li>
+      <li>A hidden "true risk" per company drives the data consistently. Risky companies file GST late, bounce more, show a bigger gap between GST turnover and bank credits, and have partners with lower scores.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- EXPLORER -->
+<section id="explorer">
+  <h2>Data explorer. See all the data, and where it came from</h2>
+  <p>Every piece of data in the UI carries a <strong>source tag</strong>, and every company opens as a <strong>tree</strong> of links. Click a node to see its records.</p>
+  <div class="legend">
+    <span><span class="tag t-bank">Sapphire Bank · Oracle / MySQL / PostgreSQL</span> our bank's own data</span>
+    <span><span class="tag t-api">API · CIBIL / GSTN / AA (mock)</span> 3rd party data, fetched via API</span>
+    <span><span class="tag t-exa">Exasol result</span> computed by Exasol</span>
+  </div>
+<pre>Shree Ganesh Polymers LLP · C000042 · RM007             <span class="tag t-bank">Sapphire Bank · MySQL</span>
+├─ Current account ••4213 · 18 months of transactions   <span class="tag t-bank">Sapphire Bank · Oracle</span>
+├─ Credit need on file A0000042: ₹4.5 cr · TL · 60 months  <span class="tag t-bank">Sapphire Bank · PostgreSQL</span>
+├─ GST: GSTIN 27AAxxxxxx1Z5 · 7 years · Mid-level       <span class="tag t-api">API · GSTN (mock)</span>
+│   └─ 2019 … 2026 · monthly GSTR-1 / GSTR-3B
+├─ CIBIL commercial: CMR rank 3                         <span class="tag t-api">API · CIBIL (mock)</span>
+├─ Partner 1: R. Mehta · 40%                            <span class="tag t-bank">Sapphire Bank · MySQL</span>
+│   ├─ CIBIL: 782 · 4 accounts · 0 overdue              <span class="tag t-api">API · CIBIL (mock)</span>
+│   ├─ Savings ••8890 at Sapphire Bank                  <span class="tag t-bank">Sapphire Bank · Oracle</span>
+│   └─ Savings at HDFC Bank                             <span class="tag t-api">API · AA (mock)</span>
+├─ Partner 2: S. Iyer · 35%
+│   ├─ CIBIL: 741                                       <span class="tag t-api">API · CIBIL (mock)</span>
+│   └─ Current at SBI · Savings at ICICI Bank           <span class="tag t-api">API · AA (mock)</span>
+├─ Partner 3: A. Khan · 25%  …
+└─ Exasol report: Approve · rank 37 of 1,000 · why and how   <span class="tag t-exa">Exasol result</span></pre>
+  <p class="meta">The same tags appear in the source cards on the admin dashboard, which show row counts, the last generation and the health of each database and API.</p>
+</section>
+
+<!-- ROLES -->
+<section id="roles">
+  <h2>Roles and who sees what</h2>
+<!-- roles-diagrams -->
+  <p>Four roles, four Exasol users. Each role reaches a ring of data. The relationship manager's ring is cut down to her assigned rows by Exasol itself (row-level security views on <code>CURRENT_USER</code>). Ask Credora carries the signed-in role into Exasol, so the database decides what the AI can read. The work passes from role to role. The data scientist runs and publishes, loan operations assigns, the relationship manager works and logs the loan status, and the admin approves policy and model changes (<a href="diagrams/05-roles-access.html" target="_blank" rel="noopener">full-page diagram</a>).</p>
+  <div class="role-diagram"><p class="role-diagram-title">Who sees what. Each Exasol role reaches a ring of data</p><svg viewBox="0 0 1200 590" role="img" aria-label="Role hierarchy by what each Exasol role may read. Admin and data scientist read everything, including raw CIBIL, GST and AA replies in CREDORA_STAGE, the bank databases through the virtual schemas and all CREDORA results. Loan operations reads the bank databases and all results but not the raw 3rd party data. The relationship manager reads only row-level security views that return the companies assigned to her Exasol user, in published runs, plus config, run log and the filtered semantic view."><defs><marker id="r-front" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker><marker id="r-back" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker><marker id="r-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker><marker id="r-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker><marker id="r-sec" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker><marker id="r-ext" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker><marker id="r-q" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker><pattern id="rgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#rgrid)"/><rect x="360" y="20" width="820" height="550" rx="12" fill="rgba(136, 19, 55, 0.10)" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="6,4"/><text x="376" y="42" fill="#fb7185" font-size="11" font-weight="700">1 · Raw 3rd party data in CREDORA_STAGE</text><text x="376" y="58" fill="#94a3b8" font-size="9.5">Consent-based CIBIL, GST and AA replies, purged on time with SHA-256 proof</text><text x="376" y="78" fill="#e2e8f0" font-size="10">CIBIL_CONSUMER · CIBIL_COMMERCIAL · GST_FILING · AA_ACCOUNT</text><text x="376" y="93" fill="#e2e8f0" font-size="10">granted to R_ADMIN, R_DATASCI (read)  ·  written only by R_SVC during a run</text><rect x="400" y="150" width="760" height="405" rx="12" fill="rgba(76, 29, 149, 0.10)" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="6,4"/><text x="416" y="172" fill="#a78bfa" font-size="11" font-weight="700">2 · Sapphire Bank&#x27;s databases + all results</text><text x="416" y="188" fill="#94a3b8" font-size="9.5">Virtual schemas push each query down to RDS live, and nothing is copied</text><text x="416" y="208" fill="#e2e8f0" font-size="10">VS_CBS (Oracle core banking)  ·  VS_CIF (MySQL customer master)  ·  VS_LOS (PostgreSQL loans)</text><text x="416" y="223" fill="#e2e8f0" font-size="10">CREDORA · DECISIONS · SCORES · FEATURES · MODEL_REGISTRY · RUN_LOG · CONFIG · all views</text><text x="416" y="238" fill="#e2e8f0" font-size="10">RM_ASSIGNMENT · LOAN_STATUS_LOG · RUN_PUBLISH (written only by R_SVC)</text><text x="416" y="253" fill="#e2e8f0" font-size="10">granted to R_ADMIN, R_DATASCI, R_LOANOPS (read)</text><rect x="440" y="320" width="700" height="220" rx="12" fill="rgba(8, 51, 68, 0.10)" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="6,4"/><text x="456" y="342" fill="#22d3ee" font-size="11" font-weight="700">3 · Relationship manager sees only her assigned rows</text><text x="456" y="358" fill="#94a3b8" font-size="9.5">Row-level security in Exasol. Views join RM_ASSIGNMENT on EXA_USER = CURRENT_USER</text><text x="456" y="378" fill="#e2e8f0" font-size="10">V_RM_DECISIONS · V_RM_COMPANY (full PAN, GSTIN) · V_RM_FEATURES · V_RM_SCORES</text><text x="456" y="393" fill="#e2e8f0" font-size="10">V_RM_ASSIGNMENT · V_RM_LOAN_STATUS · CONFIG · RUN_LOG</text><text x="456" y="408" fill="#e2e8f0" font-size="10">V_LATEST_* and CREDORA_SEM.PORTFOLIO, filtered to her companies</text><text x="456" y="423" fill="#e2e8f0" font-size="10">published runs only (RUN_PUBLISH)  ·  no grant on DECISIONS or SCORES</text><text x="456" y="438" fill="#e2e8f0" font-size="10">granted to R_RM, with one Exasol user per manager (demo CREDORA_RM = RM001)</text><text x="1130" y="532" fill="#475569" font-size="9" text-anchor="end">outer roles read the tables directly, and the RM reads only her rows, at full detail</text><line x1="280" y1="74" x2="358" y2="74" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><line x1="280" y1="162" x2="358" y2="162" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><line x1="280" y1="284" x2="398" y2="284" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#r-db)"/><line x1="280" y1="444" x2="438" y2="444" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#r-front)"/><rect x="20" y="40" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="40" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="62.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Admin</text><text x="150.0" y="78.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_ADMIN · R_ADMIN</text><text x="150.0" y="94.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">+ SELECT ANY DICTIONARY</text><rect x="20" y="128" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="128" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="150.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Data scientist</text><text x="150.0" y="166.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_DATASCI · R_DATASCI</text><text x="150.0" y="182.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">same reads as admin</text><rect x="20" y="250" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="250" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="272.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Loan operations</text><text x="150.0" y="288.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_LOANOPS · R_LOANOPS</text><text x="150.0" y="304.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">no CREDORA_STAGE</text><rect x="20" y="410" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="410" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="432.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Relationship manager</text><text x="150.0" y="448.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_RM · R_RM</text><text x="150.0" y="464.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Subhashree Mohanty, RM001</text><text x="20" y="510" fill="#94a3b8" font-size="9.5">Widest reach at the top. Admin and data scientist</text><text x="20" y="524" fill="#94a3b8" font-size="9.5">read the same data and differ in what they may do.</text><text x="20" y="544" fill="#475569" font-size="9">Grants are in exasol/sql/07_security.sql,</text><text x="20" y="557" fill="#475569" font-size="9">13_rm_row_security.sql, 11_latest_run_views.sql</text></svg></div>
+  <div class="role-diagram"><p class="role-diagram-title">One Ask Credora question. The role travels all the way into Exasol</p><svg viewBox="0 0 1200 520" role="img" aria-label="How Ask Credora uses Exasol roles. The signed-in role travels from the login token through the backend and a topic gate to exasol_login, which starts the Exasol MCP server as that role's own Exasol user with writes off. Claude calls the MCP tools, and Exasol checks every query against the role's grants and returns rows or refuses. Analysis jobs run separately as CREDORA_SVC."><defs><marker id="r-front" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker><marker id="r-back" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker><marker id="r-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker><marker id="r-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker><marker id="r-sec" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker><marker id="r-ext" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker><marker id="r-q" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker><pattern id="rgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#rgrid)"/><line x1="185" y1="95.0" x2="212" y2="95.0" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#r-front)"/><text x="198.5" y="88.0" fill="#22d3ee" font-size="9" text-anchor="middle">1</text><line x1="380" y1="95.0" x2="407" y2="95.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="393.5" y="88.0" fill="#34d399" font-size="9" text-anchor="middle">2</text><line x1="575" y1="95.0" x2="602" y2="95.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="588.5" y="88.0" fill="#34d399" font-size="9" text-anchor="middle">3</text><line x1="770" y1="95.0" x2="797" y2="95.0" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="783.5" y="88.0" fill="#fb923c" font-size="9" text-anchor="middle">4</text><line x1="965" y1="95.0" x2="997" y2="95.0" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#r-db)"/><text x="981.0" y="88.0" fill="#a78bfa" font-size="9" text-anchor="middle">5</text><text x="20" y="34" fill="#94a3b8" font-size="9.5">1 role in the login token  ·  2 role may ask  ·  3 on topic  ·  4 MCP server starts as the role user  ·  5 SQL runs under that user&#39;s grants</text><line x1="492.5" y1="130" x2="492.5" y2="207" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><text x="500.5" y="180" fill="#fb7185" font-size="9" text-anchor="start">OUT</text><line x1="687.5" y1="130" x2="687.5" y2="207" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#r-ext)"/><text x="695.5" y="180" fill="#94a3b8" font-size="9" text-anchor="start">no role password</text><line x1="855" y1="132" x2="855" y2="207" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="848" y="180" fill="#fb923c" font-size="9" text-anchor="end">tool list</text><line x1="910" y1="210" x2="910" y2="133" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="918" y="180" fill="#fb923c" font-size="9" text-anchor="start">tool calls</text><line x1="1060" y1="130" x2="1060" y2="207" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="1052" y="180" fill="#34d399" font-size="9" text-anchor="end">inside grants</text><path d="M 1145 130 L 1145 330" fill="none" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><text x="1137" y="310" fill="#fb7185" font-size="9" text-anchor="end">outside grants</text><path d="M 265 130 L 265 407" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="257" y="390" fill="#34d399" font-size="9" text-anchor="end">screens</text><path d="M 335 130 L 335 300 L 610 300 L 610 407" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#r-cloud)"/><text x="618" y="390" fill="#fbbf24" font-size="9" text-anchor="start">jobs</text><rect x="20" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="20" y="60" width="165" height="70" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="102.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Signed-in person</text><text x="102.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">admin · datasci</text><text x="102.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">loanops · rm</text><rect x="215" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="215" y="60" width="165" height="70" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="297.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">FastAPI backend</text><text x="297.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">checks the role (CAN)</text><text x="297.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">routes/ai.py</text><rect x="410" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="410" y="60" width="165" height="70" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="492.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Topic gate</text><text x="492.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Claude answers IN / OUT</text><text x="492.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">_on_topic(), no tools</text><rect x="605" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="605" y="60" width="165" height="70" rx="7" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/><text x="687.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">exasol_login(role)</text><text x="687.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">role -&gt; CREDORA_&lt;ROLE&gt;</text><text x="687.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">assistant.py</text><rect x="800" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="800" y="60" width="165" height="70" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="882.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">exasol-mcp-server</text><text x="882.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">2.3.0 over stdio</text><text x="882.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">writes switched off</text><rect x="1000" y="60" width="180" height="70" rx="7" fill="#0f172a"/><rect x="1000" y="60" width="180" height="70" rx="7" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/><text x="1090.0" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Exasol</text><text x="1090.0" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">checks R_&lt;ROLE&gt; grants</text><text x="1090.0" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">on every statement</text><rect x="410" y="210" width="165" height="62" rx="7" fill="#0f172a"/><rect x="410" y="210" width="165" height="62" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="492.5" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Refused, no query</text><text x="492.5" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">&quot;Ask Credora only answers</text><text x="492.5" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">about Credora&#x27;s analysis&quot;</text><rect x="605" y="210" width="165" height="62" rx="7" fill="#0f172a"/><rect x="605" y="210" width="165" height="62" rx="7" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/><text x="687.5" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">CREDORA_MCP · R_MCP</text><text x="687.5" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">read-only fallback</text><text x="687.5" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">results + masked view</text><rect x="800" y="210" width="165" height="62" rx="7" fill="#0f172a"/><rect x="800" y="210" width="165" height="62" rx="7" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/><text x="882.5" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Claude</text><text x="882.5" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">claude-sonnet-5-5</text><text x="882.5" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">picks tools, writes SQL</text><rect x="1000" y="210" width="180" height="62" rx="7" fill="#0f172a"/><rect x="1000" y="210" width="180" height="62" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="1090.0" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Rows back to Claude</text><text x="1090.0" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">answer + every SQL</text><text x="1090.0" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">shown to the person</text><rect x="1000" y="333" width="180" height="62" rx="7" fill="#0f172a"/><rect x="1000" y="333" width="180" height="62" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="1090.0" y="352.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Exasol refuses</text><text x="1090.0" y="368.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">insufficient privileges</text><text x="1090.0" y="384.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Claude says role can&#x27;t see it</text><rect x="110" y="410" width="330" height="62" rx="7" fill="#0f172a"/><rect x="110" y="410" width="330" height="62" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="275.0" y="429.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Every web screen reads as the same role user</text><text x="275.0" y="445.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">exa.ROLE_USER. The database enforces what each screen shows</text><text x="275.0" y="461.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">For an RM, Exasol returns only her assigned rows (V_RM_*)</text><rect x="455" y="410" width="330" height="62" rx="7" fill="#0f172a"/><rect x="455" y="410" width="330" height="62" rx="7" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/><text x="620.0" y="429.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Jobs run as CREDORA_SVC · R_SVC</text><text x="620.0" y="445.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">analysis, publish, assignments, loan status, CONFIG,</text><text x="620.0" y="461.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">activation, purge, memo UDF. No person logs in</text><text x="820" y="440" fill="#94a3b8" font-size="9.5">The prompt tells Claude what its role may read, and</text><text x="820" y="455" fill="#94a3b8" font-size="9.5">Exasol's grants enforce it. A wrong prompt or a</text><text x="820" y="470" fill="#94a3b8" font-size="9.5">jailbreak cannot widen what the AI can read.</text></svg></div>
+  <div class="role-diagram"><p class="role-diagram-title">The hand-off. Run, publish, assign, work, track</p><svg viewBox="0 0 1200 330" role="img" aria-label="The hand-off between the roles. The data scientist runs the analysis as a draft and publishes it. Loan operations assigns its companies to relationship managers in Exasol. Each relationship manager works only her assigned companies and logs the loan status. Admin, data scientist and loan operations track every assigned company. The admin approves the data scientist&#39;s policy proposals and model activations, and an approved policy runs and publishes a new official run."><defs><marker id="r-front" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker><marker id="r-back" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker><marker id="r-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker><marker id="r-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker><marker id="r-sec" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker><marker id="r-ext" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker><marker id="r-q" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker><pattern id="rgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#rgrid)"/><line x1="210" y1="209.0" x2="252" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="231.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">1</text><line x1="445" y1="209.0" x2="487" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="466.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">2</text><line x1="680" y1="209.0" x2="722" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="701.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">3</text><line x1="915" y1="209.0" x2="957" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="936.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">4</text><path d="M 80 170 L 80 56 L 297 56" fill="none" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="88" y="140" fill="#fb923c" font-size="9" text-anchor="start">propose policy, request activation</text><path d="M 520 56 L 405 56 L 405 167" fill="none" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><text x="413" y="140" fill="#fb7185" font-size="9" text-anchor="start">approved policy · run + publish</text><rect x="20" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="20" y="170" width="190" height="78" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="115.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Data scientist</text><text x="115.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Run analysis as a draft</text><text x="115.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.RUN_ANALYSIS()</text><text x="115.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">as CREDORA_SVC</text><rect x="255" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="255" y="170" width="190" height="78" rx="7" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/><text x="350.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Publish</text><text x="350.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.RUN_PUBLISH, official</text><text x="350.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">run for loan operations,</text><text x="350.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">RM views and V_LATEST_*</text><rect x="490" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="490" y="170" width="190" height="78" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="585.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Loan operations</text><text x="585.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Assign to RM, single or bulk</text><text x="585.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.RM_ASSIGNMENT</text><text x="585.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">(CIF, RM, EXA_USER)</text><rect x="725" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="725" y="170" width="190" height="78" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="820.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Relationship manager</text><text x="820.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">sees only her rows (V_RM_*)</text><text x="820.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">negotiates in the limit.</text><text x="820.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Above it, loan ops checks</text><rect x="960" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="960" y="170" width="190" height="78" rx="7" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/><text x="1055.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Loan status</text><text x="1055.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.LOAN_STATUS_LOG</text><text x="1055.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">tracked by admin, data</text><text x="1055.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">scientist, loan operations</text><rect x="300" y="20" width="220" height="72" rx="7" fill="#0f172a"/><rect x="300" y="20" width="220" height="72" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="410.0" y="44.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Admin · Approvals</text><text x="410.0" y="60.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">policy proposals, model</text><text x="410.0" y="76.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">activations, never own ones</text><text x="20" y="290" fill="#94a3b8" font-size="9.5">1 publish  ·  2 hand to loan operations  ·  3 assign  ·  4 log Contacted, Negotiating, Loan taken, In progress, Disbursed or Not interested, with a note</text><text x="20" y="308" fill="#475569" font-size="9">Every step is audited in RUN_PUBLISH, POLICY_*, MODEL_ACTIVATION_*, ASSIGN_RM, LOAN_STATUS</text></svg></div>
+  <div class="tablebox"><table>
+    <thead><tr><th>Role</th><th>Can do in the app</th><th>Cannot do</th><th>Its AI can</th><th>Its AI cannot</th></tr></thead>
+    <tbody><tr><td><strong>Admin</strong><br><code>CREDORA_ADMIN</code></td><td>bank manager. Generate, append and purge mock data, approve or reject policy proposals and model activations, audit, sources</td><td>run the analysis, train, what-if, assign companies, negotiate, sanction, decide own requests</td><td class="yes">join Oracle + MySQL + PostgreSQL in one query, read raw API data, run log, semantic view</td><td class="no">write anything, answer off-topic questions</td></tr><tr><td><strong>Data scientist</strong><br><code>CREDORA_DATASCI</code></td><td>run the analysis and publish it to loan operations, train models and request activation, what-if and propose policy</td><td>activate a model or change policy without the admin, generate data, assign, negotiate, sanction</td><td class="yes">model registry (AUC, Gini, features), features vs grades, past loans in VS_LOS, raw API data</td><td class="no">write anything, answer off-topic questions</td></tr><tr><td><strong>Loan operations</strong><br><code>CREDORA_LOANOPS</code></td><td>assign companies to relationship managers (single, bulk, reassign), every report, verify and sanction escalations</td><td>run the analysis, see drafts, generate data, train, what-if, negotiate</td><td class="yes">KYC from the customer master joined with decisions, core-banking credits, hard-fail counts</td><td class="no">read CREDORA_STAGE (Exasol refuses), write anything</td></tr><tr><td><strong>Relationship manager</strong><br><code>CREDORA_RM</code></td><td>negotiate within the limit (above it, escalated), log loan status (Contacted to Disbursed, or Not interested), credit memo</td><td>see any other company, bank databases, raw API data, run, publish or assign anything</td><td class="yes">headroom, lowest ROI and RAROC, her companies by loan status, through the V_RM_* views</td><td class="no">read any other company. Exasol filters the rows on CURRENT_USER and refuses DECISIONS itself</td></tr></tbody>
+  </table></div>
+  <div class="tablebox"><table>
+    <thead><tr><th>Role</th><th>Sapphire Bank data</th><th>3rd party API data</th><th>Exasol report (why, how)</th><th>Can do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Admin</strong> (bank manager)</td><td class="yes">All</td><td class="yes">All</td><td class="yes">Yes</td><td>Generate, append and purge mock data. Approve or reject policy proposals and model activations (Approvals). Source health, audit, Loan status. Sees everything, drafts included, and does not run the analysis</td></tr>
+      <tr><td><strong>Data scientist</strong></td><td class="yes">All</td><td class="yes">All</td><td class="yes">Yes</td><td>Run the analysis and publish it to loan operations. Train models and request activation. What-if, saved runs, CSV export, policy proposals. Loan status read-only</td></tr>
+      <tr><td><strong>Loan operations</strong></td><td class="yes">All</td><td class="no">No raw replies, only the features derived from them</td><td class="yes">Yes, published runs</td><td>Assign companies to relationship managers (single, bulk, reassign) from Decisions or the Top 50. Verify and sanction escalations (maker-checker). Loan status</td></tr>
+      <tr><td><strong>Relationship manager</strong></td><td>Only her assigned companies, at full detail (PAN, GSTIN unmasked)</td><td class="no">No raw replies, only the features derived from them</td><td class="yes">Yes, assigned companies only</td><td>Negotiate within the limit (above it the offer is escalated) and log the loan status as Contacted, Negotiating, Loan taken, In progress, Disbursed or Not interested</td></tr>
+    </tbody>
+  </table></div>
+  <p>The web app logs in to Exasol as the database user that matches the signed-in person's role, so the database itself enforces what each screen can show. A bug in the app cannot widen access.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Exasol user</th><th>Role</th><th>Can read or do</th></tr></thead>
+    <tbody>
+      <tr><td><code>CREDORA_SVC</code></td><td><code>R_SVC</code></td><td>Runs analysis, training and purge. Writes <code>CREDORA</code> and <code>CREDORA_STAGE</code>, including <code>RUN_PUBLISH</code>, <code>RM_ASSIGNMENT</code>, <code>LOAN_STATUS_LOG</code>, approved <code>CONFIG</code> changes and model activations. Uses the API, BucketFS and AI connections</td></tr>
+      <tr><td><code>CREDORA_ADMIN</code>, <code>CREDORA_DATASCI</code></td><td><code>R_ADMIN</code>, <code>R_DATASCI</code></td><td>Everything, read-only, in <code>CREDORA</code>, <code>CREDORA_STAGE</code>, <code>VS_CBS</code>, <code>VS_CIF</code>, <code>VS_LOS</code></td></tr>
+      <tr><td><code>CREDORA_LOANOPS</code></td><td><code>R_LOANOPS</code></td><td><code>CREDORA</code> and the three virtual schemas, but <strong>not</strong> <code>CREDORA_STAGE</code> (raw CIBIL, GST, AA data)</td></tr>
+      <tr><td><code>CREDORA_RM</code></td><td><code>R_RM</code></td><td>Row-level security. Only <code>V_RM_DECISIONS</code>, <code>V_RM_COMPANY</code> (full PAN and GSTIN), <code>V_RM_FEATURES</code>, <code>V_RM_SCORES</code>, <code>V_RM_ASSIGNMENT</code> and <code>V_RM_LOAN_STATUS</code>, which join <code>RM_ASSIGNMENT</code> on <code>EXA_USER = CURRENT_USER</code> and on published runs, plus <code>CONFIG</code>, <code>RUN_LOG</code>, <code>RUN_PUBLISH</code>, the <code>V_LATEST_*</code> views and <code>CREDORA_SEM.PORTFOLIO</code>, filtered to her companies. No grant on <code>DECISIONS</code>, <code>SCORES</code>, <code>FEATURES</code>, <code>APPLICATIONS</code> or <code>V_COMPANY_MASKED</code> ("insufficient privileges"), nor on <code>ANOMALY</code> or <code>CHALLENGER_SCORES</code>. The demo maps <code>CREDORA_RM</code> to <code>RM001</code>. Production gives each manager an own Exasol user and the views work unchanged</td></tr>
+      <tr><td><code>CREDORA_MCP</code></td><td><code>R_MCP</code></td><td>Fallback for Ask Credora when a role user's password is not configured. Read-only <code>DECISIONS</code>, <code>SCORES</code>, <code>FEATURES</code>, <code>RUN_LOG</code>, <code>MODEL_REGISTRY</code>, <code>CHALLENGER_SCORES</code>, <code>ANOMALY</code>, <code>CONFIG</code>, <code>V_COMPANY_MASKED</code></td></tr>
+    </tbody>
+  </table></div>
+  <h3>Ask Credora inside the same boundary</h3>
+  <p>Ask Credora starts the official Exasol MCP server (<code>exasol-mcp-server</code> 2.3.0, writes switched off) for each question, logged in as the signed-in person's own Exasol user. The prompt describes the data a role may read, but Exasol's grants enforce it, and the database refuses a query outside them. A one-word topic check runs before any tool use, so unrelated questions never reach Exasol. Every answer lists each MCP tool call with the exact SQL it ran. The code is in <code>backend/app/assistant.py</code> <code>exasol_login()</code>.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Role</th><th>Ask Credora logs in as</th><th>Ask Credora can read</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Admin</strong>, <strong>Data scientist</strong></td><td><code>CREDORA_ADMIN</code>, <code>CREDORA_DATASCI</code></td><td>Results, the semantic view, Oracle <code>VS_CBS</code>, MySQL <code>VS_CIF</code>, PostgreSQL <code>VS_LOS</code> and raw 3rd party data in <code>CREDORA_STAGE</code></td></tr>
+      <tr><td><strong>Loan operations</strong></td><td><code>CREDORA_LOANOPS</code></td><td>Results, the semantic view and the three bank databases, but <strong>not</strong> raw 3rd party data</td></tr>
+      <tr><td><strong>Relationship manager</strong></td><td><code>CREDORA_RM</code></td><td>Only the row-filtered <code>V_RM_*</code> views, the filtered <code>V_LATEST_*</code> views and semantic view, <code>CONFIG</code> and <code>RUN_LOG</code>. Her assigned companies and nothing else</td></tr>
+    </tbody>
+  </table></div>
+  <p>Verified on the live site. An admin question joined <code>VS_CIF."partner"</code>, <code>VS_LOS."application"</code> and <code>VS_CBS.TXN</code> / <code>ACCOUNT</code> across three databases in one statement. Logged in to Exasol as <code>CREDORA_RM</code>, <code>V_RM_DECISIONS</code> returns the 25 companies assigned to the <code>rm</code> login (Subhashree Mohanty, <code>RM001</code>), the semantic view counts 25 companies analysed, and <code>SELECT COUNT(*) FROM CREDORA.DECISIONS</code> fails with "insufficient privileges".</p>
+  <h3>Hand-offs between the roles</h3>
+  <div class="tablebox"><table>
+    <thead><tr><th>Hand-off</th><th>Maker</th><th>Checker</th><th>Stored in</th><th>Rules</th></tr></thead>
+    <tbody>
+      <tr><td>Publish an analysis run</td><td>Data scientist</td><td>(review before publishing)</td><td><code>CREDORA.RUN_PUBLISH</code> (Exasol)</td><td>A finished run is a draft until published. Only published runs reach loan operations, the RM views, <code>V_LATEST_*</code> and the semantic view. Audit <code>RUN_PUBLISH</code></td></tr>
+      <tr><td>Policy change from a what-if run</td><td>Data scientist</td><td>Admin</td><td><code>crm.policy_proposal</code></td><td>One pending proposal per run. Nobody approves their own, a decided proposal is read-only, and approval is blocked if <code>CONFIG</code> changed since. Approval writes <code>CONFIG</code> as <code>CREDORA_SVC</code>, runs the full analysis and publishes it in one job. Audit <code>POLICY_PROPOSE</code>, <code>POLICY_APPROVE</code>, <code>POLICY_REJECT</code></td></tr>
+      <tr><td>Risk-model activation</td><td>Data scientist</td><td>Admin</td><td><code>crm.model_activation_request</code></td><td>Training never activates a model. One pending request per version, nobody approves their own, and approval is blocked if the active model changed since. Approval switches <code>MODEL_REGISTRY.IS_ACTIVE</code> as <code>CREDORA_SVC</code>. Audit <code>MODEL_ACTIVATION_REQUEST</code>, <code>_APPROVE</code>, <code>_REJECT</code></td></tr>
+      <tr><td>Assign companies</td><td>Loan operations</td><td>(Exasol filters the RM's rows)</td><td><code>CREDORA.RM_ASSIGNMENT</code> (Exasol)</td><td>Single or bulk from Decisions or the Top 50. Reassigning moves the company. Audit <code>ASSIGN_RM</code></td></tr>
+      <tr><td>Loan status</td><td>Relationship manager</td><td>(tracked by admin, data scientist, loan operations)</td><td><code>CREDORA.LOAN_STATUS_LOG</code> (Exasol)</td><td>Contacted, Negotiating, Loan taken, In progress, Disbursed, Not interested. A note is required, the full history is kept, and nothing changes after Disbursed. Audit <code>LOAN_STATUS</code></td></tr>
+      <tr><td>Escalated terms</td><td>Relationship manager</td><td>Loan operations</td><td><code>crm.offer</code>, <code>crm.offer_event</code></td><td>Above the negotiation limit the offer is escalated. Loan operations verifies and sanctions</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- EXPLAIN MODE -->
+<section id="explain">
+  <h2>Explain mode shows what Exasol does at every click</h2>
+  <p>A switch in the web app's top bar, on by default and remembered per viewer. Off, Credora is a plain CRM. On, it shows the database behind every screen, for readers who know databases better than banking.</p>
+  <ul>
+    <li><b>Hints and a band per screen.</b> An information mark next to key numbers, labels and buttons (PD, RAROC, grade, hard fails, rank, the model version, the semantic metrics, the role, publish, assign, approve, Ask Credora) opens the term in plain words and in Exasol's terms, with its objects, the code that runs and links to the Exasol documentation. Under each page header a band says what Exasol is doing on that screen. The content lives in <code>frontend/src/explain/</code> (<code>glossary.ts</code>, <code>pages.ts</code>, <code>actions.ts</code>), and the <b>Glossary</b> page lists every term.</li>
+    <li><b>Action notes.</b> Starting an action (run analysis, publish, train, request or approve an activation, what-if, propose or approve a policy, assign, log a status, generate data, credit memo, Ask Credora) shows its steps in Exasol and the Exasol user it runs as. Job progress names the Exasol object of each step.</li>
+    <li><b>Exasol console.</b> A bottom drawer that lists, live, every statement the backend ran in Exasol for this browser tab, with time, Exasol user (<code>CREDORA_RM</code>, <code>CREDORA_SVC</code> and so on), SQL, milliseconds, rows and any error. <code>exa.query</code> and the jobs' statements are recorded in a ring buffer of the latest 200 per signed-in person (<code>backend/app/console.py</code>). Jobs add each <code>RUN_ANALYSIS</code> step as it commits and each model registry switch. Ask Credora adds each MCP tool call as "Claude, exasol-mcp-server on the EC2 app host, Exasol as the role's user". Passwords, keys and secret-looking literals are masked. Each person reads only their own entries (<code>GET /api/exasol/console</code>), and the admin may also read everyone's.</li>
+    <li><b>Exasol control room.</b> A page for every role (<code>GET /api/exasol/control-room</code>) that maps the database from its system tables, read <em>with the signed-in role's own Exasol user</em>. It shows schemas and object counts, virtual schemas with adapter and last refresh, scripts with their language containers, connection names, the model registry with each pickle in BucketFS, roles and grants, the SQL preprocessor, the semantic model's 16 certified metrics, the latest run's steps, and for the admin the live sessions. What a role's grants hide is missing, and a refused read is shown as Exasol's refusal. Each piece names the Exasol open-source project behind it.</li>
+  </ul>
+</section>
+
+<!-- ML -->
+<section id="ml">
+  <h2>ML and AI inside Exasol</h2>
+  <p>The risk model is trained and scored by <strong>Python UDFs</strong> in Exasol's PYTHON3 script language container, with scikit-learn. The training data is read live from PostgreSQL through <code>VS_LOS</code>, and the data never leaves the database to be scored.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Object</th><th>Kind</th><th>Job in Credora</th></tr></thead>
+    <tbody>
+      <tr><td><code>TRAIN_PD</code> (SET UDF), run by Lua <code>TRAIN_MODEL</code></td><td>scikit-learn <code>HistGradientBoostingClassifier</code> with monotonic constraints (for example, more late GST filings can only raise risk)</td><td>Trains on 5,000 past loans, measures AUC, Gini and permutation importance on a hold-out set, saves <code>models/pd_&lt;version&gt;.pkl</code> to BucketFS and registers it in <code>MODEL_REGISTRY</code>. The champion is model v3, with AUC 0.756 and Gini 0.512 on the hold-out set.</td></tr>
+      <tr><td><code>TRAIN_SCORECARD</code> (SET UDF), run by the same <code>TRAIN_MODEL</code> call</td><td>scikit-learn <code>LogisticRegression</code> on standardised features (median imputation, <code>StandardScaler</code>)</td><td>The challenger, trained on the same past loans and measured on the same 25% hold-out (both trainers sort by loan id before the split). Registered inactive as <code>v&lt;n&gt;-lr</code>, ALGORITHM 'LogisticRegression scorecard', with its signed coefficients (log-odds per standard deviation) as feature importance. v3-lr has AUC 0.769 and Gini 0.538.</td></tr>
+      <tr><td><code>PD_SCORE</code> (SET UDF, 4 parallel instances)</td><td>Loads the active model from BucketFS</td><td>Probability of default for every company, plus how much each of the 13 features moved it. PD maps to a grade, with A1 &lt; 1%, A2 &lt; 2%, B1 &lt; 3.5%, B2 &lt; 5%, C1 &lt; 8%, C2 &lt; 12%, else D. The same UDF scores either model.</td></tr>
+      <tr><td><code>SCORE_CHALLENGER</code> (Lua), step 13 of <code>RUN_ANALYSIS</code></td><td>Runs <code>PD_SCORE</code> with the challenger, then the decision SQL from the Lua library <code>DECISION_LOGIC</code> on its PD</td><td>Shadow only. Writes <code>CHALLENGER_SCORES</code> (PD, grade and the decision it would have given) and never touches <code>DECISIONS</code>. The Models screen compares champion and challenger. On run R20261031-1923 the scorecard would change 713 of 1,000 grades and 62 decisions (42 refer to approve, 20 approve to refer), in 1.7 s.</td></tr>
+      <tr><td><code>ANOMALY_FLAG</code> (SET UDF, one instance), step 10 of <code>RUN_ANALYSIS</code></td><td>scikit-learn <code>IsolationForest</code>, unsupervised, fitted on the run's own companies</td><td>Scores how unusual each company is on GST turnover against bank credits and balances kept, inflow volatility and partners' money at other banks, and flags the most unusual share (CONFIG <code>ANOMALY_CONTAMINATION_PCT</code>, 3%) with the figures that stand out, in <code>CREDORA.ANOMALY</code>. A flagged company that would be approved is referred with an "Anomaly" reason and never declined on the flag. Run R20261031-1923 flagged 30 companies and referred 4 approvals in 1.3 s.</td></tr>
+      <tr><td><code>CREDIT_MEMO</code> (scalar UDF)</td><td>Calls Claude through the connection <code>AI_LLM</code>, created only when an API key is configured</td><td>A short credit memo in plain English per company for the relationship manager, from the decision, the numbers and the top risk drivers</td></tr>
+      <tr><td>Ask Credora (backend)</td><td>Claude (<code>claude-sonnet-5-5</code>, Anthropic API, or Amazon Bedrock with <code>AI_PROVIDER=bedrock</code>) with the official Exasol MCP server 2.3.0, writes off, logged in as the signed-in person's own Exasol user</td><td>Plain-English questions, answered from the semantic layer first and only from what that role may read. Every SQL statement is shown, and unrelated questions are refused before any query</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><strong>Ranking.</strong> Exasol's <code>PREFERRING HIGH RAROC_OFFER PLUS LOW PD PLUS HIGH OFFER_AMOUNT</code> returns the skyline of approved companies that no other company beats on return, risk and size at once. Peeling off skyline after skyline gives layers, and the best 50 go to the RMs. No hand-tuned weights.</li>
+    <li><strong>Models are versioned, champion against challenger.</strong> Each training adds a champion and a challenger. The data scientist compares AUC, Gini, top features or coefficients and the decisions that would change on the current run, and requests activation of one. The admin approves or rejects it, and no model decides until then. <code>RUN_ANALYSIS</code> trains v1 itself if no model exists.</li>
+  </ul>
+</section>
+
+<!-- DECISION -->
+<section id="decide">
+  <h2>How one company is decided</h2>
+  <p class="meta">Policy values live in <code>CREDORA.CONFIG</code>, so the data scientist can change them in a what-if. EBLR 8.25%, operating spread 0.75%, cost of funds 6.50%, opex 1.00%, LGD 45%, capital 12%, hurdle RAROC 15%.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Step</th><th>What happens</th><th>In Exasol</th></tr></thead>
+    <tbody>
+      <tr><td>1 · Combine</td><td>Credit need on file (PostgreSQL) joined with company and partners (MySQL), in place</td><td><code>CREDORA.APPLICATIONS</code></td></tr>
+      <tr><td>2 · Features</td><td>13 features. GST years, turnover, late filings, GST-vs-bank gap, average balance, inflow volatility, bounce ratio, CMR rank, partners' minimum and average score, overdue, other-bank balance, DSCR</td><td>Window functions over <code>CA_MONTHLY</code> (aggregated in Oracle) and the API data → <code>FEATURES</code></td></tr>
+      <tr><td>3 · Risk</td><td>Probability of default, grade, per-feature attribution</td><td><code>PD_SCORE</code> → <code>SCORES</code></td></tr>
+      <tr><td>4 · Hard fails</td><td>Wilful defaulter, CMR rank 9 or worse, 4+ late GST returns in 12 months, any partner CIBIL below 600, bounce ratio above 8%</td><td>SQL</td></tr>
+      <tr><td>5 · ROI</td><td>EBLR + risk spread by grade (1.00% for A1 to 7.00% for D) + operating spread, minus 0.25% if collateral covers the loan, never below the floor</td><td>SQL</td></tr>
+      <tr><td>6 · Amount</td><td>A term loan gets what 12% of GST turnover can repay at DSCR 1.25. Working capital gets the smaller of 20% of GST turnover and the same cash-flow cap. Never above the indicated need.</td><td>SQL</td></tr>
+      <tr><td>7 · Tenure</td><td>A term loan gets the indicated tenure, up to 84 months (60 for grades C1, C2, D). Working capital gets 12 months.</td><td>SQL</td></tr>
+      <tr><td>8 · Negotiation limit</td><td>Floor ROI where RAROC still meets the hurdle (and at least EBLR + 0.50%). Maximum amount at DSCR 1.10, up to 115% of the indicated need. Maximum tenure +24 months, up to 84</td><td>SQL</td></tr>
+      <tr><td>9 · Decision</td><td>Decline on any hard fail. Refer if KYC is not verified, grade is C2 or D, the offer is below half the indicated need, or the anomaly model flagged the company (an "Anomaly" reason). Otherwise Approve. RAROC = (ROI − funds − opex − PD × LGD) / capital.</td><td>SQL → <code>DECISIONS</code></td></tr>
+      <tr><td>10 · Rank</td><td>Skyline layers of approved companies, rank among 1,000, top 50</td><td><code>PREFERRING</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="box"><h3>The Exasol report for one company (synthetic)</h3>
+<pre>Shree Ganesh Polymers LLP · 3 partners · Mid-level (7 yrs GST)
+Decision: APPROVE · Grade A2 · PD 1.8% · Rank 37 of 1,000
+
+               OFFER        LIMIT IF NEGOTIATED
+Amount         ₹4.00 cr     ₹4.50 cr  (max)
+ROI            10.25%       10.15%    (floor)
+Tenure         60 months    84 months (max)
+RAROC          16.2%        15.3%     (hurdle 15%)
+
+Why (feature attribution):
+             + GST turnover matches bank credits (gap 6%)
+             + no bounces in 12 months
+             + all partners CIBIL 740+
+             − partner 3 has 2 recent enquiries
+Sources:     Oracle CBS · MySQL cif · PostgreSQL los · CIBIL · GSTN · AA</pre></div>
+</section>
+
+<!-- AWS -->
+<section id="aws">
+  <h2>Deployment on AWS</h2>
+  <p>Credora was first built on the Exasol Personal Local Starter Kit (<code>exakit</code> 0.2.3) on a laptop. It was then deployed to AWS with the Exasol Personal launcher 2.3.0, which runs Exasol 2026.1.0 on one <code>r6i.xlarge</code> node. One command, <code>python deploy/credora.py deploy --env &lt;name&gt;</code>, builds everything below in any AWS account.</p>
+  <p class="meta">Drawn in the AWS architecture-diagram style, with AWS Cloud, then Region, then VPC, then subnets, then security groups, with service icons in AWS category colours. The icons are simplified redraws, not the official icon files. Numbered arrows are explained below the diagram.</p>
+  <div class="diagram" role="img" aria-label="AWS architecture diagram. Route 53 and IAM are global. In Region ap-south-1, the VPC 172.30.0.0/16 created by the Exasol launcher has an internet gateway and a public subnet 172.30.1.0/24 with two EC2 instances, each in its own security group. They are the app host (Docker Compose with Caddy, frontend, backend, generator, mock CIBIL, GSTN and AA and their PostgreSQL) and Exasol Personal. Two private subnets hold RDS for Oracle, MySQL and PostgreSQL. Secrets Manager and Amazon S3 sit in the region outside the VPC. Users reach Caddy over HTTPS, and the deployer reaches Exasol and SSH from their IP only.">
+  <svg viewBox="0 0 1090 670" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-ec2" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#ED7100"/><g stroke="#fff" stroke-width="2" fill="none"><rect x="14" y="14" width="20" height="20"/><path d="M19 8v6M24 8v6M29 8v6M19 34v6M24 34v6M29 34v6M8 19h6M8 24h6M8 29h6M34 19h6M34 24h6M34 29h6"/></g></symbol>
+      <symbol id="i-rds" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#C925D1"/><g stroke="#fff" stroke-width="2" fill="none"><ellipse cx="24" cy="14" rx="11" ry="4"/><path d="M13 14v20a11 4 0 0 0 22 0V14M13 24a11 4 0 0 0 22 0"/></g></symbol>
+      <symbol id="i-s3" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#7AA116"/><g stroke="#fff" stroke-width="2" fill="none"><ellipse cx="24" cy="14" rx="12" ry="4"/><path d="M12 14l4 21q8 5 16 0l4-21"/></g></symbol>
+      <symbol id="i-sec" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#DD344C"/><g stroke="#fff" stroke-width="2" fill="none"><rect x="15" y="22" width="18" height="14" rx="2"/><path d="M19 22v-5a5 5 0 0 1 10 0v5"/></g><circle cx="24" cy="29" r="2" fill="#fff"/></symbol>
+      <symbol id="i-iam" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#DD344C"/><g stroke="#fff" stroke-width="2" fill="none"><circle cx="24" cy="18" r="5"/><path d="M14 36q10-14 20 0"/></g></symbol>
+      <symbol id="i-r53" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#8C4FFF"/><g stroke="#fff" stroke-width="2" fill="none"><path d="M10 34q14-26 28 0"/><circle cx="24" cy="21" r="3"/></g><text x="24" y="42" text-anchor="middle" style="fill:#fff;font-size:10px;font-weight:700">53</text></symbol>
+      <symbol id="i-igw" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#8C4FFF"/><g stroke="#fff" stroke-width="2" fill="none"><circle cx="24" cy="24" r="12"/><ellipse cx="24" cy="24" rx="5" ry="12"/><path d="M12 24h24"/></g></symbol>
+      <symbol id="i-users" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#545B64"/><g stroke="#fff" stroke-width="2" fill="none"><circle cx="19" cy="18" r="5"/><path d="M9 36q10-14 20 0"/><circle cx="31" cy="17" r="4"/><path d="M29 26q8-2 11 10"/></g></symbol>
+      <symbol id="i-user" viewBox="0 0 48 48"><rect width="48" height="48" rx="4" fill="#545B64"/><g stroke="#fff" stroke-width="2" fill="none"><circle cx="24" cy="18" r="5"/><path d="M14 36q10-14 20 0"/></g></symbol>
+    </defs>
+
+    <!-- outside AWS -->
+    <use href="#i-users" x="22" y="206" width="48" height="48"/>
+    <text class="t-b tc" x="46" y="272">Users, judges</text><text class="t-s tc" x="46" y="286">browser</text>
+    <use href="#i-user" x="22" y="470" width="48" height="48"/>
+    <text class="t-b tc" x="46" y="536">Deployer</text><text class="t-s tc" x="46" y="550">your IP only</text>
+
+    <!-- groups -->
+    <rect class="g-cloud" x="150" y="10" width="930" height="650" rx="2"/>
+    <rect class="g-cloud-tag" x="150" y="10" width="32" height="24"/><text x="166" y="27" text-anchor="middle" style="fill:#fff;font-size:10px;font-weight:700">aws</text>
+    <text class="t-m" x="190" y="27">AWS Cloud</text>
+
+    <!-- global services -->
+    <use href="#i-r53" x="200" y="44" width="40" height="40"/>
+    <text class="t-b" x="250" y="60">Route 53</text><text class="t-s" x="250" y="76">A records for domain root + www</text>
+    <use href="#i-iam" x="520" y="44" width="40" height="40"/>
+    <text class="t-b" x="570" y="60">IAM</text><text class="t-s" x="570" y="76">app host role · runtime secret + S3</text>
+
+    <rect class="g-region" x="166" y="104" width="898" height="540"/>
+    <text class="t-m g-region-t" x="178" y="124">Region · ap-south-1 (Mumbai)</text>
+    <rect class="g-vpc" x="182" y="140" width="700" height="480"/>
+    <rect class="g-vpc-tag" x="182" y="140" width="26" height="20"/><text x="195" y="154" text-anchor="middle" style="fill:#fff;font-size:7.5px;font-weight:700">VPC</text>
+    <text class="t-m g-vpc-t" x="216" y="155">VPC 172.30.0.0/16 · created by the Exasol launcher</text>
+
+    <rect class="g-pub" x="220" y="176" width="646" height="240"/>
+    <text class="t-s g-pub-t" x="232" y="410">Public subnet · 172.30.1.0/24</text>
+
+    <!-- SG app host -->
+    <rect class="g-sg" x="236" y="206" width="320" height="188"/>
+    <text class="t-s g-sg-t" x="244" y="220">sg-app · 80, 443 open · 22 your IP · 8100–8103 VPC</text>
+    <use href="#i-ec2" x="246" y="228" width="40" height="40"/>
+    <text class="t-b" x="294" y="244">App host</text><text class="t-s" x="294" y="260">EC2 t3.large · EIP · 172.30.1.20</text>
+    <text class="t-s" x="248" y="290" style="font-weight:600">Docker Compose · incl. exasol-scheduler</text>
+    <text class="t-s" x="248" y="308">caddy · :443 HTTPS</text>
+    <text class="t-s" x="248" y="326">frontend · React (static)</text>
+    <text class="t-s" x="248" y="344">backend · FastAPI</text>
+    <text class="t-s" x="248" y="362">Ask Credora · MCP</text>
+    <text class="t-mono" x="248" y="384">credora.loan</text>
+    <text class="t-s" x="410" y="308">generator · :8100</text>
+    <text class="t-s" x="410" y="326">cibil · :8101</text>
+    <text class="t-s" x="410" y="344">gstn · :8102</text>
+    <text class="t-s" x="410" y="362">aa · :8103</text>
+    <text class="t-s" x="410" y="380">mockdb · PostgreSQL</text>
+
+    <!-- SG exasol -->
+    <rect class="g-sg" x="580" y="206" width="270" height="188"/>
+    <text class="t-s g-sg-t" x="588" y="220">sg-exasol · your IP + VPC</text>
+    <use href="#i-ec2" x="590" y="228" width="40" height="40"/>
+    <text class="t-b" x="638" y="244">Exasol Personal</text><text class="t-s" x="638" y="260">EC2 r6i.xlarge · 172.30.1.11</text>
+    <text class="t-s" x="592" y="290">Database :8563 · Admin UI :8443</text>
+    <text class="t-s" x="592" y="308">BucketFS :2581 · SSH :22</text>
+    <text class="t-s" x="592" y="326">Rust SLC 0.23.1 · Oracle VS 6.0</text>
+    <text class="t-s" x="592" y="344">adbc-vs-rs 0.7 · ADBC drivers</text>
+    <text class="t-s" x="592" y="362">model versions in BucketFS</text>
+    <text class="t-s" x="592" y="380">official launcher (aws, ubuntu)</text>
+
+    <!-- private subnets -->
+    <rect class="g-priv" x="220" y="456" width="646" height="144"/>
+    <text class="t-s g-priv-t" x="232" y="594">Private subnets · 172.30.2.0/24 (a) + 172.30.3.0/24 (b)</text>
+    <rect class="g-sg" x="244" y="478" width="606" height="96"/>
+    <text class="t-s g-sg-t" x="842" y="568" text-anchor="end">sg-rds · 1521, 3306, 5432 from the VPC</text>
+    <use href="#i-rds" x="260" y="490" width="48" height="48"/>
+    <text class="t-b" x="316" y="508">RDS for Oracle SE2</text><text class="t-s" x="316" y="524">CBS · :1521</text>
+    <use href="#i-rds" x="460" y="490" width="48" height="48"/>
+    <text class="t-b" x="516" y="508">RDS MySQL 8.4</text><text class="t-s" x="516" y="524">cif · :3306</text>
+    <use href="#i-rds" x="660" y="490" width="48" height="48"/>
+    <text class="t-b" x="716" y="508">RDS PostgreSQL 16</text><text class="t-s" x="716" y="524">los, crm · :5432</text>
+
+    <!-- regional services -->
+    <use href="#i-sec" x="940" y="190" width="48" height="48"/>
+    <text class="t-b tc" x="964" y="256">Secrets Manager</text><text class="t-s tc" x="964" y="270">runtime secret with DB,</text><text class="t-s tc" x="964" y="284">API and Exasol users</text>
+    <use href="#i-s3" x="940" y="470" width="48" height="48"/>
+    <text class="t-b tc" x="964" y="536">Amazon S3</text><text class="t-s tc" x="964" y="550">hidden truth for</text><text class="t-s tc" x="964" y="564">the admin scorecard</text>
+
+    <!-- internet gateway -->
+    <use href="#i-igw" x="158" y="230" width="48" height="48"/>
+    <rect x="152" y="282" width="60" height="30" style="fill:var(--paper)"/>
+    <text class="t-s tc" x="182" y="294">Internet</text><text class="t-s tc" x="182" y="307">gateway</text>
+
+    <!-- flows -->
+    <path class="flow" d="M46 204 V64 H196" marker-end="url(#ar)"/>
+    <path class="flow" d="M70 246 H156" marker-end="url(#ar)"/>
+    <path class="flow" d="M208 246 H234" marker-end="url(#ar)"/>
+    <path class="flow-admin" d="M70 494 H140 V268 H156" marker-end="url(#arw)"/>
+    <path class="flow-admin" d="M182 230 V190 H715 V204" marker-end="url(#arw)"/>
+    <path class="flow" d="M556 300 H578" marker-end="url(#ar)"/>
+    <path class="flow" d="M580 344 H558" marker-end="url(#ar)"/>
+    <path class="flow" d="M715 394 V476" marker-end="url(#ar)"/>
+    <path class="flow-gen" d="M400 394 V476" marker-end="url(#arw)"/>
+    <path class="flow" d="M470 394 V476" marker-end="url(#ar)"/>
+    <path class="flow-gen" d="M520 394 V430 H910 V494 H936" marker-end="url(#arw)"/>
+
+    <!-- step badges -->
+    <g class="badge"><circle cx="110" cy="64" r="9"/><text x="110" y="68">1</text></g>
+    <g class="badge"><circle cx="110" cy="246" r="9"/><text x="110" y="250">2</text></g>
+    <g class="badge"><circle cx="567" cy="284" r="9"/><text x="567" y="288">3</text></g>
+    <g class="badge"><circle cx="567" cy="360" r="9"/><text x="567" y="364">4</text></g>
+    <g class="badge"><circle cx="715" cy="452" r="9"/><text x="715" y="456">5</text></g>
+    <g class="badge badge-w"><circle cx="400" cy="436" r="9"/><text x="400" y="440">6</text></g>
+    <g class="badge"><circle cx="470" cy="436" r="9"/><text x="470" y="440">7</text></g>
+    <g class="badge badge-w"><circle cx="910" cy="462" r="9"/><text x="910" y="466">8</text></g>
+    <g class="badge badge-w"><circle cx="450" cy="190" r="9"/><text x="450" y="194">9</text></g>
+  </svg>
+  </div>
+  <ol class="steps">
+    <li><b>Users → Route 53.</b> The domain root and <code>www</code> resolve to the app host's Elastic IP.</li>
+    <li><b>Users → app host.</b> HTTPS through the internet gateway to Caddy, which serves the React app at the domain root, sends <code>/api</code> to the backend, and redirects <code>www</code> and HTTP to <code>https://&lt;DOMAIN&gt;</code>.</li>
+    <li><b>Backend → Exasol.</b> SQL on :8563 over the VPC, logged in as the Exasol user of the signed-in role. Ask Credora queries through the Exasol MCP server as the same role user.</li>
+    <li><b>Exasol → mock 3rd party APIs.</b> Python UDFs fetch 3rd party data from CIBIL, GSTN and AA on the app host's private IP, ports 8101–8103 (open to the VPC only).</li>
+    <li><b>Exasol → RDS.</b> The virtual schemas read Oracle (:1521), MySQL (:3306) and PostgreSQL (:5432) in place.</li>
+    <li><b>Generator → RDS</b> (dashed). Writes the bank data into Oracle, MySQL and PostgreSQL, and the CIBIL, GST and AA data into mockdb.</li>
+    <li><b>Backend → PostgreSQL <code>crm</code>.</b> Offers, negotiation steps and sanction (small, frequent writes).</li>
+    <li><b>Generator → S3</b> (dashed). The hidden truth per company, for the admin scorecard.</li>
+    <li><b>Deployer → Exasol and app host</b> (dashed). Exasol ports 22, 2581, 8443 and 8563, and SSH to the app host, only from the deployer's IP.</li>
+  </ol>
+  <p class="meta">Not drawn as arrows. On start, the app host reads the runtime secret from Secrets Manager with its instance role and writes it to <code>.env.runtime</code> for the containers. RDS is not publicly accessible, and its subnet group spans two zones.</p>
+</section>
+
+<!-- EXASOL OBJECTS -->
+<section id="exasol">
+  <h2>Exasol objects</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Exasol feature</th><th>Object</th><th>Job</th></tr></thead>
+    <tbody>
+      <tr><td>Virtual schema (Oracle)</td><td><code>VS_CBS</code> on <code>ADAPTER.ORACLE_ADAPTER</code> (Oracle VS 6.0, Java, ojdbc17), connection <code>ORA_CBS</code></td><td>Reads core banking (<code>ACCOUNT</code>, <code>TXN</code>) in place, with pushdown</td></tr>
+      <tr><td>Virtual schema (adbc-vs-rs)</td><td><code>VS_CIF</code> (MySQL) and <code>VS_LOS</code> (PostgreSQL) on <code>ADBC_VS.ADBC_ADAPTER</code> + <code>ADBC_VS.ADBC_SCAN</code>, connections <code>MYSQL_CIF</code>, <code>PG_LOS</code></td><td>One Rust adapter for two engines, moving Arrow record batches</td></tr>
+      <tr><td>Custom script language container</td><td><code>RUST</code>, the Rust SLC 0.23.1 in BucketFS, added to <code>SCRIPT_LANGUAGES</code></td><td>Runs the adbc-vs-rs adapter at the SDK version it was built for</td></tr>
+      <tr><td>BucketFS</td><td><code>slc/rustslc</code>, <code>udf/libadbc_vs_adapter.so</code>, ADBC drivers (downloaded on first use), Oracle VS jar, <code>drivers/jdbc/ojdbc17.jar</code>, <code>models/pd_&lt;version&gt;.pkl</code></td><td>One store for code, drivers and every model version</td></tr>
+      <tr><td>Python UDFs for 3rd party APIs</td><td><code>CIBIL_CONSUMER_FETCH</code>, <code>CIBIL_COMMERCIAL_FETCH</code>, <code>GST_FETCH</code>, <code>AA_FETCH</code> (SET scripts)</td><td>16 parallel instances, each calling a bulk endpoint. Replies land in <code>CREDORA_STAGE</code></td></tr>
+      <tr><td>Python UDFs for ML and AI</td><td><code>TRAIN_PD</code>, <code>TRAIN_SCORECARD</code>, <code>PD_SCORE</code>, <code>ANOMALY_FLAG</code>, <code>CREDIT_MEMO</code></td><td>Train champion and challenger, score and explain, flag unusual companies, write a credit memo with Claude</td></tr>
+      <tr><td>Lua scripts</td><td><code>CREDORA.RUN_ANALYSIS</code>, <code>CREDORA.TRAIN_MODEL</code>, <code>CREDORA.SCORE_CHALLENGER</code>, <code>CREDORA.DECISION_LOGIC</code> (library), <code>CREDORA.PURGE_EXPIRED</code></td><td>The whole run in one call, logged per step. Versioned training of both models, shadow scoring through the same decision SQL, and purge with proof</td></tr>
+      <tr><td>CONNECTION objects</td><td><code>ORA_CBS</code>, <code>MYSQL_CIF</code>, <code>PG_LOS</code>, <code>MOCK_CIBIL</code>, <code>MOCK_GSTN</code>, <code>MOCK_AA</code>, <code>BUCKETFS_MODELS</code>, <code>ADBC_VS_BUCKETFS</code>, <code>AI_LLM</code> (only with an API key)</td><td>Addresses and secrets never appear in SQL text, and access is granted per role</td></tr>
+      <tr><td>Staging schema</td><td><code>CREDORA_STAGE.CIBIL_CONSUMER</code>, <code>CIBIL_COMMERCIAL</code>, <code>GST_FILING</code>, <code>AA_ACCOUNT</code> (each with <code>PURGE_AT</code>), <code>CA_MONTHLY</code></td><td>Raw API data and monthly account totals from Oracle</td></tr>
+      <tr><td>Results schema</td><td><code>CREDORA.CONFIG</code>, <code>APPLICATIONS</code>, <code>FEATURES</code>, <code>MODEL_REGISTRY</code>, <code>SCORES</code>, <code>ANOMALY</code>, <code>DECISIONS</code>, <code>CHALLENGER_SCORES</code>, <code>RUN_LOG</code>, <code>PURGE_LOG</code>, <code>MEMOS</code>, view <code>V_COMPANY_MASKED</code></td><td>Policy, results, history, proof</td></tr>
+      <tr><td>Analytic SQL</td><td>Window functions, CTEs, pushdown aggregation, <code>PREFERRING</code></td><td>Features, pricing, multi-criteria ranking</td></tr>
+      <tr><td>Security</td><td>Roles <code>R_SVC</code>, <code>R_ADMIN</code>, <code>R_DATASCI</code>, <code>R_LOANOPS</code>, <code>R_RM</code>, <code>R_MCP</code>, one <code>CREDORA_*</code> user each</td><td>The database enforces who sees what</td></tr>
+      <tr><td>Auditing</td><td><code>EXA_DBA_AUDIT_SQL</code>, <code>EXA_DBA_AUDIT_SESSIONS</code>, with every session and statement tagged <code>credora:&lt;app user&gt;:&lt;feature&gt;</code></td><td>The admin's Exasol audit screen shows who ran what, in which consumer group, with CPU, memory and duration, proven by the database</td></tr>
+      <tr><td><code>EXPLAIN VIRTUAL</code></td><td>Run live on the analysis's reads of <code>VS_CBS</code>, <code>VS_CIF</code>, <code>VS_LOS</code></td><td>Pushdown proof on the Sources screen. Oracle receives the join, filter and <code>GROUP BY</code></td></tr>
+      <tr><td><code>COMMENT ON</code></td><td>Both schemas, 17 tables, 196 columns, 14 scripts and UDFs, the scheduler's tables (<code>exasol/sql/15_comments.sql</code>)</td><td>Plain-English meaning in the database. The MCP server's describe tools return it to the AI</td></tr>
+      <tr><td>Consumer groups</td><td><code>CREDORA_BATCH</code> (<code>CREDORA_SVC</code>), <code>CREDORA_APP</code> (role users, 300 s), <code>CREDORA_AI</code> (<code>CREDORA_MCP</code>, 60 s, 2 GiB). Ask Credora's sessions set <code>QUERY_TIMEOUT = 60</code>, <code>NICE</code> and a 2 GiB limit themselves</td><td>The AI cannot starve or hang the bank's analysis</td></tr>
+      <tr><td>Scheduler schema</td><td><code>SCHED.SCHED_TASKS</code>, <code>SCHED.SCHED_HISTORY</code>, run by exasol-labs/exasol-scheduler 0.4.1 as <code>CREDORA_SVC</code></td><td><code>PURGE_EXPIRED</code> every 15 minutes and the nightly virtual-schema refresh, inside Exasol, every run recorded</td></tr>
+      <tr><td>Preprocessor library</td><td><code>PREPROC_RT.CAST_SHORTHAND_V1</code>, <code>PREPROC_RT.ERGONOMICS_TRAILING_COMMA_V2</code> (preprocessor-library 0.3.1), TRANSLATE rules for <code>R_ADMIN</code>, <code>R_DATASCI</code>, <code>R_LOANOPS</code>, <code>R_RM</code>, <code>R_MCP</code></td><td><code>x::TYPE</code> casts and trailing commas in AI-written SQL just work, before the semantic layer</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- STEPS -->
+<section id="steps">
+  <h2>How it works, step by step</h2>
+  <ol class="seq">
+    <li><span class="actor">Admin</span><span>Clicks <strong>Generate new mock data</strong> and confirms "Generating new mock data will clear all the existing data".</span></li>
+    <li><span class="actor">Generator</span><span>Truncates every table, then loads 1,000 companies, about 3,500 partners, about 850,000 Oracle transactions, CIBIL reports for every partner and company, 2–10 years of GST, partners' other-bank accounts and 5,000 past loans. About 75 seconds.</span></li>
+    <li><span class="actor">Everyone</span><span>Can browse the new data in the <strong>data explorer</strong> (as far as their role allows), with each item tagged by its source.</span></li>
+    <li><span class="actor">Data scientist</span><span>Optionally trains a new champion and challenger (<code>TRAIN_MODEL</code> → <code>TRAIN_PD</code> and <code>TRAIN_SCORECARD</code>), compares them on the same hold-out and on the decisions that would change, and requests activation of one with a note.</span></li>
+    <li><span class="actor">Admin</span><span>Approves or rejects the activation request under <strong>Approvals</strong>. Only an approval switches <code>MODEL_REGISTRY.IS_ACTIVE</code>. The same screen holds policy proposals the data scientist sent from a saved what-if run. Approving one writes <code>CONFIG</code>, runs the analysis and publishes it in one job.</span></li>
+    <li><span class="actor">Data scientist</span><span>Clicks <strong>Run analysis</strong>. The backend runs <code>EXECUTE SCRIPT CREDORA.RUN_ANALYSIS('&lt;run&gt;')</code> as <code>CREDORA_SVC</code>, and the 13 steps below take about 17.5 seconds for 1,000 companies. The run is a <strong>draft</strong>.</span></li>
+    <li><span class="actor">Data scientist</span><span>Reviews the draft and clicks <strong>Publish to loan operations</strong>. <code>CREDORA.RUN_PUBLISH</code> gets the run, its offers go to the CRM, and it becomes the official run for loan operations, the RM views, <code>V_LATEST_*</code> and the semantic view.</span></li>
+    <li><span class="actor">Loan operations</span><span>Sees <strong>New results published</strong>, opens Decisions or the Top 50, selects companies and clicks <strong>Assign to RM</strong>, and <code>CREDORA.RM_ASSIGNMENT</code> gets each company with the manager's Exasol user. Opens the Exasol report for any company, with the decision, why, how and which source each number came from.</span></li>
+    <li><span class="actor">Relationship manager</span><span>Sees only her assigned companies (<code>V_RM_*</code> views filtered on <code>CURRENT_USER</code>), at full detail, and logs the loan status as she talks to each customer.</span></li>
+    <li><span class="actor">Exasol · AI</span><span>On demand from a company report, <code>CREDIT_MEMO</code> writes a short credit memo inside Exasol through <code>CONNECTION AI_LLM</code>.</span></li>
+    <li><span class="actor">Any role</span><span>Asks <strong>Ask Credora</strong> a question. Claude answers through the Exasol MCP server, logged in as that role's Exasol user, and shows every SQL statement it ran.</span></li>
+    <li><span class="actor">Relationship manager</span><span>Quotes and proposes terms with the customer, and Exasol checks them against the limit and RAROC. Above the limit the offer is escalated.</span></li>
+    <li><span class="actor">Loan operations</span><span>Verifies and sanctions (maker-checker). PostgreSQL <code>crm</code> records each stage.</span></li>
+    <li><span class="actor">Admin · DS · LO</span><span>Follow every assigned company on the <strong>Loan status</strong> tracker, with its manager, current status, last update and history, filterable by manager and status, exportable as CSV.</span></li>
+    <li><span class="actor">Exasol · purge</span><span>Every 15 minutes the Exasol Scheduler runs <code>PURGE_EXPIRED</code> from <code>SCHED.SCHED_TASKS</code>. It deletes raw API data past its purge time, and the row count and SHA-256 fingerprint are kept in <code>PURGE_LOG</code> as proof, and the run in <code>SCHED.SCHED_HISTORY</code>. Every statement of every step is also in Exasol's audit log, tagged with the app user and screen.</span></li>
+  </ol>
+  <h3>Inside <code>RUN_ANALYSIS</code>, as measured on the live deployment</h3>
+  <div class="tablebox"><table>
+    <thead><tr><th>#</th><th>Step (logged in <code>RUN_LOG</code>)</th><th>How</th><th>Rows</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Refresh virtual schemas</td><td><code>VS_CBS</code>, <code>VS_CIF</code>, <code>VS_LOS</code></td><td>3</td><td>1.8 s</td></tr>
+      <tr><td>2</td><td>Read credit needs on file</td><td>PostgreSQL joined with MySQL, in place</td><td>1,000</td><td>0.3 s</td></tr>
+      <tr><td>3</td><td>CIBIL consumer reports</td><td><code>CIBIL_CONSUMER_FETCH</code>, 16 parallel</td><td>3,492</td><td>1.0 s</td></tr>
+      <tr><td>4</td><td>CIBIL commercial reports</td><td><code>CIBIL_COMMERCIAL_FETCH</code></td><td>1,000</td><td>0.6 s</td></tr>
+      <tr><td>5</td><td>GST returns</td><td><code>GST_FETCH</code></td><td>71,665</td><td>1.6 s</td></tr>
+      <tr><td>6</td><td>Partners' accounts at other banks</td><td><code>AA_FETCH</code></td><td>5,775</td><td>3.6 s</td></tr>
+      <tr><td>7</td><td>Compute 13 features</td><td>Join, filter and <code>GROUP BY</code> per account and month pushed down to Oracle (~19,000 rows into <code>CA_MONTHLY</code>, proven by <code>EXPLAIN VIRTUAL</code>), then SQL</td><td>1,000</td><td>3.6 s</td></tr>
+      <tr><td>8</td><td>Risk model</td><td>Uses the active model, or trains v1 if none</td><td>1</td><td>&lt;0.1 s</td></tr>
+      <tr><td>9</td><td>Score probability of default</td><td><code>PD_SCORE</code>, 4 parallel</td><td>1,000</td><td>1.9 s</td></tr>
+      <tr><td>10</td><td>Flag anomalies</td><td><code>ANOMALY_FLAG</code> (Isolation Forest), one instance over the run → <code>ANOMALY</code></td><td>1,000 (30 flagged)</td><td>1.3 s</td></tr>
+      <tr><td>11</td><td>Decide offer and negotiation limit</td><td>SQL over <code>CONFIG</code> (library <code>DECISION_LOGIC</code>), and flagged approvals are referred</td><td>1,000</td><td>0.07 s</td></tr>
+      <tr><td>12</td><td>Rank with <code>PREFERRING</code> skyline</td><td>Layers until 50 are ranked</td><td>63</td><td>0.03 s</td></tr>
+      <tr><td>13</td><td>Shadow-score with the challenger</td><td><code>SCORE_CHALLENGER</code> runs <code>PD_SCORE</code> + the decision SQL → <code>CHALLENGER_SCORES</code></td><td>1,000</td><td>1.7 s</td></tr>
+      <tr><td></td><td><strong>Total</strong></td><td></td><td></td><td><strong>17.5 s</strong> (run <code>R20261031-2109</code>. It was about 25 s while Oracle still sent every transaction)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- REPO -->
+<section id="repo">
+  <h2>One repo, one command</h2>
+  <p>The repo is the submission. It holds the web app, backend, mock APIs, generator, infrastructure, every Exasol script and UDF, and the ML code. Anyone with an AWS account fills in an env file and runs one command to recreate the whole system.</p>
+  <div class="two">
+    <div class="box"><h3>Repo layout</h3>
+<pre>credora/
+├─ README.md            what it is, logins, deploy
+├─ .env.example         every setting, no secrets
+├─ Makefile             setup · deploy · ship · exasol
+│                       generate · status · destroy
+├─ docker-compose.yml   app host services
+├─ deploy/              credora.py, exasol_setup.py,
+│                       Caddyfile, remote/start.sh
+├─ infra/               OpenTofu: private subnets,
+│                       RDS x3, app host, S3,
+│                       Secrets Manager, IAM, Route 53
+├─ exasol/
+│  ├─ sql/              schemas, connections,
+│  │                    virtual schemas, security
+│  ├─ udf/              API, ML and AI UDFs
+│  └─ lua/              RUN_ANALYSIS, TRAIN_MODEL,
+│                       PURGE_EXPIRED
+├─ db/                  Oracle, MySQL, PostgreSQL
+│                       and mockdb schemas
+├─ mocks/
+│  ├─ cibil/  gstn/  aa/   FastAPI, own DB each
+│  └─ generator/        mock data generator
+├─ backend/             FastAPI
+├─ frontend/            React + TypeScript (Vite)
+├─ docs/                architecture, data model,
+│                       APIs, why Exasol, porting
+└─ tests/</pre></div>
+    <div class="box"><h3><code>.env.&lt;name&gt;</code> (copied from <code>.env.example</code>)</h3>
+<pre>AWS_PROFILE=           # the target account
+AWS_REGION=ap-south-1
+PROJECT=credora
+
+DOMAIN=                # e.g. credora.loan
+EXTERNAL_DOMAIN=       # e.g. credora.link (3rd party data APIs)
+ADMIN_CIDR=            # your IP/32; blank = detected
+
+EXASOL_INSTANCE=r6i.xlarge
+ORACLE_INSTANCE=       # optional, db.t3.small
+APP_INSTANCE=          # optional, t3.large
+
+APP_ADMIN_PASSWORD=    # optional: all four or none
+APP_DATASCI_PASSWORD=
+APP_LOANOPS_PASSWORD=
+APP_RM_PASSWORD=
+
+AI_PROVIDER=           # anthropic | bedrock | blank = off
+ANTHROPIC_API_KEY=
+AI_MODEL=claude-sonnet-5-5</pre>
+      <p class="meta">Only <code>AWS_PROFILE</code> and <code>DOMAIN</code> are required. The hosted zone is looked up from <code>DOMAIN</code>. Database, API-token and Exasol-user passwords are generated by OpenTofu into Secrets Manager. A filled copy (<code>.env.credora</code>) stays on the deployer's machine.</p>
+    </div>
+  </div>
+
+  <div class="box"><h3><code>python deploy/credora.py deploy --env &lt;name&gt;</code> (or <code>make deploy ENV=&lt;name&gt;</code>) does everything</h3>
+  <ol class="seq">
+    <li><span class="actor">Check</span><span>Reads <code>.env.&lt;name&gt;</code> and gets AWS credentials from the CLI profile.</span></li>
+    <li><span class="actor">Exasol</span><span>The official <code>exasol</code> launcher (<code>init aws ubuntu</code>, then <code>deploy</code>) creates the VPC and the Exasol EC2, after its ports are restricted to the deployer's IP.</span></li>
+    <li><span class="actor">AWS infra</span><span>OpenTofu, run in Docker, adds two private subnets, RDS for Oracle, MySQL and PostgreSQL, the app host with its Elastic IP and IAM role, S3, the Secrets Manager runtime secret and the Route 53 A records for the domain root and <code>www</code>.</span></li>
+    <li><span class="actor">Ship</span><span>Builds the React frontend, copies the repo to the app host, writes <code>.env.runtime</code> from the secret and starts Docker Compose (Caddy, backend, generator, mock APIs, mockdb).</span></li>
+    <li><span class="actor">Generate</span><span>Calls the generator for 1,000 companies of mock data in the three bank databases and the mock APIs.</span></li>
+    <li><span class="actor">Extensions</span><span>Uploads the Rust SLC to BucketFS and registers <code>RUST</code>, then installs adbc-vs-rs (adapter and scan UDF), the Oracle virtual schema jar and ojdbc17.</span></li>
+    <li><span class="actor">Exasol SQL</span><span>Creates roles, schemas, connections, UDFs and Lua scripts, <code>AI_LLM</code> if a key is set, then the three virtual schemas, grants and the six users.</span></li>
+    <li><span class="actor">First analysis</span><span>Logs in to the API as admin and runs the analysis. It trains model v1 because none exists.</span></li>
+    <li><span class="actor">Done</span><span>Prints the site address (<code>https://&lt;DOMAIN&gt;</code>), the logins, the Exasol address and each container's status.</span></li>
+  </ol>
+  <p class="meta">Safe to re-run. Parts can be run alone with <code>ship</code>, <code>exasol</code>, <code>generate</code>, <code>status</code>. <code>destroy</code> removes the OpenTofu resources and the Exasol deployment.</p>
+  </div>
+
+  <div class="box"><h3>Portable to any AWS account and domain</h3>
+    <div class="tablebox"><table>
+      <thead><tr><th>Deployment</th><th>AWS account</th><th>Domain</th><th>Command</th></tr></thead>
+      <tbody>
+        <tr><td>Prod</td><td>9053-6029-3364</td><td><code>credora.loan</code> (bank), <code>credora.link</code> (3rd party data APIs)</td><td><code>make deploy ENV=credora</code></td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li>No account IDs, zone IDs, ARNs, IPs, bucket names or domains in code. Everything comes from the env file or is looked up at deploy time.</li>
+      <li>The domain is set once, in <code>DOMAIN</code>. Caddy, Route 53, the app and the API all read it.</li>
+      <li>Each deployment has its own infrastructure state (<code>infra/state/&lt;name&gt;/</code>) and its own secrets in its own account.</li>
+      <li>Data is synthetic and regenerated, and the model is retrained, so moving needs no data copy.</li>
+      <li>Steps to move are in <code>docs/PORTING.md</code>.</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,1723 @@
+/* ================= Explain mode =================
+   Everything Exasol says about itself speaks in the Exasol voice of the provenance system:
+   teal (--exa), the processor icon, plain words first and object names in mono.
+   With Explain mode off none of this renders, and the app is a plain CRM. */
+
+:root {
+  --console-h: 0px;
+}
+:root[data-console-open] {
+  --console-h: min(42vh, 400px);
+}
+:root[data-console-open] .main {
+  padding-bottom: var(--console-h);
+}
+
+/* ---------- top bar: the switch and the console button ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 7px 32px;
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--canvas) 86%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.topbar-who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.topbar-who code {
+  color: var(--exa);
+  font-weight: 600;
+  font-size: 12px;
+}
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+.topbar-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.85;
+}
+.topbar-btn:hover {
+  background: var(--surface-3);
+  text-decoration: none;
+}
+.topbar-btn:active {
+  transform: scale(0.97);
+}
+.topbar-btn.is-on {
+  color: var(--exa);
+  border-color: color-mix(in srgb, var(--exa) 45%, transparent);
+  background: var(--exa-tint);
+}
+.topbar-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--exa);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* the Explain mode switch */
+.xswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 4px 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--r-md);
+}
+.xswitch-track {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--line-strong);
+  transition: background-color var(--dur-fast) ease;
+  flex: none;
+}
+.xswitch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.xswitch[aria-checked="true"] {
+  color: var(--exa);
+}
+.xswitch[aria-checked="true"] .xswitch-track {
+  background: var(--exa);
+}
+.xswitch[aria-checked="true"] .xswitch-thumb {
+  transform: translateX(12px);
+}
+
+/* ---------- the information mark and term chips ---------- */
+
+.xp-i {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0 0 0 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--exa);
+  opacity: 0.75;
+  vertical-align: -3px;
+  cursor: pointer;
+  flex: none;
+  transition:
+    opacity var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+/* a bigger hit area than the mark itself */
+.xp-i::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.xp-i svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+.xp-i:hover,
+.xp-i[aria-expanded="true"] {
+  opacity: 1;
+  background: var(--exa-tint);
+}
+.xp-with {
+  white-space: nowrap;
+}
+
+.xp-chip {
+  --c: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--c) 30%, var(--line));
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--c);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+.xp-chip:hover {
+  border-color: var(--c);
+  text-decoration: none;
+}
+.xp-chip-exasol {
+  --c: var(--exa);
+}
+.xp-chip-banking {
+  --c: var(--bank);
+}
+.xp-chip-ai {
+  --c: var(--api);
+}
+.xp-chip-aws {
+  --c: var(--refer);
+}
+.xp-chip-app {
+  --c: var(--ink-2);
+}
+
+/* ---------- the term popover ---------- */
+
+.xp-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: var(--scrim);
+}
+.xp-pop {
+  position: fixed;
+  top: -9999px;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(440px, calc(100vw - 20px));
+  max-height: min(72vh, 640px);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  transform: scale(0.97);
+  transition:
+    opacity 150ms ease-out,
+    transform 180ms var(--ease-out);
+}
+.xp-pop.is-placed {
+  opacity: 1;
+  transform: none;
+}
+.xp-pop.is-sheet {
+  top: auto;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: auto;
+  max-height: 82vh;
+  transform: translateY(16px);
+  transform-origin: 50% 100%;
+}
+.xp-pop.is-sheet.is-placed {
+  transform: none;
+}
+.xp-pop-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 0 18px;
+}
+.xp-pop-hint {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.xp-pop-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px 2px 2px;
+  border: 0;
+  background: none;
+  color: var(--exa);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--r-xs);
+}
+.xp-pop-back svg {
+  width: 14px;
+  height: 14px;
+}
+.xp-pop-close {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.xp-pop-close:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.xp-pop-close svg {
+  width: 16px;
+  height: 16px;
+}
+.xp-pop-body {
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 2px 18px 18px;
+}
+.xp-pop .code pre {
+  max-height: 220px;
+}
+
+.xp-term {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+.xp-kind {
+  --c: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c);
+}
+.xp-kind svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+.xp-kind-exasol {
+  --c: var(--exa);
+}
+.xp-kind-banking {
+  --c: var(--bank);
+}
+.xp-kind-ai {
+  --c: var(--api);
+}
+.xp-kind-aws {
+  --c: var(--refer);
+}
+.xp-term-title {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin-top: -4px;
+}
+.xp-plain {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 68ch;
+}
+.xp-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.xp-sub svg {
+  width: 14px;
+  height: 14px;
+}
+.xp-inexa {
+  padding: 10px 12px 11px;
+  border: 1px solid color-mix(in srgb, var(--exa) 24%, transparent);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--exa-tint) 70%, transparent);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.xp-inexa .xp-sub {
+  color: var(--exa);
+}
+.xp-objects ul,
+.xp-related ul,
+.xp-toast-objects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.xp-objects code,
+.xp-toast-objects code {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.xp-code {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.xp-code figcaption {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.xp-code figcaption code {
+  font-size: 11px;
+}
+.xp-text {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--code-bg);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 220px;
+}
+.xp-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+.xp-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.xp-links svg {
+  width: 14px;
+  height: 14px;
+}
+
+.xp-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--exa);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--r-xs);
+}
+.xp-link-btn:hover {
+  text-decoration: underline;
+}
+.xp-link-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- "What Exasol is doing here" band under the page header ---------- */
+
+.xp-band {
+  display: grid;
+  gap: 9px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--exa) 22%, var(--line));
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--exa-tint) 55%, var(--surface));
+}
+.xp-band-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.xp-band-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 6px;
+  background: var(--exa);
+  color: var(--surface);
+}
+.xp-band-mark svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
+}
+.xp-band-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.xp-band-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--exa);
+}
+.xp-band-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  height: 26px;
+  padding: 0 6px 0 8px;
+  border: 1px solid color-mix(in srgb, var(--exa) 30%, transparent);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--exa);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.xp-band-more svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.xp-band-more[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.xp-band-list {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 0 34px;
+  padding-left: 16px;
+  list-style: disc;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.xp-band-list code {
+  color: var(--exa);
+  font-weight: 600;
+}
+.xp-band-terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 34px;
+}
+
+/* ---------- action explanations (toasts) ---------- */
+
+.xp-toasts {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + var(--console-h));
+  z-index: 55;
+  display: grid;
+  gap: 10px;
+  width: min(390px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.xp-toast {
+  pointer-events: auto;
+  display: grid;
+  gap: 9px;
+  padding: 12px 14px 13px;
+  border: 1px solid var(--line-strong);
+  border-top: 2px solid var(--exa);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 220ms ease-out,
+    transform 260ms var(--ease-out);
+}
+@starting-style {
+  .xp-toast {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.xp-toast-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.xp-toast-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--exa-tint);
+  color: var(--exa);
+}
+.xp-toast-mark svg {
+  width: 17px;
+  height: 17px;
+}
+.xp-toast-title {
+  flex: 1;
+  min-width: 0;
+}
+.xp-toast-kicker {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--exa);
+}
+.xp-toast-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.xp-toast-x {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.xp-toast-x:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.xp-toast-x svg {
+  width: 15px;
+  height: 15px;
+}
+.xp-toast-as {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.xp-toast-as span {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.xp-toast-steps {
+  display: grid;
+  gap: 5px;
+  max-height: 38vh;
+  overflow: auto;
+  padding-left: 19px;
+  list-style: decimal;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.xp-toast-steps li::marker {
+  color: var(--exa);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.xp-toast-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+/* ---------- Exasol badges on results ---------- */
+
+.xb {
+  --c: var(--exa);
+  --t: var(--exa-tint);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 4px 0 7px;
+  border: 1px solid color-mix(in srgb, var(--c) 32%, transparent);
+  border-radius: var(--r-sm);
+  background: var(--t);
+  color: var(--c);
+  font-size: 11.5px;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.xb > svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.25;
+  flex: none;
+}
+.xb-what {
+  font-weight: 600;
+}
+.xb-detail {
+  padding-left: 6px;
+  border-left: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+  color: color-mix(in srgb, var(--c) 82%, var(--ink));
+}
+.xb .xp-i {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  vertical-align: 0;
+}
+.xb-bank {
+  --c: var(--bank);
+  --t: var(--bank-tint);
+}
+.xb-api {
+  --c: var(--api);
+  --t: color-mix(in srgb, var(--api-tint) 55%, transparent);
+  border-style: dashed;
+}
+.xb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* job steps name their Exasol objects */
+.job-step-obj {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 3px;
+  min-width: 0;
+}
+.job-step-obj code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--exa-tint);
+  color: var(--exa);
+  font-size: 11.5px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- the Exasol console (bottom drawer) ---------- */
+
+.xc {
+  position: fixed;
+  left: var(--nav-w);
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  height: var(--console-h);
+  background: var(--surface);
+  border-top: 1px solid var(--line-strong);
+  box-shadow: 0 -18px 40px -24px rgb(0 0 0 / 0.35);
+  transform: none;
+  transition: transform 260ms var(--ease-drawer);
+}
+@starting-style {
+  .xc {
+    transform: translateY(100%);
+  }
+}
+.xc-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 6px 10px 6px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.xc-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  min-width: 0;
+}
+.xc-title > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--exa);
+}
+.xc-live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--approve);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--approve) 22%, transparent);
+  animation: xc-pulse 2s ease-in-out infinite;
+}
+.xc-live.is-paused {
+  background: var(--faint);
+  box-shadow: none;
+  animation: none;
+}
+@keyframes xc-pulse {
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--approve) 6%, transparent);
+  }
+}
+.xc-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.xc-sub code {
+  color: var(--exa);
+  font-size: 11.5px;
+}
+.xc-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.seg-sm {
+  padding: 2px;
+}
+.seg-sm .seg-btn {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+.xc-close {
+  padding: 0 7px;
+}
+.xc-warn {
+  padding: 4px 16px;
+  font-size: 12px;
+  color: var(--refer);
+  background: var(--refer-tint);
+}
+.xc-list {
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.xc-list:focus-visible {
+  outline-offset: -2px;
+}
+.xc-row {
+  display: grid;
+  grid-template-columns: 94px 46px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.xc-row.is-error {
+  background: color-mix(in srgb, var(--decline-tint) 45%, transparent);
+}
+.xc-time {
+  padding-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--faint);
+}
+.xc-kind {
+  --c: var(--exa);
+  display: inline-grid;
+  place-items: center;
+  height: 19px;
+  margin-top: 1px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--c);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.xc-kind-mcp {
+  --c: var(--api);
+}
+.xc-kind-step {
+  --c: var(--sapphire);
+}
+.xc-kind-event {
+  --c: var(--refer);
+}
+.xc-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.xc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.xc-user {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--exa);
+}
+.xc-app {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.xc-label + .xc-label::before,
+.xc-user + .xc-label::before,
+.xc-app + .xc-label::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin: 0 7px 2px 0;
+  border-radius: 50%;
+  background: var(--faint);
+}
+.xc-via {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--api);
+}
+.xc-via svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+.xc-sql {
+  margin: 0;
+  max-height: 4.65em;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--code-obj);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.xc-sql.is-open {
+  max-height: none;
+}
+.xc-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.xc-step .xc-text {
+  color: var(--ink);
+  font-weight: 500;
+}
+.xc-more {
+  justify-self: start;
+  font-size: 11.5px;
+}
+.xc-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--decline);
+}
+.xc-error svg {
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+  flex: none;
+}
+.xc-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.xc-stats > span {
+  display: block;
+}
+.xc-repeat {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.xc-empty {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.xc-empty p {
+  max-width: 56ch;
+}
+.xc-empty svg {
+  width: 22px;
+  height: 22px;
+  color: var(--exa);
+}
+.xc-jump {
+  position: absolute;
+  right: 18px;
+  bottom: 12px;
+  box-shadow: var(--shadow-pop);
+}
+
+/* ---------- Exasol control room ---------- */
+
+.cr-sys {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--hi-inset), var(--shadow-rest);
+}
+.cr-sys > div {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 14px 18px;
+  min-width: 0;
+}
+.cr-sys > div + div {
+  border-left: 1px solid var(--line-soft);
+}
+.cr-sys dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cr-sys dd {
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.cr-sys dd code {
+  color: var(--exa);
+  font-weight: 600;
+}
+.cr-read {
+  white-space: nowrap;
+  align-self: center;
+}
+
+.cr-map {
+  display: grid;
+  gap: 16px;
+}
+.cr-lanes {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr 1fr;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cr-lane {
+  position: relative;
+  padding: 0 16px;
+  min-width: 0;
+}
+.cr-lane:first-child {
+  padding-left: 0;
+}
+.cr-lane:last-child {
+  padding-right: 0;
+}
+/* data flows left to right */
+.cr-lane + .cr-lane::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 58px;
+  width: 9px;
+  height: 9px;
+  border-top: 1.5px solid var(--faint);
+  border-right: 1.5px solid var(--faint);
+  transform: rotate(45deg);
+}
+.cr-lane-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cr-lane-title svg {
+  width: 15px;
+  height: 15px;
+  color: var(--exa);
+}
+.cr-lane-bank .cr-lane-title svg {
+  color: var(--bank);
+}
+.cr-lane-stage .cr-lane-title svg {
+  color: var(--api);
+}
+.cr-lane-note {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cr-tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cr-tiles-row {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.cr-tile {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  min-width: 0;
+}
+.cr-tile.is-wide {
+  grid-column: span 2;
+}
+.cr-tile.is-virtual {
+  border-color: color-mix(in srgb, var(--bank) 32%, var(--line));
+  background: color-mix(in srgb, var(--bank-tint) 60%, var(--surface));
+}
+.cr-tile.is-hidden {
+  border-style: dashed;
+  background: transparent;
+}
+.cr-tile.is-hidden .cr-tile-name code {
+  color: var(--muted);
+}
+.cr-tile-name {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cr-tile-name code {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.cr-tile-counts {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.cr-tile-lock {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cr-tile-lock svg {
+  width: 13px;
+  height: 13px;
+  color: var(--exa);
+}
+.cr-tile-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bank);
+}
+.cr-tile-comment {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.cr-tile-ext {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.cr-engine {
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+.cr-ext {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.cr-ext:hover {
+  border-color: var(--exa);
+  color: var(--exa);
+  text-decoration: none;
+}
+.cr-ext svg {
+  width: 11px;
+  height: 11px;
+  opacity: 0.6;
+  flex: none;
+}
+.cr-ext-owner {
+  color: var(--faint);
+}
+
+.cr-refused {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  margin: 2px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.cr-refused-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--exa-tint);
+  color: var(--exa);
+}
+.cr-refused-mark svg {
+  width: 17px;
+  height: 17px;
+}
+.cr-refused > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.cr-refused-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.cr-refused-title code {
+  color: var(--exa);
+}
+.cr-refused-msg code {
+  font-size: 12px;
+  color: var(--decline);
+  overflow-wrap: anywhere;
+}
+.cr-fail {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--refer);
+}
+
+.cr-panel-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.cr-lang {
+  --c: var(--ink-2);
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c) 13%, transparent);
+  color: var(--c);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+.cr-lang-python3 {
+  --c: var(--sapphire);
+}
+.cr-lang-lua {
+  --c: var(--exa);
+}
+.cr-lang-java {
+  --c: var(--refer);
+}
+.cr-lang-rust {
+  --c: var(--api);
+}
+.cr-note {
+  padding: 10px 14px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.cr-note-top {
+  padding: 0 0 10px;
+  border-top: 0;
+}
+.panel-flush .cr-note-top {
+  padding: 12px 14px 4px;
+}
+.cr-slcs {
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--line-soft);
+}
+.cr-slcs ul {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cr-slcs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+.cr-slc-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--muted);
+  flex: 1 1 160px;
+}
+.cr-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.cr-sub > svg {
+  width: 14px;
+  height: 14px;
+  color: var(--exa);
+}
+.cr-sub .muted {
+  font-weight: 400;
+}
+
+.cr-runlog-head {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.cr-steps {
+  display: grid;
+  gap: 5px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cr-steps li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1.7fr) minmax(50px, 1fr) 54px 58px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+}
+.cr-step-n {
+  color: var(--faint);
+  text-align: right;
+}
+.cr-step-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cr-step-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--chart-track);
+  overflow: hidden;
+}
+.cr-step-bar span {
+  display: block;
+  height: 100%;
+  background: var(--exa);
+  transform-origin: left center;
+  border-radius: 3px;
+}
+.cr-steps li.is-failed .cr-step-bar span {
+  background: var(--decline);
+}
+.cr-step-ms,
+.cr-step-rows {
+  text-align: right;
+}
+
+.cr-roles {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cr-role {
+  display: grid;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+}
+.cr-role.is-mine {
+  border-color: color-mix(in srgb, var(--exa) 40%, transparent);
+  background: color-mix(in srgb, var(--exa-tint) 45%, transparent);
+}
+.cr-role-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.cr-role-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cr-role-user {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.cr-you,
+.cr-cert {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--exa-tint);
+  color: var(--exa);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.cr-cert {
+  background: var(--approve-tint);
+  color: var(--approve);
+}
+.cr-role-sys {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.cr-role-objs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+}
+.cr-role-objs code {
+  font-size: 11.5px;
+}
+.cr-privs {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cr-expr {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.cr-metrics {
+  max-height: 440px;
+}
+.cr-kv {
+  display: grid;
+  gap: 10px;
+}
+.cr-kv > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.cr-kv dt {
+  color: var(--muted);
+}
+.cr-kv code {
+  overflow-wrap: anywhere;
+}
+.cr-conns {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+.cr-conn-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cr-conn-list code {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  font-size: 11.5px;
+}
+.cr-path,
+.cr-client {
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+.cr-active td {
+  background: color-mix(in srgb, var(--exa-tint) 40%, transparent);
+}
+.spin {
+  animation: xp-spin 0.9s linear infinite;
+}
+@keyframes xp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- glossary ---------- */
+
+.glossary-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.glossary-tools .field-inline {
+  flex: 1 1 280px;
+  max-width: 520px;
+}
+.glossary-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr));
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.glossary-item {
+  padding: 18px 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--hi-inset), var(--shadow-rest);
+  scroll-margin-top: 64px;
+  min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+.glossary-item:focus {
+  outline: none;
+}
+.glossary-item.is-target {
+  border-color: color-mix(in srgb, var(--exa) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--exa) 20%, transparent);
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 1180px) {
+  .cr-lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 18px;
+  }
+  .cr-lane {
+    padding: 0 12px;
+  }
+  .cr-lane:nth-child(odd) {
+    padding-left: 0;
+  }
+  .cr-lane:nth-child(3)::before {
+    display: none;
+  }
+}
+@media (max-width: 1100px) {
+  .topbar {
+    padding: 7px 22px;
+  }
+}
+@media (max-width: 980px) {
+  .topbar {
+    position: static;
+    padding: 6px 16px;
+  }
+  .xc {
+    left: 0;
+  }
+  :root[data-console-open] {
+    --console-h: min(55vh, 420px);
+  }
+  .cr-sys {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cr-sys > div:nth-child(3) {
+    border-left: 0;
+  }
+  .cr-sys > div:nth-child(n + 3) {
+    border-top: 1px solid var(--line-soft);
+  }
+}
+@media (max-width: 640px) {
+  .topbar-who-label,
+  .topbar-btn-text {
+    display: none;
+  }
+  .topbar-btn {
+    padding: 0 8px;
+  }
+  .cr-lanes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cr-lane,
+  .cr-lane:nth-child(odd) {
+    padding: 0;
+  }
+  .cr-lane + .cr-lane::before {
+    display: none;
+  }
+  .cr-tile.is-wide {
+    grid-column: auto;
+  }
+  .cr-sys {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cr-sys > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .cr-steps li {
+    grid-template-columns: 18px minmax(0, 1fr) 54px;
+  }
+  .cr-step-bar,
+  .cr-step-rows {
+    display: none;
+  }
+  .cr-kv > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .xc-row {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    padding: 7px 12px;
+  }
+  .xc-time {
+    display: none;
+  }
+  .xc-bar {
+    padding: 6px 8px 6px 12px;
+  }
+  .xp-band-list,
+  .xp-band-terms {
+    margin-left: 0;
+  }
+  .xp-toasts {
+    right: 10px;
+    left: 10px;
+    width: auto;
+    bottom: calc(10px + var(--console-h));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-pop,
+  .xp-toast,
+  .xc,
+  .xswitch-thumb {
+    transition-duration: 0.01ms !important;
+  }
+  .xc-live,
+  .spin {
+    animation: none !important;
+  }
+}
+.cr-script {
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.xb-row:empty {
+  display: none;
+}

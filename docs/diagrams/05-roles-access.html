@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roles and AI access · Credora</title>
+  <!-- Self-contained rendering: system monospace stack, no web-font fetch.
+       The two scripts below are OPTIONAL and power only the PNG/PDF export
+       buttons; the diagram renders fully offline without them. -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      margin-bottom: 2rem;
+    }
+    
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-left: 1.75rem;
+    }
+    
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    
+    svg {
+      width: 100%;
+      min-width: 900px;
+      display: block;
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+    }
+    
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .toolbar-toggle {
+      background: transparent;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: color 0.2s, background 0.2s;
+    }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions {
+      display: none;
+      gap: 0.5rem;
+    }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .toolbar-actions button:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: white;
+      border-color: #475569;
+    }
+
+    .subtitle.nav { margin-top: 0.35rem; font-size: 0.75rem; }
+    .subtitle.nav a { color: #22d3ee; text-decoration: none; margin-right: 1rem; }
+    .subtitle.nav a:hover { text-decoration: underline; }
+    .subtitle.nav a.cur { color: #e2e8f0; pointer-events: none; }
+
+    @media print {
+      body { background: #020617; padding: 1rem; }
+      .toolbar { display: none !important; }
+    }
+      .cards.four { grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+    .card li b.k { color: #e2e8f0; font-weight: 600; margin-right: 0.25rem; }
+    .section-title { color: #e2e8f0; font-size: 0.95rem; font-weight: 600; margin: 1.75rem 0 0.75rem; }
+    .diagram-container + .section-title { margin-top: 1.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Credora · Roles and AI access</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">Four roles, four Exasol users. What each can see and do, how the work passes from one role to the next, what Ask Credora can and cannot do for it, and how the MCP server logs in as the role's own user.</p>
+      <p class="subtitle nav"><a href="index.html">All diagrams</a><a href="01-big-picture.html">1 · Big picture</a><a href="02-aws-deployment.html">2 · AWS deployment</a><a href="03-inside-exasol.html">3 · Inside Exasol</a><a href="04-analysis-flow.html">4 · Analysis flow</a><a href="05-roles-access.html" class="cur">5 · Roles and AI</a></p>
+    </div>
+    <p class="section-title">1 · Who sees what. Each Exasol role reaches a ring of data</p>
+    <div class="diagram-container"><svg viewBox="0 0 1200 590" role="img" aria-label="Role hierarchy by what each Exasol role may read. Admin and data scientist read everything, including raw CIBIL, GST and AA replies in CREDORA_STAGE, the bank databases through the virtual schemas and all CREDORA results. Loan operations reads the bank databases and all results but not the raw 3rd party data. The relationship manager reads only row-level security views that return the companies assigned to her Exasol user, in published runs, plus config, run log and the filtered semantic view."><defs><marker id="r-front" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker><marker id="r-back" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker><marker id="r-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker><marker id="r-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker><marker id="r-sec" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker><marker id="r-ext" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker><marker id="r-q" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker><pattern id="rgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#rgrid)"/><rect x="360" y="20" width="820" height="550" rx="12" fill="rgba(136, 19, 55, 0.10)" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="6,4"/><text x="376" y="42" fill="#fb7185" font-size="11" font-weight="700">1 · Raw 3rd party data in CREDORA_STAGE</text><text x="376" y="58" fill="#94a3b8" font-size="9.5">Consent-based CIBIL, GST and AA replies, purged on time with SHA-256 proof</text><text x="376" y="78" fill="#e2e8f0" font-size="10">CIBIL_CONSUMER · CIBIL_COMMERCIAL · GST_FILING · AA_ACCOUNT</text><text x="376" y="93" fill="#e2e8f0" font-size="10">granted to R_ADMIN, R_DATASCI (read)  ·  written only by R_SVC during a run</text><rect x="400" y="150" width="760" height="405" rx="12" fill="rgba(76, 29, 149, 0.10)" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="6,4"/><text x="416" y="172" fill="#a78bfa" font-size="11" font-weight="700">2 · Sapphire Bank&#x27;s databases + all results</text><text x="416" y="188" fill="#94a3b8" font-size="9.5">Virtual schemas push each query down to RDS live, and nothing is copied</text><text x="416" y="208" fill="#e2e8f0" font-size="10">VS_CBS (Oracle core banking)  ·  VS_CIF (MySQL customer master)  ·  VS_LOS (PostgreSQL loans)</text><text x="416" y="223" fill="#e2e8f0" font-size="10">CREDORA · DECISIONS · SCORES · FEATURES · MODEL_REGISTRY · RUN_LOG · CONFIG · all views</text><text x="416" y="238" fill="#e2e8f0" font-size="10">RM_ASSIGNMENT · LOAN_STATUS_LOG · RUN_PUBLISH (written only by R_SVC)</text><text x="416" y="253" fill="#e2e8f0" font-size="10">granted to R_ADMIN, R_DATASCI, R_LOANOPS (read)</text><rect x="440" y="320" width="700" height="220" rx="12" fill="rgba(8, 51, 68, 0.10)" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="6,4"/><text x="456" y="342" fill="#22d3ee" font-size="11" font-weight="700">3 · Relationship manager sees only her assigned rows</text><text x="456" y="358" fill="#94a3b8" font-size="9.5">Row-level security in Exasol. Views join RM_ASSIGNMENT on EXA_USER = CURRENT_USER</text><text x="456" y="378" fill="#e2e8f0" font-size="10">V_RM_DECISIONS · V_RM_COMPANY (full PAN, GSTIN) · V_RM_FEATURES · V_RM_SCORES</text><text x="456" y="393" fill="#e2e8f0" font-size="10">V_RM_ASSIGNMENT · V_RM_LOAN_STATUS · CONFIG · RUN_LOG</text><text x="456" y="408" fill="#e2e8f0" font-size="10">V_LATEST_* and CREDORA_SEM.PORTFOLIO, filtered to her companies</text><text x="456" y="423" fill="#e2e8f0" font-size="10">published runs only (RUN_PUBLISH)  ·  no grant on DECISIONS or SCORES</text><text x="456" y="438" fill="#e2e8f0" font-size="10">granted to R_RM, with one Exasol user per manager (demo CREDORA_RM = RM001)</text><text x="1130" y="532" fill="#475569" font-size="9" text-anchor="end">outer roles read the tables directly, and the RM reads only her rows, at full detail</text><line x1="280" y1="74" x2="358" y2="74" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><line x1="280" y1="162" x2="358" y2="162" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><line x1="280" y1="284" x2="398" y2="284" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#r-db)"/><line x1="280" y1="444" x2="438" y2="444" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#r-front)"/><rect x="20" y="40" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="40" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="62.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Admin</text><text x="150.0" y="78.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_ADMIN · R_ADMIN</text><text x="150.0" y="94.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">+ SELECT ANY DICTIONARY</text><rect x="20" y="128" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="128" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="150.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Data scientist</text><text x="150.0" y="166.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_DATASCI · R_DATASCI</text><text x="150.0" y="182.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">same reads as admin</text><rect x="20" y="250" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="250" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="272.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Loan operations</text><text x="150.0" y="288.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_LOANOPS · R_LOANOPS</text><text x="150.0" y="304.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">no CREDORA_STAGE</text><rect x="20" y="410" width="260" height="68" rx="7" fill="#0f172a"/><rect x="20" y="410" width="260" height="68" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="150.0" y="432.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Relationship manager</text><text x="150.0" y="448.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA_RM · R_RM</text><text x="150.0" y="464.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Subhashree Mohanty, RM001</text><text x="20" y="510" fill="#94a3b8" font-size="9.5">Widest reach at the top. Admin and data scientist</text><text x="20" y="524" fill="#94a3b8" font-size="9.5">read the same data and differ in what they may do.</text><text x="20" y="544" fill="#475569" font-size="9">Grants are in exasol/sql/07_security.sql,</text><text x="20" y="557" fill="#475569" font-size="9">13_rm_row_security.sql, 11_latest_run_views.sql</text></svg></div>
+    <p class="section-title">2 · One Ask Credora question. The role travels all the way into Exasol</p>
+    <div class="diagram-container"><svg viewBox="0 0 1200 520" role="img" aria-label="How Ask Credora uses Exasol roles. The signed-in role travels from the login token through the backend and a topic gate to exasol_login, which starts the Exasol MCP server as that role's own Exasol user with writes off. Claude calls the MCP tools, and Exasol checks every query against the role's grants and returns rows or refuses. Analysis jobs run separately as CREDORA_SVC."><defs><marker id="r-front" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker><marker id="r-back" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker><marker id="r-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker><marker id="r-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker><marker id="r-sec" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker><marker id="r-ext" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker><marker id="r-q" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker><pattern id="rgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#rgrid)"/><line x1="185" y1="95.0" x2="212" y2="95.0" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#r-front)"/><text x="198.5" y="88.0" fill="#22d3ee" font-size="9" text-anchor="middle">1</text><line x1="380" y1="95.0" x2="407" y2="95.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="393.5" y="88.0" fill="#34d399" font-size="9" text-anchor="middle">2</text><line x1="575" y1="95.0" x2="602" y2="95.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="588.5" y="88.0" fill="#34d399" font-size="9" text-anchor="middle">3</text><line x1="770" y1="95.0" x2="797" y2="95.0" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="783.5" y="88.0" fill="#fb923c" font-size="9" text-anchor="middle">4</text><line x1="965" y1="95.0" x2="997" y2="95.0" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#r-db)"/><text x="981.0" y="88.0" fill="#a78bfa" font-size="9" text-anchor="middle">5</text><text x="20" y="34" fill="#94a3b8" font-size="9.5">1 role in the login token  ·  2 role may ask  ·  3 on topic  ·  4 MCP server starts as the role user  ·  5 SQL runs under that user&#39;s grants</text><line x1="492.5" y1="130" x2="492.5" y2="207" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><text x="500.5" y="180" fill="#fb7185" font-size="9" text-anchor="start">OUT</text><line x1="687.5" y1="130" x2="687.5" y2="207" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#r-ext)"/><text x="695.5" y="180" fill="#94a3b8" font-size="9" text-anchor="start">no role password</text><line x1="855" y1="132" x2="855" y2="207" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="848" y="180" fill="#fb923c" font-size="9" text-anchor="end">tool list</text><line x1="910" y1="210" x2="910" y2="133" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="918" y="180" fill="#fb923c" font-size="9" text-anchor="start">tool calls</text><line x1="1060" y1="130" x2="1060" y2="207" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="1052" y="180" fill="#34d399" font-size="9" text-anchor="end">inside grants</text><path d="M 1145 130 L 1145 330" fill="none" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><text x="1137" y="310" fill="#fb7185" font-size="9" text-anchor="end">outside grants</text><path d="M 265 130 L 265 407" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="257" y="390" fill="#34d399" font-size="9" text-anchor="end">screens</text><path d="M 335 130 L 335 300 L 610 300 L 610 407" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#r-cloud)"/><text x="618" y="390" fill="#fbbf24" font-size="9" text-anchor="start">jobs</text><rect x="20" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="20" y="60" width="165" height="70" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="102.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Signed-in person</text><text x="102.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">admin · datasci</text><text x="102.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">loanops · rm</text><rect x="215" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="215" y="60" width="165" height="70" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="297.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">FastAPI backend</text><text x="297.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">checks the role (CAN)</text><text x="297.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">routes/ai.py</text><rect x="410" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="410" y="60" width="165" height="70" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="492.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Topic gate</text><text x="492.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Claude answers IN / OUT</text><text x="492.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">_on_topic(), no tools</text><rect x="605" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="605" y="60" width="165" height="70" rx="7" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/><text x="687.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">exasol_login(role)</text><text x="687.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">role -&gt; CREDORA_&lt;ROLE&gt;</text><text x="687.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">assistant.py</text><rect x="800" y="60" width="165" height="70" rx="7" fill="#0f172a"/><rect x="800" y="60" width="165" height="70" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="882.5" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">exasol-mcp-server</text><text x="882.5" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">2.3.0 over stdio</text><text x="882.5" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">writes switched off</text><rect x="1000" y="60" width="180" height="70" rx="7" fill="#0f172a"/><rect x="1000" y="60" width="180" height="70" rx="7" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/><text x="1090.0" y="83.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Exasol</text><text x="1090.0" y="99.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">checks R_&lt;ROLE&gt; grants</text><text x="1090.0" y="115.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">on every statement</text><rect x="410" y="210" width="165" height="62" rx="7" fill="#0f172a"/><rect x="410" y="210" width="165" height="62" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="492.5" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Refused, no query</text><text x="492.5" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">&quot;Ask Credora only answers</text><text x="492.5" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">about Credora&#x27;s analysis&quot;</text><rect x="605" y="210" width="165" height="62" rx="7" fill="#0f172a"/><rect x="605" y="210" width="165" height="62" rx="7" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/><text x="687.5" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">CREDORA_MCP · R_MCP</text><text x="687.5" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">read-only fallback</text><text x="687.5" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">results + masked view</text><rect x="800" y="210" width="165" height="62" rx="7" fill="#0f172a"/><rect x="800" y="210" width="165" height="62" rx="7" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/><text x="882.5" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Claude</text><text x="882.5" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">claude-sonnet-5-5</text><text x="882.5" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">picks tools, writes SQL</text><rect x="1000" y="210" width="180" height="62" rx="7" fill="#0f172a"/><rect x="1000" y="210" width="180" height="62" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="1090.0" y="229.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Rows back to Claude</text><text x="1090.0" y="245.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">answer + every SQL</text><text x="1090.0" y="261.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">shown to the person</text><rect x="1000" y="333" width="180" height="62" rx="7" fill="#0f172a"/><rect x="1000" y="333" width="180" height="62" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="1090.0" y="352.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Exasol refuses</text><text x="1090.0" y="368.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">insufficient privileges</text><text x="1090.0" y="384.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Claude says role can&#x27;t see it</text><rect x="110" y="410" width="330" height="62" rx="7" fill="#0f172a"/><rect x="110" y="410" width="330" height="62" rx="7" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/><text x="275.0" y="429.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Every web screen reads as the same role user</text><text x="275.0" y="445.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">exa.ROLE_USER. The database enforces what each screen shows</text><text x="275.0" y="461.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">For an RM, Exasol returns only her assigned rows (V_RM_*)</text><rect x="455" y="410" width="330" height="62" rx="7" fill="#0f172a"/><rect x="455" y="410" width="330" height="62" rx="7" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/><text x="620.0" y="429.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Jobs run as CREDORA_SVC · R_SVC</text><text x="620.0" y="445.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">analysis, publish, assignments, loan status, CONFIG,</text><text x="620.0" y="461.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">activation, purge, memo UDF. No person logs in</text><text x="820" y="440" fill="#94a3b8" font-size="9.5">The prompt tells Claude what its role may read, and</text><text x="820" y="455" fill="#94a3b8" font-size="9.5">Exasol's grants enforce it. A wrong prompt or a</text><text x="820" y="470" fill="#94a3b8" font-size="9.5">jailbreak cannot widen what the AI can read.</text></svg></div>
+    <p class="section-title">3 · The hand-off. Run, publish, assign, work, track</p>
+    <div class="diagram-container"><svg viewBox="0 0 1200 330" role="img" aria-label="The hand-off between the roles. The data scientist runs the analysis as a draft and publishes it. Loan operations assigns its companies to relationship managers in Exasol. Each relationship manager works only her assigned companies and logs the loan status. Admin, data scientist and loan operations track every assigned company. The admin approves the data scientist&#39;s policy proposals and model activations, and an approved policy runs and publishes a new official run."><defs><marker id="r-front" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker><marker id="r-back" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker><marker id="r-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker><marker id="r-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker><marker id="r-sec" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker><marker id="r-ext" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker><marker id="r-q" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker><pattern id="rgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#rgrid)"/><line x1="210" y1="209.0" x2="252" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="231.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">1</text><line x1="445" y1="209.0" x2="487" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="466.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">2</text><line x1="680" y1="209.0" x2="722" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="701.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">3</text><line x1="915" y1="209.0" x2="957" y2="209.0" stroke="#34d399" stroke-width="1.5" marker-end="url(#r-back)"/><text x="936.0" y="202.0" fill="#34d399" font-size="9" text-anchor="middle">4</text><path d="M 80 170 L 80 56 L 297 56" fill="none" stroke="#fb923c" stroke-width="1.5" marker-end="url(#r-q)"/><text x="88" y="140" fill="#fb923c" font-size="9" text-anchor="start">propose policy, request activation</text><path d="M 520 56 L 405 56 L 405 167" fill="none" stroke="#fb7185" stroke-width="1.5" marker-end="url(#r-sec)"/><text x="413" y="140" fill="#fb7185" font-size="9" text-anchor="start">approved policy · run + publish</text><rect x="20" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="20" y="170" width="190" height="78" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="115.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Data scientist</text><text x="115.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Run analysis as a draft</text><text x="115.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.RUN_ANALYSIS()</text><text x="115.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">as CREDORA_SVC</text><rect x="255" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="255" y="170" width="190" height="78" rx="7" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/><text x="350.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Publish</text><text x="350.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.RUN_PUBLISH, official</text><text x="350.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">run for loan operations,</text><text x="350.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">RM views and V_LATEST_*</text><rect x="490" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="490" y="170" width="190" height="78" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="585.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Loan operations</text><text x="585.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Assign to RM, single or bulk</text><text x="585.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.RM_ASSIGNMENT</text><text x="585.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">(CIF, RM, EXA_USER)</text><rect x="725" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="725" y="170" width="190" height="78" rx="7" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/><text x="820.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Relationship manager</text><text x="820.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">sees only her rows (V_RM_*)</text><text x="820.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">negotiates in the limit.</text><text x="820.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">Above it, loan ops checks</text><rect x="960" y="170" width="190" height="78" rx="7" fill="#0f172a"/><rect x="960" y="170" width="190" height="78" rx="7" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/><text x="1055.0" y="189.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Loan status</text><text x="1055.0" y="205.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">CREDORA.LOAN_STATUS_LOG</text><text x="1055.0" y="221.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">tracked by admin, data</text><text x="1055.0" y="237.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">scientist, loan operations</text><rect x="300" y="20" width="220" height="72" rx="7" fill="#0f172a"/><rect x="300" y="20" width="220" height="72" rx="7" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/><text x="410.0" y="44.0" fill="white" font-size="11" font-weight="600" text-anchor="middle">Admin · Approvals</text><text x="410.0" y="60.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">policy proposals, model</text><text x="410.0" y="76.0" fill="#94a3b8" font-size="9.5" text-anchor="middle">activations, never own ones</text><text x="20" y="290" fill="#94a3b8" font-size="9.5">1 publish  ·  2 hand to loan operations  ·  3 assign  ·  4 log Contacted, Negotiating, Loan taken, In progress, Disbursed or Not interested, with a note</text><text x="20" y="308" fill="#475569" font-size="9">Every step is audited in RUN_PUBLISH, POLICY_*, MODEL_ACTIVATION_*, ASSIGN_RM, LOAN_STATUS</text></svg></div>
+    <p class="section-title">4 · What each role sees, can do and cannot do, and what its AI can and cannot do</p>
+    <div class="cards four"><div class="card"><div class="card-header"><div class="card-dot cyan"></div><h3>Admin · CREDORA_ADMIN</h3></div><ul><li><b class="k">Sees</b> everything, read-only, drafts included. Results, the three bank databases, raw CIBIL/GST/AA, loan status, audit</li><li><b class="k">Can do</b> bank manager. Generate, append and purge mock data, approve or reject policy proposals and model activations, audit, sources</li><li><b class="k">Cannot</b> run the analysis, train, what-if, assign companies, negotiate, sanction, decide own requests</li><li><b class="k">AI can</b> join Oracle + MySQL + PostgreSQL in one query, read raw API data, run log, semantic view</li><li><b class="k">AI cannot</b> write anything, answer off-topic questions</li></ul></div><div class="card"><div class="card-header"><div class="card-dot violet"></div><h3>Data scientist · CREDORA_DATASCI</h3></div><ul><li><b class="k">Sees</b> same data as admin, read-only, drafts included, with loan status read-only</li><li><b class="k">Can do</b> run the analysis and publish it to loan operations, train models and request activation, what-if and propose policy</li><li><b class="k">Cannot</b> activate a model or change policy without the admin, generate data, assign, negotiate, sanction</li><li><b class="k">AI can</b> model registry (AUC, Gini, features), features vs grades, past loans in VS_LOS, raw API data</li><li><b class="k">AI cannot</b> write anything, answer off-topic questions</li></ul></div><div class="card"><div class="card-header"><div class="card-dot emerald"></div><h3>Loan operations · CREDORA_LOANOPS</h3></div><ul><li><b class="k">Sees</b> published runs with all results and the three bank databases, loan status, but not the raw 3rd party data</li><li><b class="k">Can do</b> assign companies to relationship managers (single, bulk, reassign), every report, verify and sanction escalations</li><li><b class="k">Cannot</b> run the analysis, see drafts, generate data, train, what-if, negotiate</li><li><b class="k">AI can</b> KYC from the customer master joined with decisions, core-banking credits, hard-fail counts</li><li><b class="k">AI cannot</b> read CREDORA_STAGE (Exasol refuses), write anything</li></ul></div><div class="card"><div class="card-header"><div class="card-dot amber"></div><h3>Relationship manager · CREDORA_RM</h3></div><ul><li><b class="k">Sees</b> only the companies assigned to her, at full detail, with report, features, unmasked PAN and GSTIN</li><li><b class="k">Can do</b> negotiate within the limit (above it, escalated), log loan status (Contacted to Disbursed, or Not interested), credit memo</li><li><b class="k">Cannot</b> see any other company, bank databases, raw API data, run, publish or assign anything</li><li><b class="k">AI can</b> headroom, lowest ROI and RAROC, her companies by loan status, through the V_RM_* views</li><li><b class="k">AI cannot</b> read any other company. Exasol filters the rows on CURRENT_USER and refuses DECISIONS itself</li></ul></div></div>
+    <p class="footer">Credora · Built for ExaThon India 2026 · Powered by Exasol Personal</p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPNG(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a');
+        link.download = 'diagram.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPDF(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('diagram.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>

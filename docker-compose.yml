@@ -1,0 +1,126 @@
+# Credora app host: web app, API, mock external APIs and the mock data generator.
+# Runtime settings come from .env.runtime, which deploy/remote/start.sh writes from
+# the deployment's AWS Secrets Manager secret. Nothing secret is stored in the repo.
+
+x-mock-env: &mock-env
+  MOCKDB_HOST: mockdb
+  MOCKDB_PORT: "5432"
+  MOCKDB_USER: mock
+  MOCKDB_PASSWORD: ${MOCKDB_PASSWORD}
+  MOCK_API_TOKEN: ${MOCK_API_TOKEN}
+
+services:
+  mockdb:
+    image: postgres:16.15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mock
+      POSTGRES_PASSWORD: ${MOCKDB_PASSWORD}
+    volumes: ["mockdb:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mock"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  cibil:
+    build: ./mocks/cibil
+    restart: unless-stopped
+    environment: *mock-env
+    ports: ["8101:8101"]
+    depends_on: { mockdb: { condition: service_healthy } }
+
+  gstn:
+    build: ./mocks/gstn
+    restart: unless-stopped
+    environment: *mock-env
+    ports: ["8102:8102"]
+    depends_on: { mockdb: { condition: service_healthy } }
+
+  aa:
+    build: ./mocks/aa
+    restart: unless-stopped
+    environment: *mock-env
+    ports: ["8103:8103"]
+    depends_on: { mockdb: { condition: service_healthy } }
+
+  generator:
+    build:
+      context: ./mocks/generator
+      additional_contexts:
+        db: ./db
+    restart: unless-stopped
+    environment:
+      <<: *mock-env
+      ORACLE_HOST: ${ORACLE_HOST}
+      ORACLE_PORT: ${ORACLE_PORT}
+      ORACLE_SERVICE: ${ORACLE_SERVICE}
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      ORACLE_CBS_PASSWORD: ${ORACLE_CBS_PASSWORD}
+      ORACLE_RO_PASSWORD: ${ORACLE_RO_PASSWORD}
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_RO_PASSWORD: ${MYSQL_RO_PASSWORD}
+      PG_HOST: ${PG_HOST}
+      PG_PORT: ${PG_PORT}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_RO_PASSWORD: ${PG_RO_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+      AWS_DEFAULT_REGION: ${AWS_REGION}
+    ports: ["8100:8100"]
+    depends_on: { mockdb: { condition: service_healthy } }
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env.runtime
+    environment:
+      GENERATOR_URL: http://generator:8100
+      MOCK_CIBIL_URL: http://cibil:8101
+      MOCK_GSTN_URL: http://gstn:8102
+      MOCK_AA_URL: http://aa:8103
+      MOCKDB_HOST: mockdb
+    ports: ["127.0.0.1:8000:8000"]   # host-local only, for the deploy tool; the public way in is Caddy
+    depends_on: [generator, cibil, gstn, aa]
+
+  caddy:
+    image: caddy:2.10.2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      # Generated per deployment by deploy/credora.py (bank domain + 3rd party data APIs domain).
+      - ./deploy/remote/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend/dist:/srv:ro
+      - ./sites:/sites:ro
+      - ./media:/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [backend]
+
+  # exasol-labs/exasol-scheduler (scheduler/Dockerfile, pinned release): runs the SQL jobs in Exasol's
+  # SCHED.SCHED_TASKS (exasol/sql/17_scheduler.sql: PURGE_EXPIRED every 15 minutes, the nightly
+  # virtual-schema refresh) and writes every run to SCHED.SCHED_HISTORY. One replica only: two
+  # schedulers on the same task table would run each job twice.
+  scheduler:
+    build: ./scheduler
+    restart: unless-stopped
+    environment:
+      EXA_HOST: ${EXASOL_HOST}
+      EXA_PORT: ${EXASOL_PORT:-8563}
+      EXA_USER: CREDORA_SVC
+      EXA_PASSWORD: ${EXA_SVC_PASSWORD}
+      EXA_TLS: "true"
+      # The scheduler validates certificates against CAs only (no fingerprint pinning); Exasol's is
+      # self-signed, and the connection stays inside the VPC.
+      EXA_VALIDATE_SERVER_CERT: "false"
+      POLL_INTERVAL_SECS: "10"
+      RUST_LOG: info
+
+volumes:
+  mockdb:
+  caddy_data:
+  caddy_config:

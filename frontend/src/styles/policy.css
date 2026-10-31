@@ -1,0 +1,73 @@
+/* ================= policy maker-checker (what-if runs, proposals, approvals) ================= */
+
+.nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 99px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  background: var(--refer);
+  color: var(--surface);
+}
+
+.whatif-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.policy-h {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.policy-table {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+}
+.policy-dialog-grid {
+  display: grid;
+  gap: 16px;
+  margin: 12px 0 14px;
+}
+.policy-changes .policy-table {
+  min-width: 300px;
+  font-size: var(--fs-sm);
+}
+
+.proposal .panel-head {
+  flex-wrap: wrap;
+}
+.proposal-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.proposal-grid {
+  align-items: start;
+}
+.proposal-note {
+  margin: 16px 0 14px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--sapphire);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--surface-2);
+}
+.proposal-note p {
+  margin: 4px 0 0;
+  max-width: 72ch;
+}
+.proposal-decision {
+  margin: 0;
+}
+.proposal .callout {
+  margin-bottom: 12px;
+}

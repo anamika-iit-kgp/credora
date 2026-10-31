@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS deployment · Credora</title>
+  <!-- Self-contained rendering: system monospace stack, no web-font fetch.
+       The two scripts below are OPTIONAL and power only the PNG/PDF export
+       buttons; the diagram renders fully offline without them. -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      margin-bottom: 2rem;
+    }
+    
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-left: 1.75rem;
+    }
+    
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    
+    svg {
+      width: 100%;
+      min-width: 900px;
+      display: block;
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+    }
+    
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .toolbar-toggle {
+      background: transparent;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: color 0.2s, background 0.2s;
+    }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions {
+      display: none;
+      gap: 0.5rem;
+    }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .toolbar-actions button:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: white;
+      border-color: #475569;
+    }
+
+    .subtitle.nav { margin-top: 0.35rem; font-size: 0.75rem; }
+    .subtitle.nav a { color: #22d3ee; text-decoration: none; margin-right: 1rem; }
+    .subtitle.nav a:hover { text-decoration: underline; }
+    .subtitle.nav a.cur { color: #e2e8f0; pointer-events: none; }
+
+    @media print {
+      body { background: #020617; padding: 1rem; }
+      .toolbar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Credora · AWS deployment</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">One region, one VPC from the Exasol launcher, two EC2 hosts and three RDS databases. Ports and protocols on every path. Numbers give the order.</p>
+      <p class="subtitle nav"><a href="index.html">All diagrams</a><a href="01-big-picture.html">1 · Big picture</a><a href="02-aws-deployment.html" class="cur">2 · AWS deployment</a><a href="03-inside-exasol.html">3 · Inside Exasol</a><a href="04-analysis-flow.html">4 · Analysis flow</a><a href="05-roles-access.html">5 · Roles and AI</a></p>
+    </div>
+
+    <!-- Main Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 1240 1080" role="img" aria-label="Credora on AWS ap-south-1. Route 53 zones for credora.loan and credora.link point at the app host&#x27;s Elastic IP. In the launcher&#x27;s VPC 172.30.0.0/16, the public subnet holds the app host (Docker Compose with Caddy, React, FastAPI with the Exasol MCP server, generator, mock CIBIL, GSTN, AA and mockdb) and Exasol Personal. The private subnets hold RDS Oracle, MySQL and PostgreSQL. Exasol fetches 3rd party data via API through the relays cibil., gst. and aa.credora.link. Secrets Manager, S3 and Bedrock are regional services. Admin IPs alone reach SSH and the Exasol ports.">
+        <defs>
+          <marker id="ah-frontend" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker>
+          <marker id="ahs-frontend" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#22d3ee"/></marker>
+          <marker id="ah-backend" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker>
+          <marker id="ahs-backend" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#34d399"/></marker>
+          <marker id="ah-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker>
+          <marker id="ahs-db" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#a78bfa"/></marker>
+          <marker id="ah-cache" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8"/></marker>
+          <marker id="ahs-cache" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#38bdf8"/></marker>
+          <marker id="ah-bus" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker>
+          <marker id="ahs-bus" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#fb923c"/></marker>
+          <marker id="ah-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker>
+          <marker id="ahs-cloud" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#fbbf24"/></marker>
+          <marker id="ah-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker>
+          <marker id="ahs-security" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#fb7185"/></marker>
+          <marker id="ah-external" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker>
+          <marker id="ahs-external" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#94a3b8"/></marker>
+          <marker id="ah-slate" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/></marker>
+          <marker id="ahs-slate" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#64748b"/></marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+        <!-- Boundaries -->
+<rect x="200" y="130" width="1025" height="860" rx="12" fill="rgba(251, 191, 36, 0.05)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+<text x="212" y="146" fill="#fbbf24" font-size="10" font-weight="600">AWS Region · ap-south-1 (Mumbai)</text>
+<rect x="385" y="150" width="825" height="825" rx="10" fill="rgba(56, 189, 248, 0.03)" stroke="#38bdf8" stroke-width="1"/>
+<rect x="400" y="235" width="795" height="410" rx="8" fill="rgba(52, 211, 153, 0.04)" stroke="#34d399" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="625" y="637" fill="#34d399" font-size="8" font-weight="600">Public subnet · 172.30.1.0/24</text>
+<rect x="415" y="255" width="310" height="365" rx="8" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+<rect x="835" y="255" width="345" height="365" rx="8" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="847" y="271" fill="#fb7185" font-size="8" font-weight="600">sg-exasol (launcher) · 22 2581 8443 8563 ← admin IPs</text>
+<rect x="400" y="690" width="795" height="265" rx="8" fill="rgba(167, 139, 250, 0.05)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="412" y="947" fill="#a78bfa" font-size="8" font-weight="600">Private subnets · 172.30.2.0/24 (a) + 172.30.3.0/24 (b)</text>
+<rect x="415" y="712" width="765" height="215" rx="8" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="427" y="919" fill="#fb7185" font-size="8" font-weight="600">sg-rds · 1521, 3306, 5432 ← VPC only · not publicly accessible</text>
+        <!-- Connections (drawn before boxes so they sit behind) -->
+<path d="M190 60 H238" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ah-external)"/>
+<path d="M105 100 V200 H398" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ah-frontend)"/>
+<path d="M455 225 V276" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ah-frontend)"/>
+<path d="M712 386 H848" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M848 518 H712" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ah-external)"/>
+<path d="M890 605 V738" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+<path d="M1080 605 V738" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+<path d="M865 605 V660 H600 V738" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+<path d="M540 605 V738" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M470 605 V738" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah-cloud)"/>
+<path d="M430 320 H367" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah-security)"/>
+<path d="M430 430 H367" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah-cloud)"/>
+<path d="M430 520 H367" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#ah-cloud)"/>
+<path d="M430 580 H182" fill="none" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#ah-cloud)"/>
+<path d="M1130 100 V276" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah-security)"/>
+<path d="M1080 100 V115 H690 V276" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah-security)"/>
+<path d="M650 100 V276" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah-security)"/>
+        <!-- Components (opaque mask rect, then the semi-transparent box) -->
+<rect x="20" y="20" width="170" height="80" rx="6" fill="#0f172a"/>
+<rect x="20" y="20" width="170" height="80" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="105.0" y="39" fill="white" font-size="11" font-weight="600" text-anchor="middle">Users · judges</text>
+<text x="105.0" y="56" fill="#94a3b8" font-size="9" text-anchor="middle">browser</text>
+<text x="105.0" y="68" fill="#22d3ee" font-size="8" text-anchor="middle">credora.loan</text>
+<text x="105.0" y="80" fill="#22d3ee" font-size="8" text-anchor="middle">credora.link</text>
+<rect x="240" y="20" width="340" height="80" rx="6" fill="#0f172a"/>
+<rect x="240" y="20" width="340" height="80" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="410.0" y="39" fill="white" font-size="11" font-weight="600" text-anchor="middle">Route 53 · 2 public hosted zones</text>
+<text x="410.0" y="56" fill="#94a3b8" font-size="9" text-anchor="middle">credora.loan · @ www docs video ppt</text>
+<text x="410.0" y="69" fill="#94a3b8" font-size="9" text-anchor="middle">credora.link · @ www cibil gst aa</text>
+<text x="410.0" y="81" fill="#fbbf24" font-size="8" text-anchor="middle">every A record → app host Elastic IP</text>
+<rect x="610" y="20" width="200" height="80" rx="6" fill="#0f172a"/>
+<rect x="610" y="20" width="200" height="80" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+<text x="710.0" y="39" fill="white" font-size="11" font-weight="600" text-anchor="middle">IAM role · app host</text>
+<text x="710.0" y="54" fill="#94a3b8" font-size="8" text-anchor="middle">GetSecretValue · S3 read/write</text>
+<text x="710.0" y="65" fill="#94a3b8" font-size="8" text-anchor="middle">bedrock:InvokeModel</text>
+<text x="710.0" y="76" fill="#94a3b8" font-size="8" text-anchor="middle">SSM managed instance</text>
+<rect x="1040" y="20" width="180" height="80" rx="6" fill="#0f172a"/>
+<rect x="1040" y="20" width="180" height="80" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+<text x="1130.0" y="39" fill="white" font-size="11" font-weight="600" text-anchor="middle">Admin IPs (/32)</text>
+<text x="1130.0" y="56" fill="#94a3b8" font-size="9" text-anchor="middle">deployer + allow-ip list</text>
+<text x="1130.0" y="69" fill="#94a3b8" font-size="9" text-anchor="middle">SSH and Exasol ports</text>
+<rect x="20" y="545" width="160" height="70" rx="6" fill="#0f172a"/>
+<rect x="20" y="545" width="160" height="70" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="100.0" y="564" fill="white" font-size="11" font-weight="600" text-anchor="middle">Anthropic API</text>
+<text x="100.0" y="580" fill="#94a3b8" font-size="8" text-anchor="middle">Claude · HTTPS</text>
+<text x="100.0" y="592" fill="#94a3b8" font-size="8" text-anchor="middle">(AI_PROVIDER=anthropic)</text>
+<rect x="215" y="290" width="150" height="60" rx="6" fill="#0f172a"/>
+<rect x="215" y="290" width="150" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="290.0" y="309" fill="white" font-size="11" font-weight="600" text-anchor="middle">Secrets Manager</text>
+<text x="290.0" y="324" fill="#94a3b8" font-size="8" text-anchor="middle">runtime secret</text>
+<text x="290.0" y="335" fill="#94a3b8" font-size="8" text-anchor="middle">DB, API, Exasol users</text>
+<rect x="215" y="400" width="150" height="60" rx="6" fill="#0f172a"/>
+<rect x="215" y="400" width="150" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="290.0" y="419" fill="white" font-size="11" font-weight="600" text-anchor="middle">Amazon S3</text>
+<text x="290.0" y="434" fill="#94a3b8" font-size="8" text-anchor="middle">ground truth (scorecard)</text>
+<text x="290.0" y="445" fill="#94a3b8" font-size="8" text-anchor="middle">models archive</text>
+<rect x="215" y="490" width="150" height="60" rx="6" fill="#0f172a"/>
+<rect x="215" y="490" width="150" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="290.0" y="509" fill="white" font-size="11" font-weight="600" text-anchor="middle">Amazon Bedrock</text>
+<text x="290.0" y="524" fill="#94a3b8" font-size="8" text-anchor="middle">Claude (optional,</text>
+<text x="290.0" y="535" fill="#94a3b8" font-size="8" text-anchor="middle">AI_PROVIDER=bedrock)</text>
+<rect x="400" y="175" width="110" height="50" rx="6" fill="#0f172a"/>
+<rect x="400" y="175" width="110" height="50" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="455.0" y="193" fill="white" font-size="10" font-weight="600" text-anchor="middle">Internet</text>
+<text x="455.0" y="210" fill="#94a3b8" font-size="9" text-anchor="middle">gateway</text>
+<rect x="430" y="278" width="280" height="327" rx="6" fill="#0f172a"/>
+<rect x="430" y="278" width="280" height="327" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="570.0" y="297" fill="white" font-size="11" font-weight="600" text-anchor="middle">App host · EC2 t3.large</text>
+<text x="570.0" y="314" fill="#94a3b8" font-size="9" text-anchor="middle">172.30.1.20 · Elastic IP · Docker Compose</text>
+<rect x="442" y="325" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="442" y="325" width="124" height="34" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+<text x="504.0" y="339" fill="white" font-size="9" font-weight="600" text-anchor="middle">caddy</text>
+<text x="504.0" y="351" fill="#94a3b8" font-size="8" text-anchor="middle">:80 → :443 TLS</text>
+<rect x="576" y="325" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="576" y="325" width="124" height="34" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+<text x="638.0" y="339" fill="white" font-size="9" font-weight="600" text-anchor="middle">frontend</text>
+<text x="638.0" y="351" fill="#94a3b8" font-size="8" text-anchor="middle">React (static)</text>
+<rect x="442" y="369" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="442" y="369" width="124" height="34" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+<text x="504.0" y="383" fill="white" font-size="9" font-weight="600" text-anchor="middle">backend</text>
+<text x="504.0" y="395" fill="#94a3b8" font-size="8" text-anchor="middle">FastAPI :8000</text>
+<rect x="576" y="369" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="576" y="369" width="124" height="34" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+<text x="638.0" y="383" fill="white" font-size="9" font-weight="600" text-anchor="middle">exasol-mcp-server</text>
+<text x="638.0" y="395" fill="#94a3b8" font-size="8" text-anchor="middle">stdio, in backend</text>
+<rect x="442" y="413" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="442" y="413" width="124" height="34" rx="4" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+<text x="504.0" y="427" fill="white" font-size="9" font-weight="600" text-anchor="middle">generator</text>
+<text x="504.0" y="439" fill="#94a3b8" font-size="8" text-anchor="middle">:8100</text>
+<rect x="576" y="413" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="576" y="413" width="124" height="34" rx="4" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+<text x="638.0" y="427" fill="white" font-size="9" font-weight="600" text-anchor="middle">mockdb</text>
+<text x="638.0" y="439" fill="#94a3b8" font-size="8" text-anchor="middle">PostgreSQL 16</text>
+<rect x="442" y="457" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="442" y="457" width="124" height="34" rx="4" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+<text x="504.0" y="471" fill="white" font-size="9" font-weight="600" text-anchor="middle">cibil (mock)</text>
+<text x="504.0" y="483" fill="#94a3b8" font-size="8" text-anchor="middle">:8101</text>
+<rect x="576" y="457" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="576" y="457" width="124" height="34" rx="4" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+<text x="638.0" y="471" fill="white" font-size="9" font-weight="600" text-anchor="middle">gstn (mock)</text>
+<text x="638.0" y="483" fill="#94a3b8" font-size="8" text-anchor="middle">:8102</text>
+<rect x="442" y="501" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="442" y="501" width="124" height="34" rx="4" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+<text x="504.0" y="515" fill="white" font-size="9" font-weight="600" text-anchor="middle">aa (mock)</text>
+<text x="504.0" y="527" fill="#94a3b8" font-size="8" text-anchor="middle">:8103</text>
+<rect x="576" y="501" width="124" height="34" rx="4" fill="#0f172a"/>
+<rect x="576" y="501" width="124" height="34" rx="4" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+<text x="638.0" y="515" fill="white" font-size="9" font-weight="600" text-anchor="middle">Caddy relays</text>
+<text x="638.0" y="527" fill="#94a3b8" font-size="8" text-anchor="middle">cibil./gst./aa.</text>
+<rect x="604" y="549" width="96" height="40" rx="4" fill="#0f172a"/>
+<rect x="604" y="549" width="96" height="40" rx="4" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+<text x="652.0" y="562" fill="white" font-size="9" font-weight="600" text-anchor="middle">exasol-scheduler</text>
+<text x="652.0" y="573" fill="#94a3b8" font-size="7" text-anchor="middle">0.4.1 · SCHED_TASKS</text>
+<text x="652.0" y="583" fill="#94a3b8" font-size="7" text-anchor="middle">purge every 15 min</text>
+<rect x="850" y="278" width="315" height="327" rx="6" fill="#0f172a"/>
+<rect x="850" y="278" width="315" height="327" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="1007.5" y="297" fill="white" font-size="11" font-weight="600" text-anchor="middle">Exasol Personal 2026.1</text>
+<text x="1007.5" y="314" fill="#94a3b8" font-size="9" text-anchor="middle">EC2 r6i.xlarge · 172.30.1.11</text>
+<text x="1007.5" y="340" fill="#e2e8f0" font-size="9" text-anchor="middle">:8563 SQL (TLS) · :8443 Admin UI</text>
+<text x="1007.5" y="353" fill="#e2e8f0" font-size="9" text-anchor="middle">:2581 BucketFS · :22 SSH</text>
+<text x="1007.5" y="379" fill="#94a3b8" font-size="9" text-anchor="middle">PYTHON3 · JAVA built-in</text>
+<text x="1007.5" y="392" fill="#94a3b8" font-size="9" text-anchor="middle">RUST custom SLC 0.23.1 (BucketFS)</text>
+<text x="1007.5" y="405" fill="#94a3b8" font-size="9" text-anchor="middle">VS_CBS · VS_CIF · VS_LOS</text>
+<text x="1007.5" y="418" fill="#94a3b8" font-size="9" text-anchor="middle">API, ML and AI UDFs · Lua scripts</text>
+<text x="1007.5" y="431" fill="#94a3b8" font-size="9" text-anchor="middle">CONNECTION objects hold secrets</text>
+<text x="1007.5" y="444" fill="#94a3b8" font-size="9" text-anchor="middle">audit log · consumer groups · SCHED</text>
+<text x="1007.5" y="469" fill="#64748b" font-size="8" text-anchor="middle">installed by the official launcher</text>
+<text x="1007.5" y="481" fill="#64748b" font-size="8" text-anchor="middle">TLS pinned by certificate fingerprint</text>
+<rect x="430" y="740" width="220" height="120" rx="6" fill="#0f172a"/>
+<rect x="430" y="740" width="220" height="120" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="540.0" y="759" fill="white" font-size="11" font-weight="600" text-anchor="middle">RDS PostgreSQL 16</text>
+<text x="540.0" y="776" fill="#94a3b8" font-size="9" text-anchor="middle">:5432 · los · crm</text>
+<text x="540.0" y="789" fill="#94a3b8" font-size="9" text-anchor="middle">application · past_loan</text>
+<text x="540.0" y="802" fill="#94a3b8" font-size="9" text-anchor="middle">offer · offer_event</text>
+<text x="540.0" y="814" fill="#64748b" font-size="8" text-anchor="middle">subnet group spans 2 AZs</text>
+<rect x="740" y="740" width="200" height="120" rx="6" fill="#0f172a"/>
+<rect x="740" y="740" width="200" height="120" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="840.0" y="759" fill="white" font-size="11" font-weight="600" text-anchor="middle">RDS Oracle SE2</text>
+<text x="840.0" y="776" fill="#94a3b8" font-size="9" text-anchor="middle">:1521 · CBS</text>
+<text x="840.0" y="789" fill="#94a3b8" font-size="9" text-anchor="middle">ACCOUNT · TXN (~850k)</text>
+<rect x="965" y="740" width="200" height="120" rx="6" fill="#0f172a"/>
+<rect x="965" y="740" width="200" height="120" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="1065.0" y="759" fill="white" font-size="11" font-weight="600" text-anchor="middle">RDS MySQL 8.4</text>
+<text x="1065.0" y="776" fill="#94a3b8" font-size="9" text-anchor="middle">:3306 · cif</text>
+<text x="1065.0" y="789" fill="#94a3b8" font-size="9" text-anchor="middle">company · partner · rm</text>
+        <!-- Labels, step numbers, legend -->
+<text x="20" y="14" fill="#64748b" font-size="8" text-anchor="start" font-weight="600">GLOBAL AND INTERNET (outside the region)</text>
+<rect x="394" y="156" width="306.0" height="14" fill="#020617"/>
+<text x="397" y="166" fill="#38bdf8" font-size="10" font-weight="600">VPC 172.30.0.0/16 · created by the Exasol launcher</text>
+<rect x="424" y="263" width="265.2" height="12" fill="#020617"/>
+<text x="427" y="271" fill="#fb7185" font-size="8" font-weight="600">sg-app · 80,443 ← world · 22 ← admin · 8100-8103 ← VPC</text>
+<text x="442" y="560" fill="#64748b" font-size="8" text-anchor="start">docs. video. ppt. → static sites</text>
+<text x="442" y="574" fill="#64748b" font-size="8" text-anchor="start">www. → 301 to the domain root</text>
+<text x="442" y="588" fill="#64748b" font-size="8" text-anchor="start">runtime secret → .env.runtime</text>
+<circle cx="214" cy="60" r="8" fill="#94a3b8" stroke="#020617" stroke-width="1.5"/><text x="214" y="63" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">1</text>
+<rect x="204.8" y="38.0" width="18.4" height="12" fill="#020617" opacity="0.92"/>
+<text x="214" y="46" fill="#94a3b8" font-size="8" text-anchor="middle">DNS</text>
+<circle cx="105" cy="140" r="8" fill="#22d3ee" stroke="#020617" stroke-width="1.5"/><text x="105" y="143" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">2</text>
+<rect x="266.0" y="186.0" width="52.0" height="12" fill="#020617" opacity="0.92"/>
+<text x="292" y="194" fill="#22d3ee" font-size="8" text-anchor="middle">HTTPS :443</text>
+<rect x="258.8" y="206.0" width="66.4" height="12" fill="#020617" opacity="0.92"/>
+<text x="292" y="214" fill="#64748b" font-size="8" text-anchor="middle">(:80 → https)</text>
+<rect x="470.4" y="238.0" width="23.2" height="12" fill="#020617" opacity="0.92"/>
+<text x="482" y="246" fill="#22d3ee" font-size="8" text-anchor="middle">:443</text>
+<circle cx="780" cy="386" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="780" y="389" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">3</text>
+<rect x="756.4" y="364.0" width="47.2" height="12" fill="#020617" opacity="0.92"/>
+<text x="780" y="372" fill="#34d399" font-size="8" text-anchor="middle">:8563 SQL</text>
+<rect x="742.0" y="398.0" width="76.0" height="12" fill="#020617" opacity="0.92"/>
+<text x="780" y="406" fill="#64748b" font-size="8" text-anchor="middle">TLS · role user</text>
+<circle cx="780" cy="518" r="8" fill="#94a3b8" stroke="#020617" stroke-width="1.5"/><text x="780" y="521" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">4</text>
+<rect x="754.0" y="496.0" width="52.0" height="12" fill="#020617" opacity="0.92"/>
+<text x="780" y="504" fill="#94a3b8" font-size="8" text-anchor="middle">HTTPS :443</text>
+<rect x="742.0" y="530.0" width="76.0" height="12" fill="#020617" opacity="0.92"/>
+<text x="780" y="538" fill="#22d3ee" font-size="8" text-anchor="middle">cibil./gst./aa.</text>
+<rect x="746.8" y="542.0" width="66.4" height="12" fill="#020617" opacity="0.92"/>
+<text x="780" y="550" fill="#22d3ee" font-size="8" text-anchor="middle">.credora.link</text>
+<rect x="742.0" y="556.0" width="76.0" height="12" fill="#020617" opacity="0.92"/>
+<text x="780" y="564" fill="#64748b" font-size="8" text-anchor="middle">out and back in</text>
+<rect x="744.4" y="568.0" width="71.2" height="12" fill="#020617" opacity="0.92"/>
+<text x="780" y="576" fill="#64748b" font-size="8" text-anchor="middle">via Elastic IP</text>
+<circle cx="890" cy="632" r="8" fill="#a78bfa" stroke="#020617" stroke-width="1.5"/><text x="890" y="635" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">5</text>
+<rect x="699.6" y="647.0" width="80.8" height="12" fill="#020617" opacity="0.92"/>
+<text x="740" y="655" fill="#a78bfa" font-size="8" text-anchor="middle">:5432 ADBC (los)</text>
+<rect x="894.0" y="668.0" width="52.0" height="12" fill="#020617" opacity="0.92"/>
+<text x="896" y="676" fill="#a78bfa" font-size="8" text-anchor="start">:1521 JDBC</text>
+<rect x="1084.0" y="668.0" width="52.0" height="12" fill="#020617" opacity="0.92"/>
+<text x="1086" y="676" fill="#a78bfa" font-size="8" text-anchor="start">:3306 ADBC</text>
+<circle cx="540" cy="652" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="540" y="655" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">6</text>
+<rect x="544.0" y="668.0" width="47.2" height="12" fill="#020617" opacity="0.92"/>
+<text x="546" y="676" fill="#34d399" font-size="8" text-anchor="start">:5432 crm</text>
+<rect x="418.8" y="656.0" width="47.2" height="12" fill="#020617" opacity="0.92"/>
+<text x="464" y="664" fill="#fbbf24" font-size="8" text-anchor="end">mock data</text>
+<rect x="409.2" y="668.0" width="56.8" height="12" fill="#020617" opacity="0.92"/>
+<text x="464" y="676" fill="#fbbf24" font-size="8" text-anchor="end">→ all 3 DBs</text>
+<circle cx="398" cy="520" r="8" fill="#fbbf24" stroke="#020617" stroke-width="1.5"/><text x="398" y="523" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">7</text>
+<circle cx="300" cy="580" r="8" fill="#fbbf24" stroke="#020617" stroke-width="1.5"/><text x="300" y="583" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">7</text>
+<circle cx="1130" cy="180" r="8" fill="#fb7185" stroke="#020617" stroke-width="1.5"/><text x="1130" y="183" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">8</text>
+<rect x="1019.2" y="202.0" width="104.8" height="12" fill="#020617" opacity="0.92"/>
+<text x="1122" y="210" fill="#fb7185" font-size="8" text-anchor="end">:22 :2581 :8443 :8563</text>
+<rect x="694.0" y="132.0" width="37.6" height="12" fill="#020617" opacity="0.92"/>
+<text x="696" y="140" fill="#fb7185" font-size="8" text-anchor="start">:22 SSH</text>
+<rect x="565.2" y="134.0" width="80.8" height="12" fill="#020617" opacity="0.92"/>
+<text x="644" y="142" fill="#fb7185" font-size="8" text-anchor="end">instance profile</text>
+<text x="20" y="1010" fill="white" font-size="10" text-anchor="start" font-weight="600">Legend</text>
+<rect x="20" y="1024" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+<text x="42" y="1032" fill="#94a3b8" font-size="8">Edge / web (Caddy, React)</text>
+<rect x="220" y="1024" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+<text x="242" y="1032" fill="#94a3b8" font-size="8">Service / container</text>
+<rect x="420" y="1024" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+<text x="442" y="1032" fill="#94a3b8" font-size="8">Database / Exasol</text>
+<rect x="620" y="1024" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+<text x="642" y="1032" fill="#94a3b8" font-size="8">AWS managed service</text>
+<rect x="820" y="1024" width="16" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+<text x="842" y="1032" fill="#94a3b8" font-size="8">Security / identity</text>
+<rect x="1020" y="1024" width="16" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+<text x="1042" y="1032" fill="#94a3b8" font-size="8">Internet / 3rd party API</text>
+<rect x="20" y="1040" width="16" height="10" rx="2" fill="transparent" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
+<text x="42" y="1048" fill="#94a3b8" font-size="8">Region</text>
+<rect x="220" y="1040" width="16" height="10" rx="2" fill="transparent" stroke="#38bdf8" stroke-width="1"/>
+<text x="242" y="1048" fill="#94a3b8" font-size="8">VPC</text>
+<rect x="420" y="1040" width="16" height="10" rx="2" fill="transparent" stroke="#34d399" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="442" y="1048" fill="#94a3b8" font-size="8">Public subnet</text>
+<rect x="620" y="1040" width="16" height="10" rx="2" fill="transparent" stroke="#a78bfa" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="642" y="1048" fill="#94a3b8" font-size="8">Private subnets</text>
+<rect x="820" y="1040" width="16" height="10" rx="2" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+<text x="842" y="1048" fill="#94a3b8" font-size="8">Security group</text>
+<line x1="1020" y1="1045" x2="1036" y2="1045" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,3"/>
+<text x="1042" y="1048" fill="#94a3b8" font-size="8">Dashed line · admin, secret, mock data</text>
+      </svg>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>Two domains, one host</h3>
+        </div>
+        <ul>
+          <li>• credora.loan is the bank, with the app at the root, a www redirect and docs., video. and ppt.</li>
+          <li>• credora.link serves 3rd party data via API, with a landing page and the cibil., gst. and aa. relays</li>
+          <li>• Every record points at the app host&#x27;s Elastic IP. Caddy gets the TLS certificates</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot rose"></div>
+          <h3>Narrow doors</h3>
+        </div>
+        <ul>
+          <li>• Only 80 and 443 are open to the world, on the app host</li>
+          <li>• Exasol 22, 2581, 8443, 8563 and app-host SSH are open to admin IPs only</li>
+          <li>• RDS is private, with 1521, 3306 and 5432 reachable from inside the VPC only</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>Portable by design</h3>
+        </div>
+        <ul>
+          <li>• OpenTofu (run in Docker) adds subnets, RDS, app host, S3, secret and DNS to the launcher&#x27;s VPC</li>
+          <li>• No account IDs, IPs or domains in code. They come from the env file or are looked up at deploy time</li>
+          <li>• Secrets are generated per account into Secrets Manager and read with the instance role</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer">
+      Credora · Built for ExaThon India 2026 · Powered by Exasol Personal
+    </p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPNG(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a');
+        link.download = 'diagram.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPDF(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('diagram.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>

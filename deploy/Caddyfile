@@ -1,0 +1,34 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# Read-only, browsable docs of the mock external APIs (calls still need the API key).
+	handle_path /mock/cibil/* {
+		reverse_proxy cibil:8101
+	}
+	handle_path /mock/gstn/* {
+		reverse_proxy gstn:8102
+	}
+	handle_path /mock/aa/* {
+		reverse_proxy aa:8103
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

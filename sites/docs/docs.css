@@ -1,0 +1,429 @@
+/* Credora docs: a left nav and one reading column. Tokens come from _assets/site.css. */
+
+.skip {
+  position: absolute;
+  left: -999px;
+  top: 8px;
+  z-index: 100;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+}
+.skip:focus {
+  left: 8px;
+}
+
+.docs {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---------- nav ---------- */
+.docs-nav {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+@media (prefers-color-scheme: dark) {
+  .docs-nav {
+    background: #070c17;
+    border-right-color: #161f33;
+  }
+}
+.docs-brand {
+  padding: 22px 20px 18px 22px;
+}
+.docs-menu {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+.docs-menu summary {
+  display: none;
+}
+.doc-links,
+.toc,
+.companion {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.doc-links {
+  display: grid;
+  gap: 2px;
+}
+.doc-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  color: var(--muted);
+  font-size: 14px;
+  position: relative;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.doc-link:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.doc-link.is-active {
+  color: var(--ink);
+  font-weight: 500;
+  background: var(--sapphire-tint);
+}
+.doc-link.is-active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--sapphire);
+}
+.doc-link .out,
+.companion .out {
+  width: 12px;
+  height: 12px;
+  opacity: 0.55;
+  flex: none;
+}
+.toc {
+  margin: 4px 0 10px 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+  display: grid;
+  gap: 1px;
+}
+.toc a {
+  display: block;
+  padding: 4px 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--faint);
+  border-radius: var(--r-sm);
+}
+.toc a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+.toc .toc-l3 a {
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.docs-nav-foot {
+  display: grid;
+  gap: 14px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--line);
+}
+@media (prefers-color-scheme: dark) {
+  .docs-nav-foot {
+    border-top-color: #161f33;
+  }
+}
+.companion {
+  display: grid;
+  gap: 4px;
+}
+.companion a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.companion a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+.docs-nav-foot .exathon-badge {
+  justify-self: start;
+}
+.docs-nav-foot .exathon-credit {
+  font-size: 12px;
+  display: grid;
+  gap: 2px;
+}
+.docs-nav-foot .exathon-credit > [aria-hidden] {
+  display: none;
+}
+.docs-nav-foot .exathon-credit .exasol-logo {
+  height: 14px;
+}
+
+/* ---------- reading column ---------- */
+.docs-main {
+  min-width: 0;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+}
+.prose {
+  width: 100%;
+  max-width: 920px;
+  padding: 48px 56px 56px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.2;
+  scroll-margin-top: 24px;
+  position: relative;
+}
+.prose h1 {
+  font-size: clamp(30px, 3vw, 38px);
+  letter-spacing: -0.03em;
+  margin: 0 0 20px;
+  text-wrap: balance;
+}
+.prose h2 {
+  font-size: 23px;
+  letter-spacing: -0.02em;
+  margin: 52px 0 14px;
+  padding-top: 26px;
+  border-top: 1px solid var(--line-soft);
+}
+.prose h3 {
+  font-size: 17.5px;
+  letter-spacing: -0.01em;
+  margin: 34px 0 10px;
+}
+.prose h4 {
+  font-size: 15px;
+  margin: 24px 0 8px;
+}
+.prose h2 code,
+.prose h3 code {
+  font-size: 0.86em;
+}
+.anchor {
+  margin-left: 8px;
+  color: var(--faint);
+  font-weight: 400;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.prose h2:hover .anchor,
+.prose h3:hover .anchor,
+.anchor:focus-visible {
+  opacity: 1;
+  text-decoration: none;
+}
+.prose p,
+.prose ul,
+.prose ol {
+  margin: 0 0 16px;
+}
+.prose ul,
+.prose ol {
+  padding-left: 22px;
+}
+.prose li + li {
+  margin-top: 5px;
+}
+.prose li::marker {
+  color: var(--faint);
+}
+.prose strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.prose a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--sapphire) 35%, transparent);
+  text-underline-offset: 3px;
+}
+.prose a:hover {
+  text-decoration-color: var(--sapphire);
+}
+.dead-link {
+  color: var(--ink);
+}
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 36px 0;
+}
+.prose blockquote {
+  margin: 0 0 16px;
+  padding: 12px 18px;
+  border-left: 3px solid var(--sapphire);
+  background: var(--sapphire-tint);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  color: var(--ink-2);
+}
+.prose blockquote p:last-child {
+  margin-bottom: 0;
+}
+.prose img {
+  max-width: 100%;
+}
+
+/* inline code */
+.prose :not(pre) > code {
+  font-size: 0.86em;
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* code blocks, highlighted by the build (CSS only, no script) */
+.code {
+  position: relative;
+  margin: 0 0 18px;
+  border-radius: var(--r-lg);
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+}
+.code-lang {
+  display: block;
+  padding: 9px 18px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.code .code-lang + pre {
+  padding-top: 6px;
+}
+.code pre {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  tab-size: 2;
+}
+.t-kw { color: var(--code-kw); font-weight: 500; }
+.t-fn { color: var(--code-fn); }
+.t-str { color: var(--code-str); }
+.t-com { color: var(--code-com); font-style: italic; }
+.t-num { color: var(--code-num); }
+.t-obj { color: var(--ink); font-weight: 500; }
+.t-key { color: var(--sapphire); }
+
+/* tables wrap their text to the page width: no inner scroll bar */
+.table-wrap {
+  margin: 0 0 20px;
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.prose table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.prose th,
+.prose td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line-soft);
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
+}
+.prose td a {
+  overflow-wrap: anywhere;
+}
+.prose th {
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface-2);
+  border-bottom-color: var(--line);
+}
+.prose tr:last-child td {
+  border-bottom: 0;
+}
+.prose td code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.docs-foot {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 28px;
+  padding: 22px 56px 26px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13px;
+  color: var(--faint);
+}
+
+/* ---------- narrow screens: nav on top, pages in a disclosure ---------- */
+@media (max-width: 900px) {
+  .docs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .docs-nav {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .docs-brand {
+    padding: 16px 16px 10px;
+  }
+  .docs-menu {
+    padding: 0 8px 8px;
+  }
+  .docs-menu summary {
+    display: block;
+    padding: 6px 10px 10px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .docs-nav-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px 16px;
+  }
+  .companion {
+    display: flex;
+    gap: 14px;
+  }
+  .prose {
+    padding: 28px 18px 40px;
+  }
+  .docs-foot {
+    padding: 20px 18px;
+  }
+}
+
+/* page-view count (one number per site) */
+.views { font-size: 12px; opacity: .7; white-space: nowrap; }
+.views:empty { display: none; }

@@ -1,0 +1,3 @@
+# The official Exasol MCP server, used by "Ask Credora". Installed in its own virtual environment
+# in the image (/opt/exasol-mcp) so its dependencies stay apart from the API's.
+exasol-mcp-server==2.3.0

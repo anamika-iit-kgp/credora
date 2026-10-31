@@ -1,0 +1,89 @@
+# Credora CI: everything that can be checked without AWS, Exasol or Docker. No secrets are used.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests (pytest)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r backend/requirements-dev.txt
+      - run: python -m pytest -q
+        working-directory: backend
+
+  frontend:
+    name: Frontend build (tsc + vite)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  udfs:
+    name: Exasol UDF unit tests (exasol/udf-mock-python)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tests/udf/requirements.txt
+      - run: pip install -r tests/udf/requirements.txt
+      - run: python -m pytest -q -p no:cacheprovider
+        working-directory: tests/udf
+
+  generator:
+    name: Mock data generator tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: mocks/generator/requirements.txt
+      - run: pip install -r mocks/generator/requirements.txt pytest==9.2.0
+      - run: python -m pytest -q -p no:cacheprovider tests
+        working-directory: mocks/generator
+
+  deploy-tools:
+    name: Deploy tools compile, SQL files split
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m py_compile deploy/credora.py deploy/exasol_setup.py deploy/sql_runner.py deploy/creds_bridge.py backend/tools/sync_excerpts.py sites/build_docs.py backend/app/mcp_session.py
+      - name: Every Exasol SQL file splits into statements
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+          sys.path.insert(0, "deploy")
+          import sql_runner
+          files = sorted(pathlib.Path("exasol").rglob("*.sql"))
+          for f in files:
+              stmts = sql_runner.split(f.read_text(encoding="utf-8"))
+              assert stmts, f"{f}: no statements"
+              print(f"{f}: {len(stmts)} statements")
+          PY

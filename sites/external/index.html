@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Credora · 3rd party data APIs</title>
+<meta name="description" content="Mock CIBIL, GSTN and Account Aggregator APIs that Sapphire Bank's Exasol calls for 3rd party data, on demand via API. All data is synthetic.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' fill='none' stroke='%23ef9fd2' stroke-width='3' stroke-dasharray='4 3'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../_assets/site.css">
+<link rel="stylesheet" href="external.css">
+<script src="config.js"></script>
+<script src="live.js" defer></script>
+</head>
+<body>
+<div class="stage-page world">
+  <header class="topbar">
+    <a class="world-mark" href="./" aria-label="credora.link, 3rd party data APIs">
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3.4 2.6"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/></svg>
+      <span class="wordmark-text"><span class="wordmark-name">Credora · 3rd party data APIs</span><span class="wordmark-sub">Mock CIBIL, GSTN and Account Aggregator</span></span>
+    </a>
+    <span class="topbar-spacer"></span>
+    <span class="exathon-badge topbar-badge">ExaThon India 2026</span>
+    <nav aria-label="Elsewhere"><ul class="topbar-links"><li><a class="js-bank" href="#" target="_blank" rel="noopener">Sapphire Bank side</a></li></ul></nav>
+  </header>
+
+  <main class="stage world-stage">
+    <div class="stage-head">
+      <p class="eyebrow world-eyebrow">3rd party data via API</p>
+      <h1 class="stage-title">The credit bureau, the GST network and the Account Aggregator, as Sapphire Bank's Exasol meets them.</h1>
+      <p class="stage-lede">Credora's analysis does not stop at the bank's own books. Python UDFs running inside Sapphire Bank's Exasol fetch 3rd party data on demand via API, through the HTTPS relays below. 16 UDF instances call bulk endpoints in parallel, within one <code>RUN_ANALYSIS</code> call. Exasol stages the replies with a purge time and deletes them on schedule, keeping a SHA-256 fingerprint as proof. All three are mocks built for this demo. They imitate the real services and hold only synthetic data.</p>
+    </div>
+
+    <ol class="route" aria-label="How a call travels">
+      <li class="route-step">
+        <span class="route-shape route-exa" aria-hidden="true"></span>
+        <span class="route-text"><strong>Sapphire Bank's Exasol</strong>A Python UDF in the analysis run asks for a bureau report, GST returns or other-bank statements.</span>
+      </li>
+      <li class="route-step">
+        <span class="route-shape route-net" aria-hidden="true"></span>
+        <span class="route-text"><strong>API call over HTTPS</strong>Each request carries an <code>X-API-Key</code> header. Without it, data calls are refused.</span>
+      </li>
+      <li class="route-step">
+        <span class="route-shape route-api" aria-hidden="true"></span>
+        <span class="route-text"><strong>Relay to the mock API</strong>The relay hands the call to the FastAPI app, which answers from its own synthetic database.</span>
+      </li>
+    </ol>
+
+    <section class="live" aria-labelledby="live-title">
+      <div class="live-head">
+        <h2 id="live-title">What the 3rd party APIs hold right now</h2>
+        <p id="live-stamp">Reading live counts…</p>
+      </div>
+      <div class="live-grid" id="live-counts"></div>
+    </section>
+
+    <section class="parties" aria-label="The 3rd party APIs">
+      <article class="party">
+        <div class="party-head">
+          <span class="party-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg></span>
+          <span class="api-tag"><span class="api-tag-k">API</span><span class="api-tag-v">CIBIL</span></span>
+        </div>
+        <h2 class="party-title">Credit bureau</h2>
+        <p class="party-text">Consumer reports for every partner and commercial reports for every company, with scores, open facilities, overdues and enquiries.</p>
+        <ul class="party-endpoints">
+          <li><span>GET</span>/v1/consumer/{pan}</li>
+          <li><span>GET</span>/v1/commercial/{pan}</li>
+          <li><span>POST</span>/v1/consumer/bulk, /v1/commercial/bulk</li>
+        </ul>
+        <div class="party-foot">
+          <code class="party-host" data-party="cibil">cibil.&lt;domain&gt;</code>
+          <span class="party-links"><a class="btn btn-sm" data-party-link="cibil" data-path="/health" href="#">Health</a><a class="btn btn-sm btn-api" data-party-link="cibil" data-path="/docs" href="#">API docs <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></span>
+        </div>
+      </article>
+
+      <article class="party">
+        <div class="party-head">
+          <span class="party-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="m13 17-5-1h1a4 4 0 0 0 0-8"/></svg></span>
+          <span class="api-tag"><span class="api-tag-k">API</span><span class="api-tag-v">GSTN</span></span>
+        </div>
+        <h2 class="party-title">GST network</h2>
+        <p class="party-text">GST registrations and 2 to 10 years of monthly returns per company. This is the turnover trail the bank cannot see in its own ledger.</p>
+        <ul class="party-endpoints">
+          <li><span>GET</span>/v1/gstin/{gstin}</li>
+          <li><span>GET</span>/v1/gstin/{gstin}/returns</li>
+          <li><span>POST</span>/v1/returns/bulk</li>
+        </ul>
+        <div class="party-foot">
+          <code class="party-host" data-party="gst">gst.&lt;domain&gt;</code>
+          <span class="party-links"><a class="btn btn-sm" data-party-link="gst" data-path="/health" href="#">Health</a><a class="btn btn-sm btn-api" data-party-link="gst" data-path="/docs" href="#">API docs <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></span>
+        </div>
+      </article>
+
+      <article class="party">
+        <div class="party-head">
+          <span class="party-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18v-7"/><path d="M11.12 2.2a2 2 0 0 1 1.76 0l7.87 3.84c.67.33.43 1.32-.3 1.32H3.55c-.73 0-.97-.99-.3-1.32z"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M3 22h18"/><path d="M6 18v-7"/></svg></span>
+          <span class="api-tag"><span class="api-tag-k">API</span><span class="api-tag-v">Account Aggregator</span></span>
+        </div>
+        <h2 class="party-title">Account Aggregator</h2>
+        <p class="party-text">With the partners' consent, their accounts at other banks with transactions. These are cash flows that never pass through Sapphire Bank.</p>
+        <ul class="party-endpoints">
+          <li><span>POST</span>/v1/consent</li>
+          <li><span>GET</span>/v1/fi/{consent_id}</li>
+          <li><span>POST</span>/v1/fi/bulk</li>
+        </ul>
+        <div class="party-foot">
+          <code class="party-host" data-party="aa">aa.&lt;domain&gt;</code>
+          <span class="party-links"><a class="btn btn-sm" data-party-link="aa" data-path="/health" href="#">Health</a><a class="btn btn-sm btn-api" data-party-link="aa" data-path="/docs" href="#">API docs <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></span>
+        </div>
+      </article>
+    </section>
+
+    <section class="facts" aria-label="Before you call">
+      <div class="fact">
+        <h2 class="fact-title">All data is synthetic</h2>
+        <p>Every company, partner, PAN, GSTIN, account and score here is generated. These are mocks of CIBIL, GSTN and an Account Aggregator, not the real organisations, and they carry none of their data or branding.</p>
+      </div>
+      <div class="fact">
+        <h2 class="fact-title">Data calls need an API key</h2>
+        <p><code>/docs</code> and <code>/health</code> are open to anyone. Every data endpoint requires the <code>X-API-Key</code> header. The key is set per deployment and held by Sapphire Bank's Exasol, so a call without it gets <code>401</code>.</p>
+      </div>
+      <div class="fact">
+        <h2 class="fact-title">Where the bank is</h2>
+        <p>The other end of these calls is Credora, Sapphire Bank's pre-approved corporate loan app, built on Exasol Personal for ExaThon India 2026. Inside the bank, only the Exasol roles granted it may read the raw replies. Loan operations sees the derived features and decisions, and relationship managers see the decisions. Neither reads the raw bureau, GST or Account Aggregator data. Every reply is stored with a purge time, and the Exasol Scheduler runs <code>PURGE_EXPIRED</code> inside Exasol every 15 minutes, deletes what is due and keeps a SHA-256 fingerprint of it as proof. Each relay's root address opens its API reference (<code>/docs</code>).</p>
+        <p><a class="btn btn-primary js-bank" href="#" target="_blank" rel="noopener">Visit Sapphire Bank's Credora <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <p class="exathon-credit"><span class="built">Built for ExaThon India 2026</span><span aria-hidden="true">·</span><span class="powered">Powered by <span class="exasol-logo"><img class="on-dark" src="../_assets/Exasol_Logo_2025_Bright.svg" alt="Exasol"><img class="on-light" src="../_assets/Exasol_Logo_2025_Dark.svg" alt="Exasol"></span> Personal</span></p>
+    <span>Sapphire Bank and these 3rd party services are fictional. All data is synthetic.</span>
+  </footer>
+</div>
+<script>
+  (function () {
+    // The external domain is whatever serves this page; the bank's URL comes from config.js (written at deploy).
+    var host = (window.location.hostname || "").toLowerCase().replace(/^www\./, "");
+    var local = !host || host === "localhost" || /\.localhost$/.test(host) || /^[\d.]+$/.test(host) || host.indexOf(":") >= 0;
+    // Locally the mocks listen on their own ports (see mocks/README.md).
+    var LOCAL = { cibil: "http://localhost:8101", gst: "http://localhost:8102", aa: "http://localhost:8103" };
+    function base(p) { return local ? LOCAL[p] : "https://" + p + "." + host; }
+
+    var hosts = document.querySelectorAll("[data-party]");
+    for (var i = 0; i < hosts.length; i++) hosts[i].textContent = base(hosts[i].getAttribute("data-party")).replace(/^https?:\/\//, "");
+    var links = document.querySelectorAll("[data-party-link]");
+    for (var j = 0; j < links.length; j++) {
+      var a = links[j];
+      a.href = base(a.getAttribute("data-party-link")) + a.getAttribute("data-path");
+      a.target = "_blank";
+      a.rel = "noopener";
+    }
+    var bank = window.CREDORA_BANK_URL;
+    var b = document.querySelectorAll(".js-bank");
+    for (var k = 0; k < b.length; k++) if (bank) b[k].href = bank;
+  })();
+</script>
+</body>
+</html>

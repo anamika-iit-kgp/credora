@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Demo video · Credora</title>
+<link rel="icon" type="image/svg+xml" href="/_assets/credora-gem.svg">
+<link rel="stylesheet" href="../_assets/site.css">
+</head>
+<body>
+<div class="stage-page">
+  <header class="topbar">
+    <a class="wordmark" data-site="app" href="/" aria-label="Credora, Sapphire Bank"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path class="gem-face-d" d="M7.2 3.5h9.6L20.5 9H3.5Z"/><path class="gem-face-a" d="M3.5 9h17L12 21.5Z"/><path class="gem-face-b" d="M8.6 9h6.8L12 21.5Z"/><path class="gem-face-c" d="M3.5 9 8.6 9 12 21.5Z"/><path class="gem-edge" d="M7.2 3.5h9.6L20.5 9 12 21.5 3.5 9ZM3.5 9h17M8.6 9 12 3.5 15.4 9"/></svg><span class="wordmark-text"><span class="wordmark-name">Credora</span><span class="wordmark-sub">Sapphire Bank</span></span></a>
+    <span class="topbar-section">Demo video</span>
+    <span class="topbar-spacer"></span>
+    <span class="exathon-badge topbar-badge">ExaThon India 2026</span>
+    <nav aria-label="Credora sites"><ul class="topbar-links"><li><a data-site="app" href="/">Credora app</a></li><li><a data-site="docs" href="../docs/dist/index.html">Docs</a></li><li><a data-site="video" href="../video/index.html" aria-current="page">Demo video</a></li><li><a data-site="ppt" href="../ppt/index.html">Presentation</a></li></ul></nav>
+  </header>
+  <main class="stage">
+    <div class="stage-head">
+      <p class="eyebrow">Demo video</p>
+      <h1 class="stage-title">Credora, end to end, from Sapphire Bank's books to a ranked pre-approved offer.</h1>
+      <p class="stage-lede">A walkthrough of the app. It covers mock data generation, the Exasol analysis run across the bank's own databases and 3rd party data fetched via API, the Top 50, and an offer moving from relationship manager to sanction.</p>
+    </div>
+
+    <div class="screen" id="screen" data-state="placeholder">
+      <video id="demo" controls playsinline preload="metadata">
+        <source src="demo.mp4" type="video/mp4">
+      </video>
+      <div class="placeholder" role="status">
+        <span class="placeholder-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.52.85l10.4-6.4a1 1 0 0 0 0-1.7L9.52 4.75A1 1 0 0 0 8 5.6Z"/></svg></span>
+        <p class="placeholder-title">Demo video, coming soon</p>
+        <p class="placeholder-text">The video will play right here as soon as it is published.</p>
+      </div>
+    </div>
+
+    <div class="stage-actions">
+      <a class="btn btn-primary" data-site="app" href="/">Open the Credora app <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+      <a class="btn" data-site="docs" href="../docs/dist/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg> Read the docs</a>
+      <a class="btn" data-site="ppt" href="../ppt/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg> Presentation</a>
+    </div>
+  </main>
+  <footer class="site-foot">
+    <div class="site-foot-left">
+      <p class="exathon-credit"><span class="built">Built for ExaThon India 2026</span><span aria-hidden="true">·</span><span class="powered">Powered by <span class="exasol-logo"><img class="on-dark" src="../_assets/Exasol_Logo_2025_Bright.svg" alt="Exasol"><img class="on-light" src="../_assets/Exasol_Logo_2025_Dark.svg" alt="Exasol"></span> Personal</span></p>
+    </div>
+    <span>Sapphire Bank is fictional. All companies, people and accounts are synthetic.</span>
+    <span class="views" data-views="video"></span>
+  </footer>
+</div>
+<script src="../_assets/sites.js"></script>
+<script>
+  (function () {
+    var screen = document.getElementById("screen");
+    var video = document.getElementById("demo");
+    var source = video.querySelector("source");
+    function ready() { screen.setAttribute("data-state", "ready"); }
+    function missing() { screen.setAttribute("data-state", "placeholder"); }
+    video.addEventListener("loadedmetadata", ready);
+    source.addEventListener("error", missing);
+    video.addEventListener("error", missing);
+    if (video.readyState >= 1) ready();
+    // Optional video.json {"url": "..."} next to the page points the player at the hosted file (e.g. S3).
+    if (window.fetch) {
+      fetch("video.json", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (v) { if (v && v.url) { source.src = v.url; video.load(); } })
+        .catch(function () {});
+    }
+  })();
+</script>
+</body>
+</html>

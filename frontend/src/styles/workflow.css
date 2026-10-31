@@ -1,0 +1,238 @@
+/* ================= hand-offs: publish, approvals, assignments, loan status ================= */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 99px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+}
+.tag-draft {
+  background: var(--refer-tint);
+  color: var(--refer);
+}
+.tag-published {
+  background: var(--approve-tint);
+  color: var(--approve);
+}
+
+.run-aside {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-badge-new {
+  background: var(--approve);
+  min-width: 0;
+  padding: 0 7px;
+}
+
+.approvals-tabs {
+  margin-top: 14px;
+}
+.approvals-tabs .nav-badge {
+  margin-left: 6px;
+}
+.section-lede {
+  max-width: 90ch;
+  margin: 0 0 14px;
+  font-size: var(--fs-sm);
+}
+
+/* selection and assignment */
+th.sel,
+td.sel {
+  width: 34px;
+  padding-right: 0;
+}
+td.sel input,
+th.sel input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+.table tr.is-selected td {
+  background: var(--sapphire-tint);
+}
+.assign-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  margin: 0 0 4px;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--sapphire-tint);
+  font-size: var(--fs-sm);
+}
+.page > .assign-bar {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.linklike {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+}
+.linklike:hover {
+  text-decoration: underline;
+}
+.rm-pick {
+  border: 0;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  max-height: 46vh;
+  overflow: auto;
+}
+.rm-pick legend {
+  margin-bottom: 8px;
+}
+.rm-opt,
+.status-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  background: var(--surface);
+}
+.rm-opt.is-on,
+.status-opt.is-on {
+  border-color: var(--primary);
+  background: var(--sapphire-tint);
+}
+.rm-opt input,
+.status-opt input {
+  margin-top: 3px;
+  accent-color: var(--primary);
+}
+
+/* loan status */
+.loan-status {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 99px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.ls-contacted {
+  background: var(--sapphire-tint);
+  color: var(--sapphire);
+}
+.ls-negotiating,
+.ls-in-progress {
+  background: var(--refer-tint);
+  color: var(--refer);
+}
+.ls-loan-taken,
+.ls-disbursed {
+  background: var(--approve-tint);
+  color: var(--approve);
+}
+.ls-disbursed {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--approve) 45%, transparent);
+}
+.ls-not-interested {
+  background: var(--decline-tint);
+  color: var(--decline);
+}
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.status-chip.is-on {
+  border-color: var(--primary);
+  background: var(--sapphire-tint);
+}
+.status-pick {
+  border: 0;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.status-pick legend {
+  margin-bottom: 8px;
+}
+.status-opt:has(input:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.status-history {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4px;
+  display: grid;
+  gap: 10px;
+}
+.status-history li {
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+.status-history p {
+  margin: 4px 0 0;
+}
+.row-detail td {
+  background: var(--surface-2);
+}
+.clamp-1 {
+  margin: 2px 0 0;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.published-notice {
+  align-items: flex-start;
+}
+.published-notice > div {
+  flex: 1;
+}
+.published-notice p {
+  margin: 0 0 4px;
+}
+
+/* Top 50: the table carries selection and RM columns, so the query panel sits beside it only on wide screens. */
+.grid-main-side.top50-grid {
+  grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr);
+}
+@media (max-width: 1500px) {
+  .grid-main-side.top50-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

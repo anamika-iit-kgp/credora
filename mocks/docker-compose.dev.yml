@@ -1,0 +1,114 @@
+# Local dev stack: the three bank databases, the mock bureau database, the three
+# mock APIs and the generator. Dev-only passwords; never reuse them anywhere else.
+#
+#   docker compose -f docker-compose.dev.yml up -d --build
+#   curl -X POST localhost:8100/generate -H 'content-type: application/json' -d '{"seed": 42}'
+#   docker compose -f docker-compose.dev.yml down -v
+
+x-mock-env: &mock-env
+  MOCKDB_HOST: mockdb
+  MOCKDB_PORT: "5432"
+  MOCKDB_USER: mock
+  MOCKDB_PASSWORD: mockdev
+  MOCK_API_TOKEN: dev-mock-token
+
+services:
+  oracle:
+    image: gvenzl/oracle-free:23.26.3-slim
+    environment:
+      ORACLE_PASSWORD: oracledev          # SYS and SYSTEM
+    ports: ["1521:1521"]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  mysql:
+    image: mysql:8.4.13
+    environment:
+      MYSQL_ROOT_PASSWORD: mysqldev
+    ports: ["3306:3306"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-pmysqldev"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  postgres:
+    image: postgres:16.15
+    environment:
+      POSTGRES_USER: credora_admin
+      POSTGRES_PASSWORD: pgdev
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "credora_admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mockdb:
+    image: postgres:16.15
+    environment:
+      POSTGRES_USER: mock
+      POSTGRES_PASSWORD: mockdev
+    ports: ["5433:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mock"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  cibil:
+    build: ./cibil
+    environment: *mock-env
+    ports: ["8101:8101"]
+    depends_on:
+      mockdb: {condition: service_healthy}
+
+  gstn:
+    build: ./gstn
+    environment: *mock-env
+    ports: ["8102:8102"]
+    depends_on:
+      mockdb: {condition: service_healthy}
+
+  aa:
+    build: ./aa
+    environment: *mock-env
+    ports: ["8103:8103"]
+    depends_on:
+      mockdb: {condition: service_healthy}
+
+  generator:
+    build:
+      context: ./generator
+      additional_contexts:
+        db: ../db
+    environment:
+      <<: *mock-env
+      ORACLE_HOST: oracle
+      ORACLE_PORT: "1521"
+      ORACLE_SERVICE: FREEPDB1
+      ORACLE_USER: system
+      ORACLE_PASSWORD: oracledev
+      ORACLE_CBS_PASSWORD: cbsdev
+      ORACLE_RO_PASSWORD: rodev
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: root
+      MYSQL_PASSWORD: mysqldev
+      MYSQL_RO_PASSWORD: rodev
+      PG_HOST: postgres
+      PG_PORT: "5432"
+      PG_USER: credora_admin
+      PG_PASSWORD: pgdev
+      PG_RO_PASSWORD: rodev
+      S3_BUCKET: ""
+    ports: ["8100:8100"]
+    depends_on:
+      oracle: {condition: service_healthy}
+      mysql: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      mockdb: {condition: service_healthy}

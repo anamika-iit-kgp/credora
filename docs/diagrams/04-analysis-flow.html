@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis flow · Credora</title>
+  <!-- Self-contained rendering: system monospace stack, no web-font fetch.
+       The two scripts below are OPTIONAL and power only the PNG/PDF export
+       buttons; the diagram renders fully offline without them. -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      margin-bottom: 2rem;
+    }
+    
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      margin-left: 1.75rem;
+    }
+    
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    
+    svg {
+      width: 100%;
+      min-width: 900px;
+      display: block;
+    }
+    
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .card ul {
+      list-style: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+    }
+    
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .toolbar-toggle {
+      background: transparent;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      transition: color 0.2s, background 0.2s;
+    }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30, 41, 59, 0.5); }
+    .toolbar-actions {
+      display: none;
+      gap: 0.5rem;
+    }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .toolbar-actions button:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: white;
+      border-color: #475569;
+    }
+
+    .subtitle.nav { margin-top: 0.35rem; font-size: 0.75rem; }
+    .subtitle.nav a { color: #22d3ee; text-decoration: none; margin-right: 1rem; }
+    .subtitle.nav a:hover { text-decoration: underline; }
+    .subtitle.nav a.cur { color: #e2e8f0; pointer-events: none; }
+
+    @media print {
+      body { background: #020617; padding: 1rem; }
+      .toolbar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Credora · Analysis flow</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">Inside RUN_ANALYSIS. Each step, its source, rows and time on the live deployment, ending in the PREFERRING top 50 and the CRM export.</p>
+      <p class="subtitle nav"><a href="index.html">All diagrams</a><a href="01-big-picture.html">1 · Big picture</a><a href="02-aws-deployment.html">2 · AWS deployment</a><a href="03-inside-exasol.html">3 · Inside Exasol</a><a href="04-analysis-flow.html" class="cur">4 · Analysis flow</a><a href="05-roles-access.html">5 · Roles and AI</a></p>
+    </div>
+
+    <!-- Main Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 1140 930" role="img" aria-label="The RUN_ANALYSIS pipeline. 1 refresh virtual schemas 1.8 s, 2 read credit needs on file 0.3 s, 3 CIBIL consumer 1.0 s, 4 CIBIL commercial 0.6 s, 5 GST 1.6 s, 6 Account Aggregator 3.6 s, 7 features 3.6 s, 8 risk model, 9 score 1.9 s, 10 anomaly flag 1.3 s, 11 decide 0.07 s, 12 PREFERRING rank 0.02 s, 13 shadow challenger 1.7 s, then the backend exports offers to the PostgreSQL crm database. About 25 s in total.">
+        <defs>
+          <marker id="ah-frontend" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker>
+          <marker id="ahs-frontend" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#22d3ee"/></marker>
+          <marker id="ah-backend" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/></marker>
+          <marker id="ahs-backend" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#34d399"/></marker>
+          <marker id="ah-db" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/></marker>
+          <marker id="ahs-db" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#a78bfa"/></marker>
+          <marker id="ah-cache" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8"/></marker>
+          <marker id="ahs-cache" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#38bdf8"/></marker>
+          <marker id="ah-bus" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c"/></marker>
+          <marker id="ahs-bus" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#fb923c"/></marker>
+          <marker id="ah-cloud" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/></marker>
+          <marker id="ahs-cloud" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#fbbf24"/></marker>
+          <marker id="ah-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/></marker>
+          <marker id="ahs-security" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#fb7185"/></marker>
+          <marker id="ah-external" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker>
+          <marker id="ahs-external" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#94a3b8"/></marker>
+          <marker id="ah-slate" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/></marker>
+          <marker id="ahs-slate" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#64748b"/></marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+        <!-- Boundaries -->
+        <!-- Connections (drawn before boxes so they sit behind) -->
+<path d="M115 135 V188" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+<path d="M295 135 V188" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+<path d="M475 135 V188" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ah-external)"/>
+<path d="M655 135 V188" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ah-external)"/>
+<path d="M835 135 V188" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ah-external)"/>
+<path d="M1015 135 V188" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ah-external)"/>
+<path d="M190 260 H218" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M190 510 H218" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M370 260 H398" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M370 510 H398" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M550 260 H578" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M550 510 H578" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M730 260 H758" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M730 510 H758" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M910 260 H938" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M910 510 H938" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M1090 260 H1115 V385 H115 V438" fill="none" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-backend)"/>
+<path d="M115 640 V582" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+<path d="M295 640 V582" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)" marker-start="url(#ahs-db)"/>
+<path d="M655 640 V582" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+<path d="M835 580 V638" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ah-frontend)"/>
+<path d="M1015 580 V638" fill="none" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#ah-db)"/>
+        <!-- Components (opaque mask rect, then the semi-transparent box) -->
+<rect x="40" y="65" width="330" height="70" rx="6" fill="#0f172a"/>
+<rect x="40" y="65" width="330" height="70" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="205.0" y="84" fill="white" font-size="11" font-weight="600" text-anchor="middle">Virtual schemas (bank RDS)</text>
+<text x="205.0" y="101" fill="#94a3b8" font-size="9" text-anchor="middle">VS_CBS Oracle · VS_CIF MySQL · VS_LOS PostgreSQL</text>
+<text x="205.0" y="113" fill="#64748b" font-size="8" text-anchor="middle">refreshed, then read in place</text>
+<rect x="400" y="65" width="330" height="70" rx="6" fill="#0f172a"/>
+<rect x="400" y="65" width="330" height="70" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="565.0" y="84" fill="white" font-size="11" font-weight="600" text-anchor="middle">CIBIL relay</text>
+<text x="565.0" y="100" fill="#22d3ee" font-size="8" text-anchor="middle">https://cibil.credora.link</text>
+<text x="565.0" y="113" fill="#94a3b8" font-size="9" text-anchor="middle">consumer (partners) + commercial (companies)</text>
+<rect x="760" y="65" width="150" height="70" rx="6" fill="#0f172a"/>
+<rect x="760" y="65" width="150" height="70" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="835.0" y="84" fill="white" font-size="11" font-weight="600" text-anchor="middle">GSTN relay</text>
+<text x="835.0" y="100" fill="#22d3ee" font-size="8" text-anchor="middle">gst.credora.link</text>
+<text x="835.0" y="113" fill="#94a3b8" font-size="9" text-anchor="middle">GST_FETCH</text>
+<rect x="940" y="65" width="150" height="70" rx="6" fill="#0f172a"/>
+<rect x="940" y="65" width="150" height="70" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+<text x="1015.0" y="84" fill="white" font-size="11" font-weight="600" text-anchor="middle">AA relay</text>
+<text x="1015.0" y="100" fill="#22d3ee" font-size="8" text-anchor="middle">aa.credora.link</text>
+<text x="1015.0" y="113" fill="#94a3b8" font-size="9" text-anchor="middle">AA_FETCH</text>
+<rect x="40" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="40" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="50" y="208" fill="white" font-size="10" font-weight="600">Refresh VS</text>
+<text x="50" y="224" fill="#94a3b8" font-size="8">VS_CBS · VS_CIF</text>
+<text x="50" y="236" fill="#94a3b8" font-size="8">VS_LOS</text>
+<rect x="220" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="220" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="230" y="208" fill="white" font-size="10" font-weight="600">Read credit needs on file</text>
+<text x="230" y="224" fill="#94a3b8" font-size="8">PostgreSQL ⋈ MySQL</text>
+<text x="230" y="236" fill="#94a3b8" font-size="8">→ APPLICATIONS</text>
+<rect x="400" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="400" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="410" y="208" fill="white" font-size="10" font-weight="600">CIBIL consumer</text>
+<text x="410" y="224" fill="#94a3b8" font-size="8">16 parallel UDFs</text>
+<text x="410" y="236" fill="#94a3b8" font-size="8">→ CIBIL_CONSUMER</text>
+<rect x="580" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="580" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="590" y="208" fill="white" font-size="10" font-weight="600">CIBIL commercial</text>
+<text x="590" y="224" fill="#94a3b8" font-size="8">bulk endpoint</text>
+<text x="590" y="236" fill="#94a3b8" font-size="8">→ CIBIL_COMMERCIAL</text>
+<rect x="760" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="760" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="770" y="208" fill="white" font-size="10" font-weight="600">GST returns</text>
+<text x="770" y="224" fill="#94a3b8" font-size="8">2–10 y, monthly</text>
+<text x="770" y="236" fill="#94a3b8" font-size="8">→ GST_FILING</text>
+<rect x="940" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="940" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="950" y="208" fill="white" font-size="10" font-weight="600">Account Aggregator</text>
+<text x="950" y="224" fill="#94a3b8" font-size="8">partners, consent</text>
+<text x="950" y="236" fill="#94a3b8" font-size="8">→ AA_ACCOUNT</text>
+<rect x="40" y="440" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="40" y="440" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="50" y="458" fill="white" font-size="10" font-weight="600">Features (13)</text>
+<text x="50" y="474" fill="#94a3b8" font-size="8">Oracle pushdown</text>
+<text x="50" y="486" fill="#94a3b8" font-size="8">→ CA_MONTHLY</text>
+<text x="50" y="498" fill="#94a3b8" font-size="8">→ FEATURES</text>
+<rect x="220" y="440" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="220" y="440" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="230" y="458" fill="white" font-size="10" font-weight="600">Risk model</text>
+<text x="230" y="474" fill="#94a3b8" font-size="8">active version</text>
+<text x="230" y="486" fill="#94a3b8" font-size="8">trains v1 if none</text>
+<rect x="400" y="440" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="400" y="440" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="410" y="458" fill="white" font-size="10" font-weight="600">Score PD, flag</text>
+<text x="410" y="474" fill="#94a3b8" font-size="8">9 · PD_SCORE UDF</text>
+<text x="410" y="486" fill="#94a3b8" font-size="8">4 parallel → SCORES</text>
+<text x="410" y="498" fill="#94a3b8" font-size="8">10 · ANOMALY_FLAG UDF</text>
+<text x="410" y="510" fill="#94a3b8" font-size="8">Isolation Forest → ANOMALY</text>
+<rect x="580" y="440" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="580" y="440" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="590" y="458" fill="white" font-size="10" font-weight="600">Decide</text>
+<text x="590" y="474" fill="#94a3b8" font-size="8">offer + limit</text>
+<text x="590" y="486" fill="#94a3b8" font-size="8">RAROC vs hurdle</text>
+<text x="590" y="498" fill="#94a3b8" font-size="8">flagged approve → refer</text>
+<text x="590" y="510" fill="#94a3b8" font-size="8">→ DECISIONS</text>
+<rect x="760" y="440" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="760" y="440" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+<text x="770" y="458" fill="white" font-size="10" font-weight="600">Rank, challenger</text>
+<text x="770" y="474" fill="#94a3b8" font-size="8">12 · PREFERRING skyline</text>
+<text x="770" y="486" fill="#94a3b8" font-size="8">layers until 50 ranked</text>
+<text x="770" y="498" fill="#94a3b8" font-size="8">13 · SCORE_CHALLENGER</text>
+<text x="770" y="510" fill="#94a3b8" font-size="8">shadow → CHALLENGER_SCORES</text>
+<rect x="940" y="440" width="150" height="140" rx="6" fill="#0f172a"/>
+<rect x="940" y="440" width="150" height="140" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="950" y="458" fill="white" font-size="10" font-weight="600">Export to CRM</text>
+<text x="950" y="474" fill="#94a3b8" font-size="8">FastAPI backend</text>
+<text x="950" y="486" fill="#94a3b8" font-size="8">after the run</text>
+<text x="950" y="498" fill="#94a3b8" font-size="8">DECISIONS →</text>
+<rect x="40" y="640" width="150" height="64" rx="6" fill="#0f172a"/>
+<rect x="40" y="640" width="150" height="64" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="115.0" y="658" fill="white" font-size="10" font-weight="600" text-anchor="middle">VS_CBS.TXN</text>
+<text x="115.0" y="674" fill="#94a3b8" font-size="8" text-anchor="middle">Oracle · ~850k rows</text>
+<text x="115.0" y="686" fill="#94a3b8" font-size="8" text-anchor="middle">GROUP BY in Oracle</text>
+<rect x="220" y="640" width="150" height="64" rx="6" fill="#0f172a"/>
+<rect x="220" y="640" width="150" height="64" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="295.0" y="658" fill="white" font-size="10" font-weight="600" text-anchor="middle">BucketFS</text>
+<text x="295.0" y="674" fill="#94a3b8" font-size="8" text-anchor="middle">models/pd_&lt;v&gt;.pkl</text>
+<text x="295.0" y="686" fill="#94a3b8" font-size="8" text-anchor="middle">MODEL_REGISTRY</text>
+<rect x="580" y="640" width="150" height="64" rx="6" fill="#0f172a"/>
+<rect x="580" y="640" width="150" height="64" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="655.0" y="658" fill="white" font-size="10" font-weight="600" text-anchor="middle">CREDORA.CONFIG</text>
+<text x="655.0" y="674" fill="#94a3b8" font-size="8" text-anchor="middle">EBLR · spreads</text>
+<text x="655.0" y="686" fill="#94a3b8" font-size="8" text-anchor="middle">hurdle RAROC 15%</text>
+<rect x="760" y="640" width="150" height="64" rx="6" fill="#0f172a"/>
+<rect x="760" y="640" width="150" height="64" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="835.0" y="658" fill="white" font-size="10" font-weight="600" text-anchor="middle">Relationship mgrs</text>
+<text x="835.0" y="674" fill="#94a3b8" font-size="8" text-anchor="middle">top 50 offers</text>
+<text x="835.0" y="686" fill="#94a3b8" font-size="8" text-anchor="middle">negotiate in limit</text>
+<rect x="940" y="640" width="150" height="64" rx="6" fill="#0f172a"/>
+<rect x="940" y="640" width="150" height="64" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="1015.0" y="658" fill="white" font-size="10" font-weight="600" text-anchor="middle">RDS PostgreSQL crm</text>
+<text x="1015.0" y="674" fill="#94a3b8" font-size="8" text-anchor="middle">offer · offer_event</text>
+<text x="1015.0" y="686" fill="#94a3b8" font-size="8" text-anchor="middle">negotiation trail</text>
+        <!-- Labels, step numbers, legend -->
+<text x="40" y="28" fill="#e2e8f0" font-size="10" text-anchor="start" font-weight="600">EXECUTE SCRIPT CREDORA.RUN_ANALYSIS(&#x27;&lt;run&gt;&#x27;) · as CREDORA_SVC · 1,000 companies · about 17.5 s (live deployment)</text>
+<text x="40" y="46" fill="#64748b" font-size="8" text-anchor="start">Each step is logged in CREDORA.RUN_LOG with its rows and time. The web app shows the SQL, Lua or Python behind it.</text>
+<text x="50" y="300" fill="#a78bfa" font-size="16" text-anchor="start" font-weight="600">1.8 s</text>
+<text x="50" y="318" fill="#e2e8f0" font-size="9" text-anchor="start">3 schemas</text>
+<circle cx="42" cy="192" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="42" y="195" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">1</text>
+<text x="230" y="300" fill="#a78bfa" font-size="16" text-anchor="start" font-weight="600">0.3 s</text>
+<text x="230" y="318" fill="#e2e8f0" font-size="9" text-anchor="start">1,000 rows</text>
+<circle cx="222" cy="192" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="222" y="195" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">2</text>
+<text x="410" y="300" fill="#94a3b8" font-size="16" text-anchor="start" font-weight="600">1.0 s</text>
+<text x="410" y="318" fill="#e2e8f0" font-size="9" text-anchor="start">3,492 rows</text>
+<circle cx="402" cy="192" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="402" y="195" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">3</text>
+<text x="590" y="300" fill="#94a3b8" font-size="16" text-anchor="start" font-weight="600">0.6 s</text>
+<text x="590" y="318" fill="#e2e8f0" font-size="9" text-anchor="start">1,000 rows</text>
+<circle cx="582" cy="192" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="582" y="195" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">4</text>
+<text x="770" y="300" fill="#94a3b8" font-size="16" text-anchor="start" font-weight="600">1.6 s</text>
+<text x="770" y="318" fill="#e2e8f0" font-size="9" text-anchor="start">71,665 rows</text>
+<circle cx="762" cy="192" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="762" y="195" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">5</text>
+<text x="950" y="300" fill="#94a3b8" font-size="16" text-anchor="start" font-weight="600">3.6 s</text>
+<text x="950" y="318" fill="#e2e8f0" font-size="9" text-anchor="start">5,775 rows</text>
+<circle cx="942" cy="192" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="942" y="195" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">6</text>
+<text x="50" y="550" fill="#34d399" font-size="16" text-anchor="start" font-weight="600">3.6 s</text>
+<text x="50" y="568" fill="#e2e8f0" font-size="9" text-anchor="start">1,000 rows</text>
+<circle cx="42" cy="442" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="42" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">7</text>
+<text x="230" y="550" fill="#fbbf24" font-size="16" text-anchor="start" font-weight="600">&lt;0.1 s</text>
+<text x="230" y="568" fill="#e2e8f0" font-size="9" text-anchor="start">1 model</text>
+<circle cx="222" cy="442" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="222" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">8</text>
+<text x="410" y="550" fill="#fbbf24" font-size="16" text-anchor="start" font-weight="600">1.9 + 1.3 s</text>
+<text x="410" y="568" fill="#e2e8f0" font-size="9" text-anchor="start">1,000 rows · 30 flagged</text>
+<circle cx="402" cy="442" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="402" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">9</text>
+<circle cx="542" cy="442" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="542" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">10</text>
+<text x="590" y="550" fill="#34d399" font-size="16" text-anchor="start" font-weight="600">0.07 s</text>
+<text x="590" y="568" fill="#e2e8f0" font-size="9" text-anchor="start">1,000 rows</text>
+<circle cx="582" cy="442" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="582" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">11</text>
+<text x="770" y="550" fill="#34d399" font-size="16" text-anchor="start" font-weight="600">0.03 + 1.7 s</text>
+<text x="770" y="568" fill="#e2e8f0" font-size="9" text-anchor="start">63 ranked · 1,000 shadow</text>
+<circle cx="762" cy="442" r="8" fill="#34d399" stroke="#020617" stroke-width="1.5"/><text x="762" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">12</text>
+<circle cx="902" cy="442" r="8" fill="#fbbf24" stroke="#020617" stroke-width="1.5"/><text x="902" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">13</text>
+<text x="950" y="550" fill="#22d3ee" font-size="16" text-anchor="start" font-weight="600">upsert</text>
+<text x="950" y="568" fill="#e2e8f0" font-size="9" text-anchor="start">crm.offer</text>
+<circle cx="942" cy="442" r="8" fill="#22d3ee" stroke="#020617" stroke-width="1.5"/><text x="942" y="445" fill="#020617" font-size="9" font-weight="700" text-anchor="middle">14</text>
+<text x="40" y="752" fill="#64748b" font-size="8" text-anchor="start" font-weight="600">WHERE THE 17.5 SECONDS GO</text>
+<rect x="40.0" y="762" width="109.9" height="22" fill="#a78bfa" fill-opacity="0.35" stroke="#a78bfa" stroke-width="1"/>
+<text x="94.9" y="777" fill="white" font-size="8" text-anchor="middle">1 · 1.8 s</text>
+<rect x="149.9" y="762" width="19.1" height="22" fill="#a78bfa" fill-opacity="0.35" stroke="#a78bfa" stroke-width="1"/>
+<text x="159.4" y="777" fill="white" font-size="8" text-anchor="middle">2</text>
+<rect x="169.0" y="762" width="57.1" height="22" fill="#94a3b8" fill-opacity="0.35" stroke="#94a3b8" stroke-width="1"/>
+<text x="197.5" y="777" fill="white" font-size="8" text-anchor="middle">3 · 1.0 s</text>
+<rect x="226.0" y="762" width="35.4" height="22" fill="#94a3b8" fill-opacity="0.35" stroke="#94a3b8" stroke-width="1"/>
+<text x="243.7" y="777" fill="white" font-size="8" text-anchor="middle">4</text>
+<rect x="261.4" y="762" width="95.0" height="22" fill="#94a3b8" fill-opacity="0.35" stroke="#94a3b8" stroke-width="1"/>
+<text x="308.9" y="777" fill="white" font-size="8" text-anchor="middle">5 · 1.6 s</text>
+<rect x="356.4" y="762" width="215.7" height="22" fill="#94a3b8" fill-opacity="0.35" stroke="#94a3b8" stroke-width="1"/>
+<text x="464.2" y="777" fill="white" font-size="8" text-anchor="middle">6 · 3.6 s</text>
+<rect x="572.1" y="762" width="215.0" height="22" fill="#34d399" fill-opacity="0.35" stroke="#34d399" stroke-width="1"/>
+<text x="679.6" y="777" fill="white" font-size="8" text-anchor="middle">7 · 3.6 s</text>
+<rect x="787.1" y="762" width="1.0" height="22" fill="#34d399" fill-opacity="0.35" stroke="#34d399" stroke-width="1"/>
+<rect x="788.1" y="762" width="114.0" height="22" fill="#fbbf24" fill-opacity="0.35" stroke="#fbbf24" stroke-width="1"/>
+<text x="845.1" y="777" fill="white" font-size="8" text-anchor="middle">9 · 1.9 s</text>
+<rect x="902.0" y="762" width="78.4" height="22" fill="#fbbf24" fill-opacity="0.35" stroke="#fbbf24" stroke-width="1"/>
+<text x="941.3" y="777" fill="white" font-size="8" text-anchor="middle">10 · 1.3 s</text>
+<rect x="980.5" y="762" width="4.3" height="22" fill="#34d399" fill-opacity="0.35" stroke="#34d399" stroke-width="1"/>
+<rect x="984.8" y="762" width="1.6" height="22" fill="#34d399" fill-opacity="0.35" stroke="#34d399" stroke-width="1"/>
+<rect x="986.4" y="762" width="104.5" height="22" fill="#fbbf24" fill-opacity="0.35" stroke="#fbbf24" stroke-width="1"/>
+<text x="1038.6" y="777" fill="white" font-size="8" text-anchor="middle">13 · 1.7 s</text>
+<text x="1090" y="798" fill="#64748b" font-size="8" text-anchor="end">steps 8, 11 and 12 take under 0.1 s together</text>
+<text x="40" y="798" fill="#64748b" font-size="8" text-anchor="start">features take 3.6 s because Oracle groups 850k transactions by month (pushdown, see EXPLAIN VIRTUAL). The two ML checks in steps 10 and 13 cost 3 s</text>
+<text x="40" y="832" fill="white" font-size="10" text-anchor="start" font-weight="600">Legend (colour of time and bar = what the step works on)</text>
+<rect x="40" y="846" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+<text x="62" y="854" fill="#94a3b8" font-size="8">Bank data via virtual schemas</text>
+<rect x="302" y="846" width="16" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+<text x="324" y="854" fill="#94a3b8" font-size="8">3rd party data API (UDF)</text>
+<rect x="564" y="846" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+<text x="586" y="854" fill="#94a3b8" font-size="8">Exasol SQL / Lua step</text>
+<rect x="826" y="846" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+<text x="848" y="854" fill="#94a3b8" font-size="8">ML step (UDF, BucketFS)</text>
+<rect x="40" y="862" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="62" y="870" fill="#94a3b8" font-size="8">Backend, after the Lua run</text>
+<line x1="302" y1="867" x2="318" y2="867" stroke="#34d399" stroke-width="1.5"/>
+<text x="324" y="870" fill="#94a3b8" font-size="8">Next step</text>
+<line x1="564" y1="867" x2="580" y2="867" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="586" y="870" fill="#94a3b8" font-size="8">Source read / write</text>
+<circle cx="834" cy="867" r="6" fill="#e2e8f0"/><text x="834" y="870" fill="#020617" font-size="7" font-weight="700" text-anchor="middle">1</text>
+<text x="848" y="870" fill="#94a3b8" font-size="8">Step number</text>
+      </svg>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot emerald"></div>
+          <h3>One call, thirteen logged steps</h3>
+        </div>
+        <ul>
+          <li>• Steps 1–2 read the bank&#x27;s databases in place through the three virtual schemas</li>
+          <li>• Steps 3–6 fetch 3rd party data from CIBIL, GSTN and AA via API, from parallel UDFs</li>
+          <li>• Every step writes its rows and milliseconds to RUN_LOG</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>Model, then policy</h3>
+        </div>
+        <ul>
+          <li>• Step 8 uses the active model from BucketFS and trains v1 if none exists</li>
+          <li>• Step 9 scores PD with per-feature attribution in 1.9 s</li>
+          <li>• In step 10 an Isolation Forest flags the most unusual 3% (circular trading, inflated turnover) in 1.3 s</li>
+          <li>• Step 11 prices the offer and the negotiation limit from CONFIG. RAROC must meet the hurdle, and a flagged approve becomes refer, never decline</li>
+          <li>• Step 13 scores the challenger scorecard in the shadow. It counts the decisions it would change and changes none</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3>From skyline to the bank&#x27;s CRM</h3>
+        </div>
+        <ul>
+          <li>• PREFERRING HIGH RAROC_OFFER PLUS LOW PD PLUS HIGH OFFER_AMOUNT peels skyline layers</li>
+          <li>• Layers are peeled until 50 approved companies are ranked. Those are the RMs&#x27; top 50</li>
+          <li>• After the run the backend upserts crm.offer, and negotiation steps go to crm.offer_event</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer">
+      Credora · Built for ExaThon India 2026 · Powered by Exasol Personal
+    </p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = '✓ Copied!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPNG(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a');
+        link.download = 'diagram.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    async function downloadPDF(btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container');
+        const r = el.getBoundingClientRect();
+        const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('diagram.pdf');
+        btn.textContent = '✓ Done!';
+      } catch (e) {
+        btn.textContent = '✗ Failed';
+      }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>
