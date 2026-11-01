@@ -1,12 +1,15 @@
 # media
 
-The demo video and the presentation for Credora's ExaThon India 2026 entry go here.
+The demo video and the presentation for Credora's ExaThon India 2026 entry.
 
 | File | Served at | Page |
 |---|---|---|
-| `demo.mp4` | `https://video.<domain>/demo.mp4` | [`sites/video/index.html`](../sites/video/index.html) plays it |
+| `demo.mp4` | `https://video.<domain>/demo.mp4` | [`sites/video/index.html`](../sites/video/index.html) plays it. The repository copy is compressed and has the captions burned in. |
+| `demo-hq.mp4` (optional, not in the repository) | `https://video.<domain>/demo.mp4` | Served in place of `demo.mp4` when present, for a full quality copy on the site |
+| `demo.vtt`, `demo.srt` | `https://video.<domain>/demo.vtt`, `/demo.srt` | The captions. The page offers `demo.vtt` as a track the viewer can switch on |
+| `demo-transcript.md` | `https://video.<domain>/demo-transcript.md` | The narration, one row per scene, for anyone who reads rather than watches |
 | `presentation.pdf` (or `presentation.pptx`) | `https://ppt.<domain>/presentation.pdf` | [`sites/ppt/index.html`](../sites/ppt/index.html) embeds the PDF and offers a download |
 
-`<domain>` is the bank domain of the deployment (the one the app is served from). At deploy, the file is copied next to the page's `index.html`. Until a file is here, its page shows a "coming soon" placeholder.
+`<domain>` is the bank domain of the deployment (the one the app is served from). At deploy, the files are copied next to the page's `index.html`. Until a file is here, its page shows a "coming soon" placeholder.
 
-Use H.264 video with AAC audio in an MP4 container so every browser can play it. The embedded viewer needs a PDF; a `.pptx` can only be offered as a download.
+Use H.264 video with AAC audio in an MP4 container so every browser can play it. The embedded viewer needs a PDF; a `.pptx` can only be offered as a download. Strip metadata from every file before it goes here (ffmpeg `-map_metadata -1`), so nothing about the machine it was made on travels with it.
