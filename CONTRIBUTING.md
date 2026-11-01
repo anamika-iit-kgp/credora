@@ -20,7 +20,7 @@ pip install -r tests/udf/requirements.txt
 cd tests/udf && python -m pytest -q && cd ../..
 
 # Mock data generator
-pip install -r mocks/generator/requirements.txt pytest==9.2.0
+pip install -r mocks/generator/requirements-dev.txt
 cd mocks/generator && python -m pytest -q tests && cd ../..
 
 # Web app, type check and build
