@@ -2,6 +2,10 @@
 
 All notable changes to Credora. Dates are in IST.
 
+## 1.2.0, 2 November 2026
+
+- The demo video is published at https://video.credora.loan and ships in the repository as `media/demo.mp4` (2 min 56 s, 1080p H.264 with a voice-over, 22 MB). The file carries no metadata beyond its title and author.
+
 ## 1.1.0, 1 November 2026
 
 - Ask Credora sessions log in as the person's own AI user (`CREDORA_ADMIN_AI`, `CREDORA_DATASCI_AI`, `CREDORA_LOANOPS_AI`, `CREDORA_RM_AI`) with the same role, placed in consumer group `CREDORA_AI` (low priority, 60 s statement limit, 2 GiB temp memory). The admin's AI user has no dictionary access, so the AI cannot read the audit log. A role with no AI password gets a 503, with no fallback user, and `CREDORA_MCP` stays only for AI clients outside the app.

@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     crm.close()
 
 
-app = FastAPI(title="Credora API", version="1.1.0", lifespan=lifespan, docs_url="/api/docs",
+app = FastAPI(title="Credora API", version="1.2.0", lifespan=lifespan, docs_url="/api/docs",
               openapi_url="/api/openapi.json", redoc_url=None)
 
 for r in (core.router, explorer.router, analysis.router, ml.router, offers.router, policy.router, workflow.router,
