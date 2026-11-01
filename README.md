@@ -8,14 +8,14 @@
 
 Credora helps a bank lend to its own business customers before they ask. For every corporate customer of Sapphire Bank it decides whether to make a pre-approved loan offer, sets the amount, rate and tenure, and sets how far the relationship manager may negotiate. All of the analysis runs inside Exasol Personal, where the bank's data already meets.
 
-It is live. The links below are the real deployment. The demo video is published on its page when ready.
+It is live. The links below are the real deployment, including the demo video.
 
 | Site | Link |
 |---|---|
 | Live app | https://credora.loan |
 | Docs | https://docs.credora.loan |
 | Presentation | https://ppt.credora.loan |
-| Demo video | https://video.credora.loan (published on that page when ready) |
+| Demo video | https://video.credora.loan |
 | 3rd party data, fetched on demand via API (mock CIBIL, GSTN and Account Aggregator APIs) | https://credora.link |
 | Source code | https://github.com/anamika-iit-kgp/credora |
 
@@ -283,7 +283,7 @@ Exasol, Oracle, MySQL, PostgreSQL and other names and logos belong to their owne
 
 | Material | Link |
 |---|---|
-| Demo video | https://video.credora.loan (published on that page when ready) |
+| Demo video | https://video.credora.loan |
 | Presentation (animated slides, and a PDF to download) | https://ppt.credora.loan |
 | Live app with four demo logins | https://credora.loan |
 | Docs site, with the architecture and glossary | https://docs.credora.loan |
@@ -351,7 +351,7 @@ Every project below runs in the live deployment or in CI. Thank you to the Exaso
 
 ## About, contributing and contact
 
-Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 1.1.0, see [CHANGELOG.md](CHANGELOG.md).
+Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 1.2.0, see [CHANGELOG.md](CHANGELOG.md).
 
 Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Security reports go through [SECURITY.md](SECURITY.md), and the [code of conduct](CODE_OF_CONDUCT.md) is short. To build on Credora, adapt it for your bank, or buy or license it, raise an [issue](https://github.com/anamika-iit-kgp/credora/issues) and I will get in touch.
 
