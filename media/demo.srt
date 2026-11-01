@@ -1,0 +1,159 @@
+1
+00:00:01,000 --> 00:00:02,366
+Hi, I'm Anamika.
+
+2
+00:00:02,416 --> 00:00:06,347
+This is Credora, my ExaThon India 2026 entry.
+
+3
+00:00:06,397 --> 00:00:12,983
+Pre-approved loans for corporate customers, decided inside Exasol Personal.
+
+4
+00:00:13,383 --> 00:00:17,606
+The bank has the data, in six systems, gathered by hand.
+
+5
+00:00:18,006 --> 00:00:27,504
+One run, 1,000 companies, 530 approved, 1,168 crore rupees in offers, 17 seconds.
+
+6
+00:00:27,904 --> 00:00:34,635
+Bank data read in place, 3rd party data via API, everyone reading as their own Exasol user.
+
+7
+00:00:35,035 --> 00:00:38,784
+This is the live Exasol database in DbVisualizer.
+
+8
+00:00:38,834 --> 00:00:40,877
+Every statement is audited.
+
+9
+00:00:40,927 --> 00:00:44,521
+Each role, and the AI, has its own Exasol user.
+
+10
+00:00:44,571 --> 00:00:49,250
+Oracle, MySQL and PostgreSQL come in through virtual schemas.
+
+11
+00:00:49,650 --> 00:00:54,826
+One query joins Oracle, MySQL, PostgreSQL and the Exasol decision.
+
+12
+00:00:54,876 --> 00:00:59,578
+Here is Ambika Technologies with its partners and its offer.
+
+13
+00:01:01,000 --> 00:01:03,638
+Now the app, as the data scientist.
+
+14
+00:01:06,000 --> 00:01:09,276
+Run analysis starts one Lua script in Exasol.
+
+15
+00:01:09,326 --> 00:01:18,071
+It refreshes the virtual schemas, pulls CIBIL, GST and Account Aggregator data through UDFs, scores, decides and ranks.
+
+16
+00:01:18,121 --> 00:01:20,879
+The console shows each statement live.
+
+17
+00:01:23,000 --> 00:01:23,364
+Done.
+
+18
+00:01:23,414 --> 00:01:26,010
+I publish it to loan operations.
+
+19
+00:01:27,000 --> 00:01:33,946
+As loan operations, the Top 50 comes from a PREFERRING skyline in Exasol, with the SQL beside it.
+
+20
+00:01:39,000 --> 00:01:41,781
+Each company goes to a relationship manager.
+
+21
+00:01:43,000 --> 00:01:47,502
+As a relationship manager, I see only my 24 companies.
+
+22
+00:01:47,552 --> 00:01:49,694
+Exasol filters by my user.
+
+23
+00:01:50,094 --> 00:01:52,620
+Every offer has a negotiation limit.
+
+24
+00:01:52,670 --> 00:01:56,125
+Vertex Specialty Chem took the loan, so I log it.
+
+25
+00:01:57,000 --> 00:02:02,453
+Ask Credora is Claude, querying Exasol through the MCP server as my own AI user.
+
+26
+00:02:02,503 --> 00:02:04,311
+Off-topic gets turned down.
+
+27
+00:02:04,361 --> 00:02:07,406
+Negotiation headroom comes back with the SQL.
+
+28
+00:02:08,000 --> 00:02:10,083
+It reads the semantic view.
+
+29
+00:02:10,133 --> 00:02:12,217
+Every answer shows its SQL.
+
+30
+00:02:13,000 --> 00:02:14,288
+Last, the admin.
+
+31
+00:02:14,338 --> 00:02:17,882
+The control room proves row-level security.
+
+32
+00:02:17,932 --> 00:02:26,075
+The RM and its AI user get the same 120 rows, a second RM gets none, and a direct read is refused.
+
+33
+00:02:27,000 --> 00:02:30,103
+Every statement lands in Exasol's audit log.
+
+34
+00:02:30,153 --> 00:02:32,755
+Scheduled jobs run inside Exasol too.
+
+35
+00:02:35,000 --> 00:02:41,281
+The code is public on GitHub, MIT licensed, with docs, diagrams and the changelog.
+
+36
+00:02:41,331 --> 00:02:42,979
+The data is synthetic.
+
+37
+00:02:43,029 --> 00:02:45,295
+One command deploys it to AWS.
+
+38
+00:02:46,000 --> 00:02:48,615
+Credora is built on Exasol open source.
+
+39
+00:02:48,665 --> 00:02:54,422
+Thanks to the Exasol team, the Exasol Personal Local Starter Kit and Exasol Personal.
+
+40
+00:02:54,472 --> 00:02:55,789
+Thanks for watching.

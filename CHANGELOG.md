@@ -4,7 +4,8 @@ All notable changes to Credora. Dates are in IST.
 
 ## 1.2.0, 2 November 2026
 
-- The demo video is published at https://video.credora.loan and ships in the repository as `media/demo.mp4` (2 min 56 s, 1080p H.264 with a voice-over, 22 MB). The file carries no metadata beyond its title and author.
+- The demo video is published at https://video.credora.loan and ships in the repository as `media/demo.mp4` (2 min 56 s, 1080p H.264 with a voice-over and burned-in captions). The narration is in `media/demo-transcript.md`, `media/demo.srt` and `media/demo.vtt`. The video page serves a full quality `demo-hq.mp4` when one is present (kept out of the repository) and offers the captions as a track. The files carry no metadata beyond their title and author.
+- README gains a "Presentation and demo video" section with the repository and live links for both.
 
 ## 1.1.0, 1 November 2026
 

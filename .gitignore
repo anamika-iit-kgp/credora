@@ -52,3 +52,6 @@ deploy/remote/exasol_fingerprint
 
 # TypeScript incremental build state
 frontend/tsconfig.tsbuildinfo
+
+# Full quality demo video for the site, kept out of the repository
+media/demo-hq.mp4

@@ -14,8 +14,8 @@ It is live. The links below are the real deployment, including the demo video.
 |---|---|
 | Live app | https://credora.loan |
 | Docs | https://docs.credora.loan |
-| Presentation | https://ppt.credora.loan |
-| Demo video | https://video.credora.loan |
+| Presentation | https://ppt.credora.loan, and [media/presentation.pdf](media/presentation.pdf) in this repository |
+| Demo video | https://video.credora.loan, and [media/demo.mp4](media/demo.mp4) in this repository |
 | 3rd party data, fetched on demand via API (mock CIBIL, GSTN and Account Aggregator APIs) | https://credora.link |
 | Source code | https://github.com/anamika-iit-kgp/credora |
 
@@ -35,7 +35,7 @@ Sign in with one click on the login page, or use a demo login. All data is synth
 | A public code repository | https://github.com/anamika-iit-kgp/credora (MIT licence) |
 | Setup and reproduction instructions | [Setup and reproduction](#setup-and-reproduction) |
 | Data sources, licences, APIs and third-party tools | [Data sources, licences, APIs and third-party tools](#data-sources-licences-apis-and-third-party-tools) |
-| Demonstration video and supporting materials | [Demo video and supporting materials](#demo-video-and-supporting-materials) |
+| Demonstration video and supporting materials | [Presentation and demo video](#presentation-and-demo-video) |
 
 ![Big picture of Credora. Three bank databases and 3rd party data via API meet in Exasol, and four roles and Ask Credora read the result](docs/img/01-big-picture.png)
 
@@ -279,18 +279,21 @@ The third-party tools and their licences are below.
 
 Exasol, Oracle, MySQL, PostgreSQL and other names and logos belong to their owners and appear only to identify the systems used. Credora's own code is MIT licensed.
 
-## Demo video and supporting materials
+## Presentation and demo video
 
-| Material | Link |
-|---|---|
-| Demo video | https://video.credora.loan |
-| Presentation (animated slides, and a PDF to download) | https://ppt.credora.loan |
-| Live app with four demo logins | https://credora.loan |
-| Docs site, with the architecture and glossary | https://docs.credora.loan |
-| 3rd party data APIs | https://credora.link |
-| Architecture diagrams | The table below and [docs/diagrams](docs/diagrams/index.html) |
+Both are in this repository and on their own sites, so a person or an evaluation tool can read them either way.
 
-The docs, presentation and video sites each show a simple view count, also listed next to their links in the app. Only one number per site is stored, nothing about visitors. The video page plays whatever file a `video.json` next to it points to, so the video can be published without a code change.
+| Material | In this repository | Live |
+|---|---|---|
+| Demo video, 2 min 56 s with a voice-over | [media/demo.mp4](media/demo.mp4), 1080p with the captions burned in, compressed for the repository. GitHub plays it on the file page. | https://video.credora.loan plays the full quality copy, with captions the viewer can switch on. Direct file https://video.credora.loan/demo.mp4 |
+| What the video says | [media/demo-transcript.md](media/demo-transcript.md), one row per scene with the narration, plus [media/demo.srt](media/demo.srt) and [media/demo.vtt](media/demo.vtt) | https://video.credora.loan/demo.vtt |
+| Presentation, 22 slides | [media/presentation.pdf](media/presentation.pdf). GitHub shows it on the file page. | https://ppt.credora.loan, animated, and https://ppt.credora.loan/presentation.pdf to download |
+| Live app with four demo logins | | https://credora.loan |
+| Docs site, with the architecture and glossary | [docs/](docs/) | https://docs.credora.loan |
+| 3rd party data APIs | [mocks/](mocks/) | https://credora.link |
+| Architecture diagrams | The table below and [docs/diagrams](docs/diagrams/index.html) | https://docs.credora.loan |
+
+The docs, presentation and video sites each show a simple view count, also listed next to their links in the app. Only one number per site is stored, nothing about visitors. The video page serves `demo-hq.mp4` when one sits next to `demo.mp4`, otherwise `demo.mp4`, and a `video.json` next to the page can point it at a file hosted elsewhere. A higher quality copy can be published without entering the repository.
 
 ## Diagrams
 

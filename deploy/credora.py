@@ -298,8 +298,10 @@ class Deployment:
                     f"\tredir / /docs 302\n\treverse_proxy {upstream}\n}}\n")
 
         assets = "\thandle /_assets/* {\n\t\troot * /sites\n\t\tfile_server\n\t}\n"  # shared CSS, fonts, logos
-        media = assets + ("\t@media path /demo.mp4 /video.json /presentation.pdf /presentation.pptx\n"
-                          "\thandle @media {\n\t\troot * /media\n\t\tfile_server\n\t}\n")
+        # /demo.mp4 serves a full quality demo-hq.mp4 when one is present (kept out of the repository).
+        media = assets + ("\t@hq path /demo.mp4\n\thandle @hq {\n\t\troot * /media\n\t\ttry_files /demo-hq.mp4 /demo.mp4\n\t\tfile_server\n\t}\n"
+                          "\t@media path /video.json /presentation.pdf /presentation.pptx /demo.vtt /demo.srt /demo-transcript.md\n"
+                          "\thandle @media {\n\t\troot * /media\n\t\theader /demo.vtt Content-Type \"text/vtt; charset=utf-8\"\n\t\tfile_server\n\t}\n")
         # Page-view counters for the docs, video and presentation sites (counts only, nothing per visitor).
         views = "\thandle /api/views* {\n\t\treverse_proxy backend:8000\n\t}\n"
         mocks = "" if x else (
