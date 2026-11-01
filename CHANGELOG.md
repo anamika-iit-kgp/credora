@@ -2,7 +2,7 @@
 
 All notable changes to Credora. Dates are in IST.
 
-## 1.1.0
+## 1.1.0, 1 November 2026
 
 - Ask Credora sessions log in as the person's own AI user (`CREDORA_ADMIN_AI`, `CREDORA_DATASCI_AI`, `CREDORA_LOANOPS_AI`, `CREDORA_RM_AI`) with the same role, placed in consumer group `CREDORA_AI` (low priority, 60 s statement limit, 2 GiB temp memory). The admin's AI user has no dictionary access, so the AI cannot read the audit log. A role with no AI password gets a 503, with no fallback user, and `CREDORA_MCP` stays only for AI clients outside the app.
 - A second relationship manager user, `CREDORA_RM002`, and a control room panel "Row-level security, proven by Exasol" (`GET /api/admin/rls-proof`) that runs the same SELECT as `CREDORA_RM`, `CREDORA_RM_AI` and `CREDORA_RM002` and shows the refusal on `CREDORA.DECISIONS`.
@@ -11,7 +11,6 @@ All notable changes to Credora. Dates are in IST.
 - A failed analysis step stays in `RUN_LOG` (COMMIT before the error).
 - A company with no GST returns on file is now referred with the reason "No GST returns on file". Before 1.1.0 it was declined.
 - `PURGE_EXPIRED` fingerprints expiring rows per 1,000-row chunk (SHA-256 of the chunk hashes), because one run's GST rows exceed Exasol's 2,000,000-character VARCHAR limit for LISTAGG. On the live data that is 72 chunks of up to 33,325 characters per run. It skips when an analysis logged a step in the last 3 minutes.
-- Step 7 groups Oracle transactions by `TO_CHAR(date, 'YYYY-MM')` because the Oracle adapter does not push down `TRUNC(date, 'MM')`. The step went from 10.8 s to 3.6 s and the run from 24.7 s to 17.5 s.
 - The Overview has a four-step demo rail with a Switch role menu, and a permanent Exasol strip in the top bar shows the screen, its statements, their time and the Exasol user, and opens the console.
 - The deploy tool gained `python deploy/credora.py infra --env <name>`, which runs OpenTofu only.
 - The Overview caches source counts for 60 s. The audit screen masks `IDENTIFIED BY` secrets with `REGEXP_REPLACE` inside Exasol, before the text leaves the database.
@@ -33,3 +32,4 @@ All notable changes to Credora. Dates are in IST.
 - One Exasol user per role, row-level security views for relationship managers, SQL audit tagged per app user and screen, consumer groups, and the Exasol Scheduler for the purge and the nightly refresh.
 - Ask Credora through the official Exasol MCP server, Explain mode, the Exasol console and the control room.
 - One-command deploy to any AWS account with the Exasol Personal launcher and OpenTofu.
+- Step 7 groups Oracle transactions by `TO_CHAR(date, 'YYYY-MM')` because the Oracle adapter does not push down `TRUNC(date, 'MM')`. The step went from 10.8 s to 3.6 s and the run from 24.7 s to 17.5 s.
