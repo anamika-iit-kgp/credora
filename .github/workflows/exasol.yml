@@ -1,0 +1,37 @@
+# Credora's Exasol SQL on a real, throwaway Exasol (exasol/docker-db). The SQL, Lua and UDF files
+# are applied in deploy order, a run of 50 synthetic companies is decided and ranked by the real
+# decision SQL, and each Exasol user is checked for what it may read. The purge runs and its proof
+# is recomputed. No secrets are used. The runner is tests/exasol/run_docker_db.py.
+name: Exasol
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker-db:
+    name: Exasol SQL on docker-db
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tests/exasol/requirements.txt
+      - name: Start Exasol (the same version as the live deployment)
+        run: docker run --name exasoldb --detach --privileged --stop-timeout 120 -p 127.0.0.1:8563:8563 exasol/docker-db:2026.1.0
+      - run: pip install -r tests/exasol/requirements.txt
+      - name: Apply the SQL, load the fixtures, check every user, purge
+        run: python tests/exasol/run_docker_db.py --wait 900
+      - name: Exasol container log
+        if: failure()
+        run: docker logs --tail 200 exasoldb
+      - name: Stop Exasol
+        if: always()
+        run: docker rm --force exasoldb
