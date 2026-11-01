@@ -107,6 +107,12 @@ variable "app_passwords" {
   }
 }
 
+variable "public_demo" {
+  description = "true shows the demo passwords on the login page (all data is synthetic). false hides them."
+  type        = string
+  default     = "true"
+}
+
 variable "ai_provider" {
   description = "anthropic (Claude API key) or bedrock (Amazon Bedrock in this account). Empty disables AI features."
   type        = string

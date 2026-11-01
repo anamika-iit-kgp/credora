@@ -86,8 +86,15 @@ def _row(r: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-_COLUMNS = """q.SESSION_ID, q.STMT_ID, q.START_TIME, q.DURATION, q.CPU, q.TEMP_DB_RAM_PEAK, q.ROW_COUNT,
-       q.COMMAND_NAME, q.CONSUMER_GROUP, q.SUCCESS, q.ERROR_TEXT, SUBSTR(q.SQL_TEXT, 1, 4000) SQL_TEXT,
+# Deploy statements (CREATE USER, CREATE CONNECTION) carry passwords, in single or double quotes.
+# They are masked inside Exasol, before the text leaves the database. Both are SQL string literals,
+# so a single quote inside them is doubled. Braces are pyexasol placeholders, so none appear here.
+_SECRET_PATTERN = """'(?i)IDENTIFIED BY (''[^'']*''|"[^"]*")'"""
+_SECRET_MASK = "'IDENTIFIED BY ''***'''"
+SQL_TEXT_MASKED = f"REGEXP_REPLACE(q.SQL_TEXT, {_SECRET_PATTERN}, {_SECRET_MASK})"
+
+_COLUMNS = f"""q.SESSION_ID, q.STMT_ID, q.START_TIME, q.DURATION, q.CPU, q.TEMP_DB_RAM_PEAK, q.ROW_COUNT,
+       q.COMMAND_NAME, q.CONSUMER_GROUP, q.SUCCESS, q.ERROR_TEXT, SUBSTR({SQL_TEXT_MASKED}, 1, 4000) SQL_TEXT,
        s.USER_NAME, s.CLIENT"""
 
 

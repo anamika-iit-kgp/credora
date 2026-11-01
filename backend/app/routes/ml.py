@@ -24,7 +24,7 @@ def importance_list(raw: str | None, algorithm: str | None = None) -> list[dict]
 @router.get("/ml/models")
 def models(user: User = Depends(require("datasci", "admin"))):
     rows = exa.query(db(user), "SELECT MODEL_VERSION, TRAINED_AT, ALGORITHM, AUC, GINI, N_TRAIN, DEFAULT_RATE, "
-                               "FEATURE_IMPORTANCE, MODEL_PATH, IS_ACTIVE FROM CREDORA.MODEL_REGISTRY "
+                               "FEATURE_IMPORTANCE, MODEL_PATH, IS_ACTIVE, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY "
                                "ORDER BY TRAINED_AT DESC")
     try:
         by = crm.audit_actors("TRAIN_MODEL")
@@ -37,6 +37,7 @@ def models(user: User = Depends(require("datasci", "admin"))):
              "trained_by": by.get(r["MODEL_VERSION"], by.get(r["MODEL_VERSION"].split("-")[0], "system")),
              "train_rows": int(r["N_TRAIN"] or 0),
              "auc": r["AUC"], "gini": r["GINI"], "default_rate": r["DEFAULT_RATE"], "model_path": r["MODEL_PATH"],
+             "model_sha256": r.get("MODEL_SHA256"),
              "active": bool(r["IS_ACTIVE"]),
              "role": "champion" if r["IS_ACTIVE"] else "challenger" if chall is r else None,
              "kind": "coefficient" if challenger.is_scorecard(r["ALGORITHM"]) else "importance",

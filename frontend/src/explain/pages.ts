@@ -87,7 +87,7 @@ export const PAGE_EXPLAIN: Record<string, PageExplain> = {
     terms: ["what-if", "policy-config", "policy-proposal", "hurdle-rate", "eblr", "working-capital"],
   },
   "/ask": {
-    headline: "Claude queries Exasol through the Exasol MCP server, logged in as your role's Exasol user.",
+    headline: "Claude queries Exasol through the Exasol MCP server, logged in as your own AI session user (your role user with the _AI suffix, in consumer group CREDORA_AI).",
     exasol: [
       "Claude tries the semantic view CREDORA_SEM.PORTFOLIO first, then plain SQL where your grants allow.",
       "Every tool call and its SQL is shown with the answer.",
@@ -155,7 +155,7 @@ export const PAGE_EXPLAIN: Record<string, PageExplain> = {
   "/book": {
     headline: "Your companies only. The V_RM_* views return rows assigned to your Exasol user, CREDORA_RM, and nothing else.",
     exasol: [
-      "The views join CREDORA.RM_ASSIGNMENT on EXA_USER = CURRENT_USER, so the filter lives in the database, not in the app.",
+      "The views join CREDORA.RM_ASSIGNMENT on EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$', ''), so the filter lives in the database, not in the app, and your AI session user sees the same book.",
       "Each status you log is a row in CREDORA.LOAN_STATUS_LOG, written as CREDORA_SVC. You read it back through V_RM_LOAN_STATUS.",
     ],
     terms: ["row-level-security", "current-user", "rm-assignment", "loan-status", "pre-approved-offer"],

@@ -54,13 +54,13 @@ export const EXTENSIONS: Record<string, Extension> = {
     id: "mcp-server",
     name: "mcp-server",
     repo: "https://github.com/exasol/mcp-server",
-    what: "exasol-mcp-server 2.3.0, through which Ask Credora queries Exasol as your role's user",
+    what: "exasol-mcp-server 2.3.0, through which Ask Credora queries Exasol as your own AI session user (<role user>_AI)",
   },
   "exasol-scheduler": {
     id: "exasol-scheduler",
     name: "exasol-scheduler",
     repo: "https://github.com/exasol-labs/exasol-scheduler",
-    what: "SCHED, which runs CREDORA.PURGE_EXPIRED on a timetable inside Exasol",
+    what: "SCHED, whose tasks and history are Exasol tables and whose container on the app host runs CREDORA.PURGE_EXPIRED every 15 minutes as CREDORA_SVC",
   },
   "exasol-personal": {
     id: "exasol-personal",

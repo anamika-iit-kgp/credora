@@ -5,8 +5,14 @@
 --                  set, and saves it to BucketFS as models/pd_<version>.pkl.
 -- TRAIN_SCORECARD  trains the challenger: a logistic regression scorecard on standardised features,
 --                  on the same past loans and the same hold-out, saved as models/pd_<version>.pkl.
+--                  Both trainers also emit the SHA-256 of the pickle bytes they uploaded, which
+--                  TRAIN_MODEL stores in MODEL_REGISTRY.MODEL_SHA256.
 -- PD_SCORE         loads either kind of saved model from BucketFS and returns, for each company, the
 --                  probability of default and how much each feature moved it (feature attribution).
+--                  Before it unpickles the file it hashes the bytes and refuses a file whose SHA-256
+--                  differs from the registry row. A row without a hash loads unchecked.
+-- MODEL_FILE_SHA256 hashes one model file in BucketFS. The UPDATE at the end of this file uses it
+--                  to fill MODEL_SHA256 for models registered before the hash existed.
 -- ANOMALY_FLAG     an Isolation Forest (unsupervised) over one run's features: flags companies whose
 --                  GST, bank and partner figures look unlike everyone else's (possible circular
 --                  trading or inflated turnover) and says which figures stand out.
@@ -21,9 +27,10 @@ CREATE OR REPLACE PYTHON3 SET SCRIPT CREDORA.TRAIN_PD(
   partner_min_score DOUBLE, partner_avg_score DOUBLE, partner_overdue_amt DOUBLE, partner_other_bank_bal DOUBLE,
   dscr DOUBLE, defaulted BOOLEAN)
 EMITS (model_version VARCHAR(20), algorithm VARCHAR(80), auc DOUBLE, gini DOUBLE, n_train DOUBLE, default_rate DOUBLE,
-       feature_importance VARCHAR(20000), model_path VARCHAR(200)) AS
+       feature_importance VARCHAR(20000), model_path VARCHAR(200), model_sha256 VARCHAR(64)) AS
 import os
 os.environ["OMP_NUM_THREADS"] = "4"
+import hashlib
 import io
 import json
 import pickle
@@ -70,18 +77,20 @@ def run(ctx):
               "baseline": {f: float(np.median(X[:, i])) for i, f in enumerate(FEATURES)}}
     buf = io.BytesIO()
     pickle.dump(bundle, buf)
+    data = buf.getvalue()
+    sha256 = hashlib.sha256(data).hexdigest()  # PD_SCORE checks the file against it before unpickling
 
     conn = exa.get_connection("BUCKETFS_MODELS")
     path = f"pd_{version}.pkl"
-    r = requests.put(f"{conn.address}/{path}", data=buf.getvalue(), auth=(conn.user, conn.password),
+    r = requests.put(f"{conn.address}/{path}", data=data, auth=(conn.user, conn.password),
                      verify=False, timeout=120)
     r.raise_for_status()
     ctx.emit(version, "Gradient-boosted trees (scikit-learn HistGradientBoosting, monotonic)", auc, 2 * auc - 1,
-             len(y), float(y.mean()), json.dumps(importance), f"/buckets/bfsdefault/default/models/{path}")
+             len(y), float(y.mean()), json.dumps(importance), f"/buckets/bfsdefault/default/models/{path}", sha256)
 /
 
 CREATE OR REPLACE PYTHON3 SET SCRIPT CREDORA.PD_SCORE(
-  model_path VARCHAR(200), app_id VARCHAR(8),
+  model_path VARCHAR(200), model_sha256 VARCHAR(64), app_id VARCHAR(8),
   gst_years DOUBLE, gst_turnover_12m DOUBLE, gst_late_filings_12m DOUBLE, gst_bank_gap_pct DOUBLE,
   avg_balance_12m DOUBLE, inflow_volatility DOUBLE, bounce_ratio DOUBLE, cmr_rank DOUBLE,
   partner_min_score DOUBLE, partner_avg_score DOUBLE, partner_overdue_amt DOUBLE, partner_other_bank_bal DOUBLE,
@@ -89,20 +98,30 @@ CREATE OR REPLACE PYTHON3 SET SCRIPT CREDORA.PD_SCORE(
 EMITS (app_id VARCHAR(8), pd DOUBLE, contributions VARCHAR(20000)) AS
 import os
 os.environ["OMP_NUM_THREADS"] = "1"  # one UDF instance per core already; avoid thread oversubscription
+import hashlib
 import json
 import pickle
 import time
 
 _cache = {}
 
-def load(path):
+def load(path, expected_sha256):
     if path not in _cache:
         for _ in range(60):  # a freshly trained model can take a few seconds to sync to every node
             if os.path.exists(path):
                 break
             time.sleep(1)
         with open(path, "rb") as f:
-            _cache[path] = pickle.load(f)
+            data = f.read()
+        # The registry row carries the SHA-256 the trainer computed from the bytes it uploaded. A file
+        # that hashes differently was replaced or damaged after training and is never unpickled. Rows
+        # registered before the hash existed carry NULL and load unchecked.
+        if expected_sha256 is not None:
+            found = hashlib.sha256(data).hexdigest()
+            if found != expected_sha256.lower():
+                raise RuntimeError(f"Model file {path} does not match MODEL_REGISTRY.MODEL_SHA256 "
+                                   f"(expected {expected_sha256}, found {found})")
+        _cache[path] = pickle.loads(data)
     return _cache[path]
 
 def run(ctx):
@@ -111,7 +130,8 @@ def run(ctx):
         if df is None:
             break
         df.columns = [c.lower() for c in df.columns]
-        b = load(df["model_path"].iloc[0])
+        expected = df["model_sha256"].iloc[0]
+        b = load(df["model_path"].iloc[0], expected if isinstance(expected, str) and expected else None)
         feats = b["features"]
         X = df[feats].astype(float).fillna(value=b["baseline"]).to_numpy()
         m = b["model"]
@@ -134,9 +154,10 @@ CREATE OR REPLACE PYTHON3 SET SCRIPT CREDORA.TRAIN_SCORECARD(
   partner_min_score DOUBLE, partner_avg_score DOUBLE, partner_overdue_amt DOUBLE, partner_other_bank_bal DOUBLE,
   dscr DOUBLE, defaulted BOOLEAN)
 EMITS (model_version VARCHAR(20), algorithm VARCHAR(80), auc DOUBLE, gini DOUBLE, n_train DOUBLE, default_rate DOUBLE,
-       feature_importance VARCHAR(20000), model_path VARCHAR(200)) AS
+       feature_importance VARCHAR(20000), model_path VARCHAR(200), model_sha256 VARCHAR(64)) AS
 import os
 os.environ["OMP_NUM_THREADS"] = "4"
+import hashlib
 import io
 import json
 import pickle
@@ -182,14 +203,16 @@ def run(ctx):
               "baseline": {f: float(np.median(X[:, i])) for i, f in enumerate(FEATURES)}}
     buf = io.BytesIO()
     pickle.dump(bundle, buf)
+    data = buf.getvalue()
+    sha256 = hashlib.sha256(data).hexdigest()  # PD_SCORE checks the file against it before unpickling
 
     conn = exa.get_connection("BUCKETFS_MODELS")
     path = f"pd_{version}.pkl"
-    r = requests.put(f"{conn.address}/{path}", data=buf.getvalue(), auth=(conn.user, conn.password),
+    r = requests.put(f"{conn.address}/{path}", data=data, auth=(conn.user, conn.password),
                      verify=False, timeout=120)
     r.raise_for_status()
     ctx.emit(version, "LogisticRegression scorecard", auc, 2 * auc - 1, len(y), float(y.mean()),
-             json.dumps(coef), f"/buckets/bfsdefault/default/models/{path}")
+             json.dumps(coef), f"/buckets/bfsdefault/default/models/{path}", sha256)
 /
 
 CREATE OR REPLACE PYTHON3 SET SCRIPT CREDORA.ANOMALY_FLAG(
@@ -255,3 +278,20 @@ def run(ctx):
         text = ", ".join(r for _, r in found[:2])
         ctx.emit(app, float(score[i]), bool(flag[i]), text[:1].upper() + text[1:])
 /
+
+-- SHA-256 of one model file at its local BucketFS path. NULL when the file is not on this node, so
+-- the backfill below leaves such a row unhashed instead of failing the deployment.
+CREATE OR REPLACE PYTHON3 SCALAR SCRIPT CREDORA.MODEL_FILE_SHA256(model_path VARCHAR(200)) RETURNS VARCHAR(64) AS
+import hashlib
+import os
+
+def run(ctx):
+    if ctx.model_path is None or not os.path.isfile(ctx.model_path):
+        return None
+    with open(ctx.model_path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+/
+
+-- Models registered before MODEL_SHA256 existed get their hash from the file now in BucketFS. Only
+-- rows without a hash are touched, so this runs on every deployment without changing anything else.
+UPDATE CREDORA.MODEL_REGISTRY SET MODEL_SHA256 = CREDORA.MODEL_FILE_SHA256(MODEL_PATH) WHERE MODEL_SHA256 IS NULL;

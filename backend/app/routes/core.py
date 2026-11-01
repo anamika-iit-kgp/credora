@@ -82,11 +82,8 @@ def overview(user: User = Depends(current_user)):
             counts = {"companies": int(r["C"] or 0), "partners": int(r["P"] or 0),
                       "applications": int(r["A"] or 0), "accounts": int(r["C"] or 0)}
     else:
-        r = exa.query(db(user), """
-            SELECT (SELECT COUNT(*) FROM VS_CIF."company") C, (SELECT COUNT(*) FROM VS_CIF."partner") P,
-                   (SELECT COUNT(*) FROM VS_LOS."application") A, (SELECT COUNT(*) FROM VS_CBS.ACCOUNT) ACC""")[0]
-        counts = {"companies": int(r["C"]), "partners": int(r["P"]), "applications": int(r["A"]),
-                  "accounts": int(r["ACC"])}
+        # Counted through the virtual schemas as this role's Exasol user, cached for a minute.
+        counts = sources.bank_counts(db(user))
 
     gen = runs.last_generation()
     last_generation = None

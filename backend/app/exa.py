@@ -53,6 +53,11 @@ class ExaUnavailable(RuntimeError):
     """Exasol could not be reached."""
 
 
+class ExaPoolBusy(ExaUnavailable):
+    """Every pooled connection of this user stayed busy for the whole wait. Retrying at once would
+    only wait again, so query() does not retry it. The API answers 503 like any ExaUnavailable."""
+
+
 def _clean(part: str) -> str:
     return re.sub(r"[^a-z0-9_.-]+", "-", (part or "").lower()).strip("-")[:40] or "none"
 
@@ -125,6 +130,8 @@ def _connect(user: str, client: str | None = None) -> pyexasol.ExaConnection:
 
 
 class _Pool:
+    wait_s = 120.0  # how long a request waits for a busy pool before it gives up with ExaPoolBusy
+
     def __init__(self, user: str, size: int):
         self.user = user
         self.size = size
@@ -145,7 +152,10 @@ class _Pool:
                 except Exception:
                     self.created -= 1
                     raise
-        return self.idle.get(timeout=120)
+        try:
+            return self.idle.get(timeout=self.wait_s)
+        except queue.Empty:
+            raise ExaPoolBusy("Exasol connection pool busy, try again") from None
 
     def release(self, conn: pyexasol.ExaConnection, broken: bool = False) -> None:
         if broken or conn.is_closed:
@@ -213,6 +223,8 @@ def query(user: str, sql: str, params: dict[str, Any] | None = None) -> list[dic
                     raise
                 _trace(conn, user, sql, params, t0, n)
                 return out
+        except ExaPoolBusy:
+            raise
         except (pyexasol.ExaCommunicationError, ExaUnavailable):
             if attempt == 2:
                 raise

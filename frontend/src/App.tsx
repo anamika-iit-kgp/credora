@@ -30,6 +30,8 @@ const OfferPage = lazy(() => import("./pages/offers/Offer").then((m) => ({ defau
 const QueuePage = lazy(() => import("./pages/offers/Queue").then((m) => ({ default: m.QueuePage })));
 const AskPage = lazy(() => import("./pages/ask/Ask").then((m) => ({ default: m.AskPage })));
 const ControlRoomPage = lazy(() => import("./pages/exasol/ControlRoom").then((m) => ({ default: m.ControlRoomPage })));
+// The glossary screen loads only when opened. Its term data also feeds the Explain popovers on every screen, so that
+// part stays in the main bundle until the popover reads it lazily too.
 const GlossaryPage = lazy(() => import("./pages/glossary/Glossary").then((m) => ({ default: m.GlossaryPage })));
 
 const queryClient = new QueryClient({
@@ -92,7 +94,14 @@ export function App() {
               <Route path="models/whatif" element={<Gate perm="whatif"><WhatIfPage /></Gate>} />
               <Route path="ask" element={<Gate perm="ask"><AskPage /></Gate>} />
               <Route path="exasol" element={<ControlRoomPage />} />
-              <Route path="glossary" element={<GlossaryPage />} />
+              <Route
+                path="glossary"
+                element={
+                  <Suspense fallback={<Loading label="Opening the glossary" rows={3} />}>
+                    <GlossaryPage />
+                  </Suspense>
+                }
+              />
               <Route path="pipeline" element={<Gate perm="offers"><PipelinePage /></Gate>} />
               <Route path="offers/:offerId" element={<Gate perm="offers"><OfferPage /></Gate>} />
               <Route path="queue" element={<Gate perm="checker"><QueuePage /></Gate>} />

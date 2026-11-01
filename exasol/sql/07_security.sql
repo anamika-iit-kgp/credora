@@ -1,15 +1,21 @@
 -- Who may see what, enforced by Exasol itself. The web app logs in to Exasol as the database
 -- user that matches the signed-in person's role, so a bug in the app cannot widen access.
 --
---   CREDORA_SVC      runs the analysis, training and purge (service account of the web app)
---   CREDORA_ADMIN    everything, read-only
+--   CREDORA_SVC      runs the analysis, training and purge (service account of the web app and of the
+--                    Exasol Scheduler). Rows only. It cannot create or drop tables, the deploy tool
+--                    does that as the deploy user.
+--   CREDORA_ADMIN    everything, read-only. The system tables (SELECT ANY DICTIONARY) are granted to
+--                    this user alone in 16_resources.sql, not to role R_ADMIN, so the admin's audit and
+--                    control-room screens work while the admin's AI session user CREDORA_ADMIN_AI
+--                    (same role) sees no more of the dictionary than its own grants.
 --   CREDORA_DATASCI  everything, read-only; trains models
 --   CREDORA_LOANOPS  bank data and Exasol results, NOT the raw 3rd party data (CIBIL, GST, AA)
 --   CREDORA_RM       only the companies assigned to it, through row-filtered views (13_rm_row_security.sql)
 --   CREDORA_MCP      read-only results for the AI assistant (MCP)
 --
 -- The roles themselves are created by the deploy tool (deploy/exasol_setup.py), which has to
--- check whether they exist first.
+-- check whether they exist first. The guarded REVOKEs at the end take back grants that earlier
+-- versions of this file made, so re-running it on a live deployment leaves the roles as listed.
 
 
 -- Masked customer view for relationship managers: PAN and GSTIN show only their last characters.
@@ -19,14 +25,16 @@ SELECT a.RUN_ID, a.APP_ID, a.CIF_ID, a.LEGAL_NAME, a.CONSTITUTION,
        a.INDUSTRY, a.CITY, a.STATE_NAME, a.RM_ID, a.PRODUCT, a.AMOUNT_REQUESTED, a.TENURE_REQUESTED, a.PURPOSE, a.PARTNERS,
        f.GST_STAGE, f.GST_YEARS
 FROM CREDORA.APPLICATIONS a
-LEFT JOIN CREDORA.FEATURES f ON f.RUN_ID = a.RUN_ID AND f.APP_ID = a.APP_ID;
+LEFT JOIN CREDORA.FEATURES f ON f.RUN_ID = a.RUN_ID AND f.APP_ID = a.APP_ID
+COMMENT IS 'One row per company per run, as APPLICATIONS but with PAN and GSTIN masked to their last characters, without the KYC status, the date of the credit need and the collateral, plus the GST stage and years. Read by every role but the relationship manager, by the AI assistant user (CREDORA_MCP) and by V_LATEST_COMPANY. Exasol accepts a view comment only inside CREATE VIEW, see 15_comments.sql.';
 
 GRANT CREATE SESSION TO R_SVC, R_ADMIN, R_DATASCI, R_LOANOPS, R_RM, R_MCP;
 
--- Service account: owns the analysis.
+-- Service account: owns the analysis. Rows only, no CREATE TABLE or DROP ANY TABLE. Every table is
+-- created by the deploy tool as the deploy user, and nothing that runs as CREDORA_SVC (the Lua
+-- scripts, the UDFs, the web app, the Exasol Scheduler) creates or drops a table.
 GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA CREDORA TO R_SVC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA CREDORA_STAGE TO R_SVC;
-GRANT CREATE TABLE, DROP ANY TABLE TO R_SVC;
 GRANT EXECUTE ON SCHEMA CREDORA TO R_SVC;
 GRANT SELECT ON SCHEMA VS_CBS TO R_SVC;
 GRANT SELECT ON SCHEMA VS_CIF TO R_SVC;
@@ -37,13 +45,14 @@ GRANT ACCESS ON CONNECTION MOCK_GSTN TO R_SVC;
 GRANT ACCESS ON CONNECTION MOCK_AA TO R_SVC;
 GRANT ACCESS ON CONNECTION BUCKETFS_MODELS TO R_SVC;
 
--- Admin and data scientist: everything, read-only.
+-- Admin and data scientist: everything, read-only. SELECT ANY DICTIONARY is not on the role. It goes
+-- to the user CREDORA_ADMIN in 16_resources.sql (after the users exist), so the AI session user
+-- CREDORA_ADMIN_AI, which holds R_ADMIN too, does not read the whole dictionary.
 GRANT SELECT ON SCHEMA CREDORA TO R_ADMIN, R_DATASCI;
 GRANT SELECT ON SCHEMA CREDORA_STAGE TO R_ADMIN, R_DATASCI;
 GRANT SELECT ON SCHEMA VS_CBS TO R_ADMIN, R_DATASCI, R_LOANOPS;
 GRANT SELECT ON SCHEMA VS_CIF TO R_ADMIN, R_DATASCI, R_LOANOPS;
 GRANT SELECT ON SCHEMA VS_LOS TO R_ADMIN, R_DATASCI, R_LOANOPS;
-GRANT SELECT ANY DICTIONARY TO R_ADMIN;
 
 -- Loan operations: Exasol results, no raw API replies.
 GRANT SELECT ON SCHEMA CREDORA TO R_LOANOPS;
@@ -67,3 +76,15 @@ GRANT SELECT ON CREDORA.CHALLENGER_SCORES TO R_MCP;
 GRANT SELECT ON CREDORA.ANOMALY TO R_MCP;
 GRANT SELECT ON CREDORA.CONFIG TO R_MCP;
 GRANT SELECT ON CREDORA.V_COMPANY_MASKED TO R_MCP;
+
+-- Deployments made before this file stopped granting them. R_SVC had CREATE TABLE and DROP ANY
+-- TABLE, and R_ADMIN had SELECT ANY DICTIONARY (now on the user CREDORA_ADMIN only). Take those
+-- grants back. REVOKE may fail when nothing was granted, so pquery tries each one on its own.
+--/
+CREATE OR REPLACE SCRIPT CREDORA.SECURITY_REVOKE_OLD_GRANTS() AS
+for _, g in ipairs({'CREATE TABLE FROM R_SVC', 'DROP ANY TABLE FROM R_SVC', 'SELECT ANY DICTIONARY FROM R_ADMIN'}) do
+  pquery('REVOKE ' .. g)
+end
+/
+EXECUTE SCRIPT CREDORA.SECURITY_REVOKE_OLD_GRANTS();
+DROP SCRIPT CREDORA.SECURITY_REVOKE_OLD_GRANTS;

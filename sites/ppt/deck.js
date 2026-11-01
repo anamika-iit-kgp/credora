@@ -24,6 +24,9 @@
     CERTIFIED_METRICS: "16",        // CREDORA_SEM.PORTFOLIO
     RM_BOOK: "25",                  // demo seed: companies assigned to RM001 (exasol/sql/14_seed_rm_book.sql)
     T_RISK_MODEL: "<0.1 s", // step 8 "Risk model": 2 ms in run R20261031-2109
+    // Published run R20261031-1923: 530 APPROVE, 202 REFER, 268 DECLINE. Offers 1,168.9 crore against
+    // a credit need on file of 1,252.3 crore, negotiation room up to 1,414.2 crore. Top 50: 258.7 crore,
+    // 10.82% average rate, 21.2% RAROC. These are written on slide 4 directly.
   };
 
   /* RUN_ANALYSIS steps: [no, name, kind, seconds (number, or a DATA key), rows out]
@@ -235,10 +238,10 @@
     }
   };
 
-  /* slide 7: 16 UDF instances and their fan-out to the CONNECTION objects */
-  scenes.s7 = {
+  /* slide 8: 16 UDF instances (run 4 at a time on 4 cores) and their fan-out to the CONNECTION objects */
+  scenes.s8 = {
     init: function (s) {
-      var bars = $("#s7bars", s), fan = $("#s7fan", s);
+      var bars = $("#s8bars", s), fan = $("#s8fan", s);
       for (var i = 0; i < 16; i++) {
         var y = 40 + i * 34.5, ty = 165 + i * (290 / 15);
         var p = svgEl("path", { "class": "e c-ext thin nm", d: "M530 " + (y + 12) + " C 590 " + (y + 12) + " 580 " + ty + " 638 " + ty,
@@ -252,16 +255,16 @@
     }
   };
 
-  /* slide 8: RUN_ANALYSIS steps light up one by one, the clock runs, RUN_LOG fills */
+  /* slide 9: RUN_ANALYSIS steps light up one by one, the clock runs, RUN_LOG fills */
   function logLine(r) {
     var ms = secOf(r[3]);
     var msTxt = ms === null ? DATA[r[3]] : fmt(ms * 1000);
     function pad(s, n, left) { s = String(s); while (s.length < n) s = left ? " " + s : s + " "; return s; }
     return '<div><span>' + pad(r[0], 4, true) + '</span> <span class="ok">OK</span>     ' + pad(r[4], 9, true) + "  " + pad(msTxt, 7, true) + "</div>";
   }
-  scenes.s8 = {
+  scenes.s9 = {
     init: function (s) {
-      var ol = $("#s8steps", s), maxS = 10.4, w = 280;
+      var ol = $("#s9steps", s), maxS = 10.4, w = 280;
       RUN_STEPS.forEach(function (r) {
         var sec = secOf(r[3]);
         var li = document.createElement("li");
@@ -274,12 +277,12 @@
       this.final(s);
     },
     final: function (s) {
-      $("#s8clock", s).innerHTML = DATA.RUN_SECONDS + "<small>s</small>";
-      $("#s8log", s).innerHTML = RUN_STEPS.slice(-6).map(logLine).join("");
+      $("#s9clock", s).innerHTML = DATA.RUN_SECONDS + "<small>s</small>";
+      $("#s9log", s).innerHTML = RUN_STEPS.slice(-6).map(logLine).join("");
       $$(".st", s).forEach(function (li) { li.classList.add("done"); li.classList.remove("live"); });
     },
     play: function (s) {
-      var lis = $$(".st", s), clock = $("#s8clock", s), log = $("#s8log", s);
+      var lis = $$(".st", s), clock = $("#s9clock", s), log = $("#s9log", s);
       var total = parseFloat(DATA.RUN_SECONDS), known = 0;
       RUN_STEPS.forEach(function (r) { known += secOf(r[3]) || 0; });
       var k = total / known, acc = 0, t = 700, lines = [];
@@ -310,22 +313,22 @@
     }
   };
 
-  /* slide 9: the admin's approval switches IS_ACTIVE on */
-  scenes.s9 = {
+  /* slide 10: the admin's approval switches IS_ACTIVE on */
+  scenes.s10 = {
     step: function (s, k) {
       if (k !== 2 || STILL) return;
-      var knob = $("#s9knob", s), track = $("#s9track", s);
+      var knob = $("#s10knob", s), track = $("#s10track", s);
       knob.animate([{ transform: "translateX(-20px)", fill: "#94a3b8" }, { transform: "translateX(0px)", fill: "#04110a" }], { duration: 520, delay: 1300, easing: EASE_IO, fill: "backwards" });
       track.animate([{ fill: "#334155" }, { fill: "#5fc33b" }], { duration: 520, delay: 1300, easing: "ease", fill: "backwards" });
     }
   };
 
-  /* slide 10: PREFERRING skyline, peeled layer by layer */
+  /* slide 11: PREFERRING skyline, peeled layer by layer */
   function rng(seed) { return function () { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; var t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   var sky = { pts: [], layers: [] };
-  scenes.s10 = {
+  scenes.s11 = {
     init: function (s) {
-      var r = rng(20261031), g = $("#s10dots", s), pts = [];
+      var r = rng(20261031), g = $("#s11dots", s), pts = [];
       for (var i = 0; i < 170; i++) {
         var pd = 0.004 + Math.pow(r(), 1.5) * 0.1;
         var ra = 16 + 30 * Math.pow(1 - pd / 0.11, 0.9) * (0.35 + 0.65 * r());
@@ -348,9 +351,9 @@
       this.final(s);
     },
     meter: function (s, ranked, L, done) {
-      $("#s10v", s).innerHTML = ranked + "<small> ranked · " + L + " layer" + (L === 1 ? "" : "s") + "</small>";
-      $("#s10bar", s).style.transform = "scaleX(" + Math.min(1, ranked / 50) + ")";
-      $("#s10p", s).textContent = done ? "50 reached: peeling stops, RANK_NO orders them" : "peeling layer " + L + " of the skyline";
+      $("#s11v", s).innerHTML = ranked + "<small> ranked · " + L + " layer" + (L === 1 ? "" : "s") + "</small>";
+      $("#s11bar", s).style.transform = "scaleX(" + Math.min(1, ranked / 50) + ")";
+      $("#s11p", s).textContent = done ? "50 reached: peeling stops, RANK_NO orders them" : "peeling layer " + L + " of the skyline";
     },
     final: function (s) {
       sky.pts.forEach(function (q) { q.el.setAttribute("class", q.layer ? "dot taken" : "dot"); });
@@ -360,7 +363,7 @@
       var self = this, ranked = 0;
       sky.pts.forEach(function (q) { q.el.setAttribute("class", "dot"); });
       self.meter(s, 0, 0, false);
-      $("#s10p", s).textContent = "approved companies, before ranking";
+      $("#s11p", s).textContent = "approved companies, before ranking";
       sky.layers.forEach(function (front, i) {
         after(1200 + i * 1250, function () {
           front.forEach(function (q) {
@@ -379,11 +382,11 @@
   dotStyle.textContent = ".sky .dot{transform-box:fill-box;transform-origin:center;transition:fill 300ms ease,stroke 300ms ease}";
   document.head.appendChild(dotStyle);
 
-  /* slide 12: a refused query, then the RM's own view; rows filtered by CURRENT_USER */
+  /* slide 13: a refused query, then the RM's own view; rows filtered by CURRENT_USER */
   var ASSIGNED = [1, 4, 6, 9, 13, 16];
-  scenes.s12 = {
+  scenes.s13 = {
     init: function (s) {
-      var g = $("#s12rows", s);
+      var g = $("#s13rows", s);
       for (var i = 0; i < 18; i++) {
         var on = ASSIGNED.indexOf(i) >= 0;
         svgEl("rect", { x: (i % 6) * 78, y: Math.floor(i / 6) * 24, width: 66, height: 15, rx: 4, fill: on ? "#34d399" : "#64748b", opacity: on ? 1 : 0.22, "class": on ? "rw on" : "rw" }, g);
@@ -408,11 +411,11 @@
     }
   };
 
-  /* slide 15: the command types itself, then each deploy stage lights */
-  scenes.s15 = {
+  /* slide 16: the command types itself, then each deploy stage lights */
+  scenes.s16 = {
     init: function (s) { $$(".deps div", s).forEach(function (d) { d.classList.add("lit"); }); },
     play: function (s) {
-      var el = $("#s15cmd", s), full = "python deploy/credora.py deploy --env <name>", n = 0;
+      var el = $("#s16cmd", s), full = "python deploy/credora.py deploy --env <name>", n = 0;
       el.textContent = "";
       after(900, function () {
         var iv = setInterval(function () { n++; el.textContent = full.slice(0, n); if (n >= full.length) clearInterval(iv); }, 22);
@@ -423,7 +426,7 @@
     }
   };
 
-  /* slide 16: volumes on a log scale; figures count up */
+  /* slide 17: volumes on a log scale; figures count up */
   var VOL = [
     ["Current-account transactions", "Oracle core banking", 850000, "~850,000", "db"],
     ["Other-bank transactions", "behind the Account Aggregator", 400000, "~400,000", "ext"],
@@ -434,9 +437,9 @@
     ["Partners", "MySQL customer master", 3500, "~3,500", "db"],
     ["Companies analysed", "the whole corporate book", 1000, "1,000", "exa"]
   ];
-  scenes.s16 = {
+  scenes.s17 = {
     init: function (s) {
-      var box = $("#s16vol", s);
+      var box = $("#s17vol", s);
       VOL.forEach(function (v, i) {
         var f = (Math.log10(v[2]) - 2) / 4;
         var row = document.createElement("div");
@@ -447,7 +450,9 @@
       var ax = $(".vol-axis div", s);
       ax.innerHTML = "<span>100</span><span>1k</span><span>10k</span><span>100k</span><span>1M</span>";
     },
-    play: function (s) {
+    play: countUp
+  };
+  function countUp(s) {
       $$("[data-count]", s).forEach(function (el) {
         var txt = el.textContent, target = parseFloat(txt);
         if (isNaN(target)) return;
@@ -464,10 +469,12 @@
         });
         cleanups.push(function () { el.textContent = txt; });
       });
-    }
-  };
+  }
 
-  /* slide 18: screens linked to the Exasol features they prove */
+  /* slide 4: the impact figures count up */
+  scenes.s4 = { play: countUp };
+
+  /* slide 19: screens linked to the Exasol features they prove */
   var FEAT = [
     ["fed", "Federation", "virtual schemas, pushdown", "db"],
     ["udf", "UDFs", "Python SET, CONNECTION objects", "svc"],
@@ -490,9 +497,9 @@
     ["Audit and purge", "admin", ["sec", "lua"]],
     ["Explain mode", "Exasol console · ⓘ glossary · control room", ["fed", "udf", "ml", "lua", "rank", "sem", "sec"]]
   ];
-  scenes.s18 = {
+  scenes.s19 = {
     init: function (s) {
-      var L = $("#s18left", s), R = $("#s18right", s), K = $("#s18links", s), fy = {};
+      var L = $("#s19left", s), R = $("#s19right", s), K = $("#s19links", s), fy = {};
       FEAT.forEach(function (f, j) {
         var y = 14 + j * 82;
         fy[f[0]] = { y: y + 32, c: f[3] };
@@ -517,10 +524,10 @@
     }
   };
 
-  /* slide 19: the open-source projects, from README section 14 */
-  scenes.s19 = {
+  /* slide 20: the open-source projects, from README section 14 */
+  scenes.s20 = {
     init: function (s) {
-      var box = $("#s19list", s);
+      var box = $("#s20list", s);
       OSS.forEach(function (o, i) {
         var a = document.createElement("a");
         a.className = "oss-r";

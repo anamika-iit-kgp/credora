@@ -1,6 +1,7 @@
 """Credora deploy tool: one command builds the whole system in an AWS account.
 
     python deploy/credora.py deploy  --env credora     # everything, idempotent
+    python deploy/credora.py infra   --env credora     # AWS resources and the runtime secret only (OpenTofu)
     python deploy/credora.py ship    --env credora     # app code only (frontend, backend, mocks)
     python deploy/credora.py exasol  --env credora     # Exasol objects only
     python deploy/credora.py status  --env credora
@@ -230,7 +231,7 @@ class Deployment:
         }
         for key, var in (("ORACLE_INSTANCE", "oracle_instance"), ("APP_INSTANCE", "app_instance"),
                          ("AI_PROVIDER", "ai_provider"), ("ANTHROPIC_API_KEY", "anthropic_api_key"),
-                         ("AI_MODEL", "ai_model")):
+                         ("AI_MODEL", "ai_model"), ("PUBLIC_DEMO", "public_demo")):
             if key in self.cfg:
                 tfvars[var] = self.cfg[key]
         logins = {r: self.cfg[f"APP_{r.upper()}_PASSWORD"] for r in ("admin", "datasci", "loanops", "rm")
@@ -564,12 +565,11 @@ class Deployment:
             f"| SSH | `ssh -i deployments/{e}/exasol/node_access.pem ubuntu@{exa_ip}` |",
             f"| Launcher | `exasol status --deployment-dir deployments/{e}/exasol` |",
             "",
-            "Role users (the web app logs in as these):",
+            "Role users. The web app logs in as these, Ask Credora as the _AI users, and MCP clients outside "
+            "the app as CREDORA_MCP.",
             "",
         ]
-        for u, k in (("CREDORA_SVC", "EXA_SVC_PASSWORD"), ("CREDORA_ADMIN", "EXA_ADMIN_PASSWORD"),
-                     ("CREDORA_DATASCI", "EXA_DATASCI_PASSWORD"), ("CREDORA_LOANOPS", "EXA_LOANOPS_PASSWORD"),
-                     ("CREDORA_RM", "EXA_RM_PASSWORD"), ("CREDORA_MCP", "EXA_MCP_PASSWORD")):
+        for u, (_, k) in es.ROLE_USERS.items():
             lines.append(f"- `{u}` / `{s.get(k, '')}`")
         lines += [
             "",
@@ -654,8 +654,8 @@ class Deployment:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["deploy", "ship", "exasol", "generate", "status", "access", "allow-ip",
-                                        "rm-book", "destroy"])
+    ap.add_argument("command", choices=["deploy", "infra", "ship", "exasol", "generate", "status", "access",
+                                        "allow-ip", "rm-book", "destroy"])
     ap.add_argument("--env", required=True, help="deployment name; reads .env.<name>")
     ap.add_argument("--cidr", help="allow-ip: the IP range to allow (default: this machine's public IP)")
     a = ap.parse_args()
@@ -664,9 +664,9 @@ def main() -> None:
     log = d.logs / f"{time.strftime('%Y%m%d-%H%M%S')}-{a.command}.log"
     sys.stdout, sys.stderr = Tee(sys.stdout, log), Tee(sys.stderr, log)
     print(f"log: deployments/{a.env}/logs/{log.name}")
-    commands = {"deploy": d.deploy, "ship": d.ship, "exasol": d.exasol_objects, "generate": d.generate,
-                "status": d.status, "access": d.access, "destroy": d.destroy, "rm-book": d.rm_book,
-                "allow-ip": lambda: d.allow_ip(a.cidr)}
+    commands = {"deploy": d.deploy, "infra": d.infra, "ship": d.ship, "exasol": d.exasol_objects,
+                "generate": d.generate, "status": d.status, "access": d.access, "destroy": d.destroy,
+                "rm-book": d.rm_book, "allow-ip": lambda: d.allow_ip(a.cidr)}
     commands[a.command]()
 
 

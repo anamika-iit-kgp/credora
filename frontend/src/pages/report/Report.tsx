@@ -11,7 +11,7 @@ import { DecisionBadge, Empty, ErrorState, Grade, Loading, PageHeader, Panel } f
 import { dateTime, duration, num, pct, pctFromRatio, rupees, rupeesShort } from "../../lib/format";
 import { can } from "../../lib/roles";
 import { Explain, WithExplain } from "../../explain/Explain";
-import { ExaBadge } from "../../explain/ExaBadge";
+import { ExaBadgeGroup } from "../../explain/ExaBadge";
 
 export function ReportPage() {
   const { cif = "" } = useParams();
@@ -87,10 +87,15 @@ export function ReportPage() {
 
       <Verdict r={r} />
       <div className="xb-row" aria-label="How Exasol produced this report">
-        <ExaBadge what="Decided in Exasol" detail={`RUN_ANALYSIS ${r.run_id}`} term="run-analysis" />
-        <ExaBadge what="Computed in Exasol" detail="Python UDF PD_SCORE" term="python-udf" />
-        <ExaBadge what="Ranked" detail="PREFERRING skyline" term="preferring-skyline" />
-        {user.role === "rm" && <ExaBadge what="Row-level security" detail="V_RM_* on CURRENT_USER" term="row-level-security" />}
+        <ExaBadgeGroup
+          what="Decided in Exasol"
+          facts={[
+            { detail: `RUN_ANALYSIS ${r.run_id}`, term: "run-analysis" },
+            { detail: "PD by Python UDF PD_SCORE", term: "python-udf" },
+            { detail: "ranked by PREFERRING skyline", term: "preferring-skyline" },
+            ...(user.role === "rm" ? [{ detail: "V_RM_* row-level security on CURRENT_USER", term: "row-level-security" }] : []),
+          ]}
+        />
       </div>
       <Flags r={r} />
 
@@ -103,9 +108,9 @@ export function ReportPage() {
         </Panel>
       </div>
 
-      {can(user.role, "memo") && <MemoPanel cif={r.cif_id} />}
-
       <Steps steps={r.steps} />
+
+      {can(user.role, "memo") && <MemoPanel cif={r.cif_id} />}
 
       <div className="grid-main-side">
         <Panel title="Features the model saw" icon={Table2} flush>
@@ -460,8 +465,16 @@ function Features({ features }: { features: Feature[] }) {
   );
 }
 
+/** The decision step (step 11 of RUN_ANALYSIS) opens by default, so the SQL that decided is the first code a reader sees. */
+function decisionStep(steps: ReportStep[]) {
+  return steps.find((s) => /decid/i.test(`${s.name} ${s.object}`)) ?? steps.find((s) => s.n === 11);
+}
+
 function Steps({ steps }: { steps: ReportStep[] }) {
-  const [open, setOpen] = useState<Set<number>>(() => new Set());
+  const [open, setOpen] = useState<Set<number>>(() => {
+    const d = decisionStep(steps);
+    return new Set(d ? [d.n] : []);
+  });
   const all = open.size === steps.length;
   const total = steps.reduce((a, s) => a + (s.ms ?? 0), 0);
   return (

@@ -3,6 +3,8 @@ import dataclasses
 import json
 from types import SimpleNamespace as NS
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app import ai, assistant, memo
@@ -33,14 +35,54 @@ def test_tool_result_text_and_clipping():
     assert assistant.clip("abcdefgh", 3).startswith("abc\n… (5 more")
 
 
-def test_mcp_server_env_is_read_only_as_credora_mcp(monkeypatch):
+def test_mcp_server_env_is_read_only_as_credora_mcp_without_a_role(monkeypatch):
     env = assistant.server_env({"PATH": "/usr/bin"})
     assert env["EXA_USER"] == "CREDORA_MCP" and env["PATH"] == "/usr/bin"
     assert env["EXA_SSL_CERT_VALIDATION"] == "no"
+    assert "CREDORA_SESSION_SQL" not in env  # the AI's limits come from consumer group CREDORA_AI
     s = json.loads(env["EXA_MCP_SETTINGS"])
     assert s["enable_read_query"] is True and s["enable_write_query"] is False and s["enable_write_bucketfs"] is False
     assert "latest published (official) analysis run is RUN_ID 'R7'" in assistant.system_prompt("R7")
     assert "RUN_ID 'None'" not in assistant.system_prompt(None)
+
+
+def _with_passwords(monkeypatch, exa_passwords, exa_mcp_password="mcp-pw"):
+    monkeypatch.setattr(assistant, "settings", dataclasses.replace(
+        assistant.settings, exa_passwords=exa_passwords, exa_mcp_password=exa_mcp_password))
+
+
+def test_exasol_login_is_the_ai_session_user_of_the_role(monkeypatch):
+    _with_passwords(monkeypatch, {"CREDORA_RM": "person-pw", "CREDORA_RM_AI": "ai-pw", "CREDORA_ADMIN_AI": "admin-ai-pw"})
+    assert assistant.exasol_login("rm") == ("CREDORA_RM_AI", "ai-pw")
+    assert assistant.exasol_login("admin") == ("CREDORA_ADMIN_AI", "admin-ai-pw")
+    assert assistant.ai_user("loanops") == "CREDORA_LOANOPS_AI" and assistant.ai_user(None) is None
+    env = assistant.server_env({}, "rm")
+    assert env["EXA_USER"] == "CREDORA_RM_AI" and env["EXA_PASSWORD"] == "ai-pw"
+    assert env["CREDORA_CLIENT_NAME"] == "credora:rm:ask-credora"
+    assert "CREDORA_SESSION_SQL" not in env
+    assert "CREDORA_RM_AI" in assistant.system_prompt("R7", "rm")
+
+
+def test_exasol_login_refuses_a_role_whose_ai_user_has_no_password(monkeypatch):
+    # The person's own password and CREDORA_MCP's are there, and neither is used for the AI.
+    _with_passwords(monkeypatch, {"CREDORA_RM": "person-pw", "CREDORA_ADMIN_AI": "admin-ai-pw"})
+    with pytest.raises(HTTPException) as e:
+        assistant.exasol_login("rm")
+    assert e.value.status_code == 503 and e.value.detail == "Ask Credora is not set up for this role."
+    with pytest.raises(HTTPException):
+        assistant.server_env({}, "rm")
+    with pytest.raises(HTTPException):
+        assistant.exasol_login("not-a-role")
+    assert assistant.exasol_login(None) == ("CREDORA_MCP", "mcp-pw")
+
+
+def test_ask_answers_503_for_a_role_that_is_not_set_up(monkeypatch):
+    monkeypatch.setattr(ai, "enabled", lambda: True)
+    monkeypatch.setattr(ai, "client", lambda: object())
+    _with_passwords(monkeypatch, {"CREDORA_ADMIN_AI": "admin-ai-pw"})
+    assert assistant.enabled() is True
+    r = TestClient(app).post("/api/ai/ask", json={"question": "Average offer ROI by grade"}, headers=_auth("rm"))
+    assert r.status_code == 503 and r.json()["detail"] == "Ask Credora is not set up for this role."
 
 
 def test_assistant_prefers_the_semantic_layer_and_leaves_the_preprocessor_alone():
@@ -163,9 +205,10 @@ def test_ai_off_status_and_503(monkeypatch):
     assert c.post("/api/ai/ask", json={"question": "x"}).status_code == 401
 
 
-def test_assistant_needs_the_mcp_password(monkeypatch):
+def test_assistant_needs_an_ai_session_user_password(monkeypatch):
     monkeypatch.setattr(ai, "enabled", lambda: True)
-    monkeypatch.setattr(assistant, "settings", dataclasses.replace(assistant.settings, exa_mcp_password=""))
+    # The person's role users and CREDORA_MCP do not switch Ask Credora on. An AI session user does.
+    _with_passwords(monkeypatch, {"CREDORA_RM": "person-pw", "CREDORA_ADMIN": "admin-pw"})
     assert assistant.enabled() is False
-    monkeypatch.setattr(assistant, "settings", dataclasses.replace(assistant.settings, exa_mcp_password="pw"))
+    _with_passwords(monkeypatch, {"CREDORA_RM": "person-pw", "CREDORA_RM_AI": "ai-pw"}, exa_mcp_password="")
     assert assistant.enabled() is True

@@ -49,3 +49,6 @@ deploy/remote/secret_id
 deploy/remote/region
 deploy/remote/Caddyfile
 deploy/remote/exasol_fingerprint
+
+# TypeScript incremental build state
+frontend/tsconfig.tsbuildinfo

@@ -8,14 +8,16 @@ import logging
 import secrets
 import threading
 import time
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
-from . import console, crm, exa, mockapi, runs
+from . import console, crm, exa, mockapi, runs, sources
 from .excerpts import ANALYSIS_STEP_NAMES, CRM_STEP_NAME
 
 log = logging.getLogger("credora.jobs")
@@ -24,6 +26,9 @@ IST = ZoneInfo("Asia/Kolkata")
 _pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="job")
 _jobs: dict[str, "Job"] = {}
 _lock = threading.Lock()
+# Held from a job's guard check through its registration, so two requests that start a job at the
+# same moment cannot both pass the guard. The job's own work runs in the executor, outside it.
+_start_lock = threading.Lock()
 
 
 def _now() -> str:
@@ -90,6 +95,16 @@ def _guard(*kinds: str) -> None:
         raise HTTPException(409, f"A {busy[0].kind} job ({busy[0].job_id}) is still running.")
 
 
+@contextmanager
+def _starting(*kinds: str) -> Iterator[None]:
+    """Refuse while a job of these kinds runs, then keep the start lock until the block has
+    registered the new job with _new. Only what decides the job's identity belongs in the block.
+    The job's work goes to _submit."""
+    with _start_lock:
+        _guard(*kinds)
+        yield
+
+
 def _submit(j: Job, fn: Callable[[Job], None]) -> None:
     def wrap():
         exa.set_tag(j.started_by, j.kind)  # Exasol's audit log shows who started the job, and which job
@@ -114,14 +129,14 @@ def _message(e: Exception) -> str:
 # ---------------------------------------------------------------- generate
 
 def start_generate(user, seed: int | None, mode: str = "replace", companies: int = 1000) -> Job:
-    _guard("generate", "analysis")
-    remote = mockapi.gen_start(seed, mode, companies)
-    console.event(f"Generator ({mode}) rewrites the RDS source databases. Nothing is loaded into Exasol. VS_CBS, "
-                  "VS_CIF and VS_LOS read the new rows in place, and the next RUN_ANALYSIS refreshes them first",
-                  objects=["VS_CBS", "VS_CIF", "VS_LOS"])
-    j = _new("generate", [], user)
-    j.remote_id = remote["job_id"]
-    j.result = generate_result(remote, mode, companies)
+    with _starting("generate", "analysis"):
+        remote = mockapi.gen_start(seed, mode, companies)
+        console.event(f"Generator ({mode}) rewrites the RDS source databases. Nothing is loaded into Exasol. VS_CBS, "
+                      "VS_CIF and VS_LOS read the new rows in place, and the next RUN_ANALYSIS refreshes them first",
+                      objects=["VS_CBS", "VS_CIF", "VS_LOS"])
+        j = _new("generate", [], user)
+        j.remote_id = remote["job_id"]
+        j.result = generate_result(remote, mode, companies)
     _refresh_generate(j)
     return j
 
@@ -160,6 +175,7 @@ def _refresh_generate(j: Job) -> None:
         runs.forget_generation()
         runs.forget_current()
         mockapi.clear_cache()
+        sources.forget()  # the overview's counts and the source health describe the old data
 
 
 # ---------------------------------------------------------------- analysis
@@ -237,11 +253,11 @@ def expected_durations() -> list[float]:
 
 
 def start_analysis(user) -> Job:
-    _guard("generate", "analysis")
-    existing = {r["RUN_ID"] for r in exa.query(exa.SVC, "SELECT DISTINCT RUN_ID FROM CREDORA.RUN_LOG")}
-    run_id = new_run_id(existing)
-    j = _new("analysis", [*ANALYSIS_STEP_NAMES, CRM_STEP_NAME], user)
-    j.result = {"run_id": run_id}
+    with _starting("generate", "analysis"):
+        existing = {r["RUN_ID"] for r in exa.query(exa.SVC, "SELECT DISTINCT RUN_ID FROM CREDORA.RUN_LOG")}
+        run_id = new_run_id(existing)
+        j = _new("analysis", [*ANALYSIS_STEP_NAMES, CRM_STEP_NAME], user)
+        j.result = {"run_id": run_id}
     crm.audit(user, "RUN_ANALYSIS", run_id, "CREDORA.RUN_ANALYSIS")
     _submit(j, lambda job: _run_analysis(job, run_id, export=False))
     return j
@@ -341,11 +357,11 @@ def next_version(versions: list[str]) -> str:
 
 
 def start_training(user) -> Job:
-    _guard("train")
-    versions = [r["MODEL_VERSION"] for r in exa.query(exa.SVC, "SELECT MODEL_VERSION FROM CREDORA.MODEL_REGISTRY")]
-    version = next_version(versions)
-    j = _new("train", TRAIN_STEPS, user)
-    j.result = {"version": version}
+    with _starting("train"):
+        versions = [r["MODEL_VERSION"] for r in exa.query(exa.SVC, "SELECT MODEL_VERSION FROM CREDORA.MODEL_REGISTRY")]
+        version = next_version(versions)
+        j = _new("train", TRAIN_STEPS, user)
+        j.result = {"version": version}
     crm.audit(user, "TRAIN_MODEL", version, "CREDORA.TRAIN_MODEL on los.past_loan")
     _submit(j, lambda job: _train(job, version))
     return j
@@ -424,9 +440,10 @@ def _train(j: Job, version: str) -> None:
 # ---------------------------------------------------------------- purge
 
 def purge_loop(interval_min: int, stop: threading.Event) -> None:
-    """Fallback only, off by default (PURGE_INTERVAL_MIN=0). The Exasol Scheduler runs
-    CREDORA.PURGE_EXPIRED every 15 minutes inside Exasol (exasol/sql/17_scheduler.sql); with
-    PURGE_INTERVAL_MIN > 0 the API runs it too, e.g. while the scheduler container is down."""
+    """Fallback only, off by default (PURGE_INTERVAL_MIN=0). The Exasol Scheduler container on the
+    app host runs CREDORA.PURGE_EXPIRED every 15 minutes, with its tasks and history in Exasol
+    (exasol/sql/17_scheduler.sql). With PURGE_INTERVAL_MIN > 0 the API runs it too, for example
+    while the scheduler container is down."""
     exa.set_tag("system", "purge-fallback")
     while not stop.wait(interval_min * 60):
         if running("analysis"):

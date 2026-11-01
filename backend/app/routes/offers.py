@@ -48,7 +48,12 @@ def backfill_offers() -> None:
     if not run or crm.fetch("SELECT 1 FROM offer LIMIT 1"):
         return
     if not running("analysis"):
-        export_offers(run["run_id"])
+        try:
+            export_offers(run["run_id"])
+        except HTTPException as e:
+            # Two first visits at the same time. The other request's export won, so the offers exist.
+            if e.status_code != 409:
+                raise
 
 
 class TermsBody(BaseModel):

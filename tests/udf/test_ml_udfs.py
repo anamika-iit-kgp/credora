@@ -1,14 +1,18 @@
-"""CREDORA.ANOMALY_FLAG and CREDORA.PD_SCORE (exasol/udf/05_ml_udfs.sql), run unchanged in
-exasol/udf-mock-python's mock Exasol environment."""
+"""CREDORA.ANOMALY_FLAG, CREDORA.PD_SCORE, the two trainers and CREDORA.MODEL_FILE_SHA256
+(exasol/udf/05_ml_udfs.sql), run unchanged in exasol/udf-mock-python's mock Exasol environment."""
 
 from __future__ import annotations
 
+import hashlib
 import json
+import numbers
 import pickle
 
 import numpy as np
 import pytest
+import requests
 from exasol_udf_mock_python.column import Column
+from exasol_udf_mock_python.connection import Connection
 from exasol_udf_mock_python.group import Group
 from exasol_udf_mock_python.mock_exa_environment import MockExaEnvironment
 from exasol_udf_mock_python.udf_mock_executor import UDFMockExecutor
@@ -63,9 +67,19 @@ def test_anomaly_flags_nobody_at_zero_percent():
     assert not any(r[2] for r in run_anomaly(rows).values())
 
 
-PD_IN = [Column("model_path", str, "VARCHAR(200)"), Column("app_id", str, "VARCHAR(8)")] + \
-        [Column(f, float, "DOUBLE") for f in FEATS]
+PD_IN = [Column("model_path", str, "VARCHAR(200)"), Column("model_sha256", str, "VARCHAR(64)"),
+         Column("app_id", str, "VARCHAR(8)")] + [Column(f, float, "DOUBLE") for f in FEATS]
 PD_OUT = [Column("app_id", str, "VARCHAR(8)"), Column("pd", float, "DOUBLE"), Column("contributions", str, "VARCHAR(20000)")]
+
+
+def file_sha256(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def run_pd_score(rows):
+    env = MockExaEnvironment(meta(ML, "CREDORA.PD_SCORE", PD_IN, PD_OUT))
+    return {r[0]: r for r in UDFMockExecutor().run([Group(rows)], env)[0].rows}
 
 
 @pytest.fixture
@@ -82,14 +96,87 @@ def model_file(tmp_path):
 
 
 def test_pd_score_emits_a_probability_and_each_features_effect(model_file):
-    rows = [(model_file, "A1", *([0.0] * 7), 3.0, *([0.0] * 5)),   # bad CIBIL commercial rank
-            (model_file, "A2", *([0.0] * 7), -3.0, *([0.0] * 5)),  # good rank
-            (model_file, "A3", *([0.0] * 7), None, *([0.0] * 5))]  # missing: the baseline is used
-    env = MockExaEnvironment(meta(ML, "CREDORA.PD_SCORE", PD_IN, PD_OUT))
-    out = {r[0]: r for r in UDFMockExecutor().run([Group(rows)], env)[0].rows}
+    sha = file_sha256(model_file)
+    rows = [(model_file, sha, "A1", *([0.0] * 7), 3.0, *([0.0] * 5)),   # bad CIBIL commercial rank
+            (model_file, sha, "A2", *([0.0] * 7), -3.0, *([0.0] * 5)),  # good rank
+            (model_file, sha, "A3", *([0.0] * 7), None, *([0.0] * 5))]  # missing: the baseline is used
+    out = run_pd_score(rows)
     assert all(0 <= r[1] <= 1 for r in out.values())
     assert out["A1"][1] > out["A3"][1] > out["A2"][1]
     contrib = json.loads(out["A1"][2])
     assert set(contrib) == set(FEATS)
     assert contrib["cmr_rank"] > 0 and abs(contrib["gst_years"]) < 1e-9
     assert json.loads(out["A3"][2])["cmr_rank"] == 0  # at the baseline: no effect
+
+
+def test_pd_score_refuses_a_model_file_whose_hash_differs_from_the_registry(model_file):
+    rows = [(model_file, "0" * 64, "A1", *([0.0] * 13))]
+    with pytest.raises(RuntimeError, match=r"does not match MODEL_REGISTRY\.MODEL_SHA256 \(expected 0{64}, found [0-9a-f]{64}\)"):
+        run_pd_score(rows)
+
+
+def test_pd_score_loads_a_row_registered_without_a_hash(model_file):
+    out = run_pd_score([(model_file, None, "A1", *([0.0] * 13))])
+    assert 0 <= out["A1"][1] <= 1
+
+
+# --- the trainers: the hash they emit is the SHA-256 of the pickle they uploaded -------------------
+
+TRAIN_IN = [Column("model_version", str, "VARCHAR(20)"), Column("loan_id", str, "VARCHAR(10)")] +            [Column(f, float, "DOUBLE") for f in FEATS] + [Column("defaulted", bool, "BOOLEAN")]
+TRAIN_OUT = [Column("model_version", str, "VARCHAR(20)"), Column("algorithm", str, "VARCHAR(80)"),
+             Column("auc", float, "DOUBLE"), Column("gini", float, "DOUBLE"), Column("n_train", numbers.Real, "DOUBLE"),
+             Column("default_rate", float, "DOUBLE"), Column("feature_importance", str, "VARCHAR(20000)"),
+             Column("model_path", str, "VARCHAR(200)"), Column("model_sha256", str, "VARCHAR(64)")]
+
+
+def past_loans(n=400, seed=5):
+    rng = np.random.default_rng(seed)
+    rows = []
+    for i in range(n):
+        x = rng.normal(size=len(FEATS))
+        defaulted = bool(x[7] + rng.normal(scale=0.5) > 0.8)  # cmr_rank drives default
+        rows.append(("v9", f"L{i:05d}", *[float(v) for v in x], defaulted))
+    return rows
+
+
+@pytest.fixture
+def bucketfs(monkeypatch):
+    """Capture what the trainer PUTs to BucketFS instead of sending it anywhere."""
+    uploads = {}
+
+    class Reply:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+    def put(url, data=None, **kwargs):
+        uploads[url] = bytes(data)
+        return Reply()
+
+    monkeypatch.setattr(requests, "put", put)
+    return uploads
+
+
+@pytest.mark.parametrize("script", ["CREDORA.TRAIN_PD", "CREDORA.TRAIN_SCORECARD"])
+def test_trainer_emits_the_sha256_of_the_uploaded_pickle(script, bucketfs):
+    env = MockExaEnvironment(meta(ML, script, TRAIN_IN, TRAIN_OUT),
+                             connections={"BUCKETFS_MODELS": Connection("http://bucketfs/default/models", "w", "pw")})
+    (row,) = UDFMockExecutor().run([Group(past_loans())], env)[0].rows
+    assert row[0] == "v9" and row[7] == "/buckets/bfsdefault/default/models/pd_v9.pkl"
+    assert bucketfs == {"http://bucketfs/default/models/pd_v9.pkl": bucketfs["http://bucketfs/default/models/pd_v9.pkl"]}
+    data = bucketfs["http://bucketfs/default/models/pd_v9.pkl"]
+    assert len(row[8]) == 64 and int(row[8], 16) >= 0  # 64 hex characters
+    assert row[8] == hashlib.sha256(data).hexdigest()
+    bundle = pickle.loads(data)
+    assert bundle["version"] == "v9" and bundle["features"] == FEATS
+    assert 0.5 < row[2] <= 1  # AUC on the hold-out
+
+
+# --- MODEL_FILE_SHA256: the backfill for rows registered before the hash existed -------------------
+
+def test_model_file_sha256_hashes_the_file_and_is_null_for_a_missing_one(model_file, tmp_path):
+    env = MockExaEnvironment(meta(ML, "CREDORA.MODEL_FILE_SHA256", [Column("model_path", str, "VARCHAR(200)")],
+                                  [Column("sha256", str, "VARCHAR(64)")], input_type="SCALAR", output_type="RETURNS"))
+    out = UDFMockExecutor().run([Group([(model_file,), (str(tmp_path / "gone.pkl"),), (None,)])], env)[0].rows
+    assert out == [(file_sha256(model_file),), (None,), (None,)]

@@ -18,7 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { api } from "../../api/client";
-import { useControlRoom, type ControlRoom, type CrSchema, type Section } from "../../api/exasol";
+import { NOT_CONFIGURED, useControlRoom, useRlsProof, type ControlRoom, type CrSchema, type RlsProofRow, type Section } from "../../api/exasol";
 import { ErrorState, Loading, PageHeader, Panel } from "../../components/ui";
 import { Explain, WithExplain } from "../../explain/Explain";
 import { EXTENSIONS, SCHEMA_EXTENSION } from "../../explain/extensions";
@@ -404,6 +404,84 @@ function SecurityPanel({ cr }: { cr: ControlRoom }) {
   );
 }
 
+/* ---------- row-level security proof ---------- */
+
+const RLS_WHO: Record<string, string> = {
+  CREDORA_RM: "the demo relationship manager",
+  CREDORA_RM_AI: "her AI session user, Ask Credora's login",
+  CREDORA_RM002: "a second relationship manager",
+};
+
+function RlsAnswer({ r }: { r: RlsProofRow }) {
+  if (r.error === NOT_CONFIGURED) return <span className="muted">No password for this user on this server</span>;
+  if (r.error)
+    return (
+      <span className="cr-refused-msg">
+        <span className="cr-you">refused</span> <code>{r.error}</code>
+      </span>
+    );
+  return (
+    <>
+      <span className="num">{num(r.rows ?? 0)}</span> {r.rows === 1 ? "row" : "rows"}
+    </>
+  );
+}
+
+/** Admin and data scientist only. The same count as three relationship manager users, one connection each. */
+function RlsProofPanel() {
+  const q = useRlsProof();
+  return (
+    <Panel
+      title={<WithExplain id="row-level-security">Row-level security, proven by Exasol</WithExplain>}
+      icon={Lock}
+      flush
+      aside={<span className="muted small">V_RM_DECISIONS · one connection per user · admin and data scientist</span>}
+    >
+      {q.isError && <ErrorState error={q.error} retry={() => q.refetch()} />}
+      {!q.data && !q.isError && <Loading label="Running the same count as each relationship manager user" rows={4} />}
+      {q.data && (
+        <>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>
+                    <WithExplain id="current-user">Exasol user</WithExplain>
+                  </th>
+                  <th>Statement</th>
+                  <th>What Exasol answered</th>
+                  <th className="r">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {q.data.map((r, i) => (
+                  <tr key={`${r.exa_user}-${i}`}>
+                    <td className="nowrap">
+                      <code className="strong">{r.exa_user}</code>
+                      {RLS_WHO[r.exa_user] && <div className="muted small">{RLS_WHO[r.exa_user]}</div>}
+                    </td>
+                    <td>
+                      <code className="cr-expr">{r.sql}</code>
+                    </td>
+                    <td>
+                      <RlsAnswer r={r} />
+                    </td>
+                    <td className="r num">{ms(r.ms)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="cr-note">
+            The AI session user sees the same rows as its person, because the row filter in <code>V_RM_DECISIONS</code> strips the <code>_AI</code> suffix from{" "}
+            <code>CURRENT_USER</code>, a second manager sees a different book, and the table under the view is refused by Exasol itself, not by the app.
+          </p>
+        </>
+      )}
+    </Panel>
+  );
+}
+
 /* ---------- the page ---------- */
 
 export function ControlRoomPage() {
@@ -418,6 +496,7 @@ export function ControlRoomPage() {
     try {
       const fresh = await api<ControlRoom>("/exasol/control-room?fresh=true");
       qc.setQueryData(["exasol", "control-room"], fresh);
+      await qc.invalidateQueries({ queryKey: ["exasol", "rls-proof"] });
     } finally {
       setBusy(false);
     }
@@ -683,6 +762,8 @@ export function ControlRoomPage() {
               </div>
             </Panel>
           </div>
+
+          {(cr.role === "admin" || cr.role === "datasci") && <RlsProofPanel />}
 
           {cr.sessions && (
             <Panel

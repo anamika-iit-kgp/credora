@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { Activity, Briefcase, Building2, DatabaseZap, FlaskConical, History, Play, Server, Target, UserPlus, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Activity, Building2, DatabaseZap, FlaskConical, History, Server, Target, Users, Wallet, type LucideIcon } from "lucide-react";
 import { useOverview } from "../api/hooks";
 import type { SourceHealth, SourceKind } from "../api/types";
 import { useUser } from "../auth/AuthContext";
+import { DemoRail } from "../components/DemoRail";
 import { PublishedNotice } from "../components/PublishedNotice";
 import { SourceHealthStrip } from "../components/SourceHealth";
 import { Counter, Empty, ErrorState, Loading, MixBar, PageHeader, Panel } from "../components/ui";
@@ -15,33 +16,7 @@ export function OverviewPage() {
   const user = useUser();
   const q = useOverview();
 
-  const action = can(user.role, "generate") ? (
-    <Link className="btn" to="/admin/data">
-      <DatabaseZap aria-hidden="true" />
-      Generate mock data
-    </Link>
-  ) : can(user.role, "runAnalysis") ? (
-    <Link className="btn btn-primary" to="/analysis">
-      <Play aria-hidden="true" />
-      Run analysis
-    </Link>
-  ) : user.role === "rm" ? (
-    <Link className="btn btn-primary" to="/book">
-      <Briefcase aria-hidden="true" />
-      Open my companies
-    </Link>
-  ) : can(user.role, "assign") ? (
-    <Link className="btn btn-primary" to="/analysis/decisions?assigned=no">
-      <UserPlus aria-hidden="true" />
-      Assign companies to RMs
-    </Link>
-  ) : (
-    <Link className="btn btn-primary" to="/models">
-      <FlaskConical aria-hidden="true" />
-      Open risk models
-    </Link>
-  );
-
+  // The role's call to action lives on the demo rail, in the highlighted step.
   return (
     <div className="page">
       <PageHeader
@@ -51,8 +26,8 @@ export function OverviewPage() {
             ? `Data set from seed ${q.data.last_generation.seed}, generated ${relative(q.data.last_generation.generated_at)}.`
             : "Sapphire Bank's corporate book, the 3rd party data on it fetched on demand via API, and what Exasol made of it."
         }
-        actions={action}
       />
+      <DemoRail />
       <PublishedNotice />
       {q.isLoading && <Loading />}
       {q.isError && <ErrorState error={q.error} retry={() => q.refetch()} />}

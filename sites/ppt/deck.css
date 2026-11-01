@@ -257,7 +257,7 @@ svg .ph { fill: var(--cloud); outline: none; }
 .console .who { color: var(--fe); }
 .console > div { white-space: pre; }
 
-/* stats (slide 16) */
+/* stats (slide 17) */
 .stats { position: absolute; inset: 0; display: grid; grid-template-columns: 780px 1fr; gap: 56px; }
 .vol { display: flex; flex-direction: column; gap: 14px; }
 .vol-r { display: grid; grid-template-columns: 250px 1fr 110px; align-items: center; gap: 14px; font-size: 18px; height: 50px; }
@@ -277,7 +277,20 @@ svg .ph { fill: var(--cloud); outline: none; }
 .fig.wide p { margin: 0; }
 .fig.exa { background: var(--exa-f); box-shadow: inset 0 0 0 1.6px var(--exa); }
 
-/* security + failure (slide 17) */
+/* impact (slide 4) */
+.impact { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 24px; align-content: start; }
+.impact .fig { padding: 26px 28px 24px; }
+.impact .fig .v { font-size: 48px; }
+.impact .fig .v small { font-size: 20px; }
+.impact .fig p { font-size: 18px; margin-top: 12px; }
+
+/* what I learnt (slide 21) */
+.learn { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; align-content: start; }
+.learn .lay { padding: 20px 24px; }
+.learn .lay b { font-size: 21px; }
+.learn .lay p { font-size: 17.5px; margin-top: 6px; }
+
+/* security + failure (slide 18) */
 .sec2 { position: absolute; inset: 0; display: grid; grid-template-columns: 600px 1fr; gap: 48px; }
 .layers { display: flex; flex-direction: column; gap: 10px; }
 .lay { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; background: var(--panel); border-radius: 12px; padding: 14px 18px; }
@@ -291,7 +304,7 @@ svg .ph { fill: var(--cloud); outline: none; }
 .fails td:first-child i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--sec); margin-right: 10px; vertical-align: 1px; }
 .fails td code { font-size: 14px; color: var(--ink); }
 
-/* closing (slide 19) */
+/* closing (slide 22) */
 .end-h { margin-top: 64px; font-size: 56px; line-height: 1.04; font-weight: 600; letter-spacing: -0.034em; max-width: 1100px; }
 .end-links { margin-top: 56px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 40px; }
 .end-links a { display: grid; grid-template-columns: 40px 1fr; gap: 16px; align-items: center; text-decoration: none; background: var(--panel); border-radius: 12px; padding: 18px 22px; }
@@ -395,10 +408,10 @@ html.print .bar, html.print .progress, html.print .notes { display: none; }
 /* closing (slide 20) */
 .end-p { margin-top: 22px; font-size: 24px; line-height: 1.45; color: var(--ink-2); max-width: 1180px; }
 .end-p b { color: var(--ink); font-weight: 500; }
-#s20 .end-h, #s20 .end-p { text-wrap: balance; }
-#s20 .end-links { margin-top: 40px; }
+#s22 .end-h, #s22 .end-p { text-wrap: balance; }
+#s22 .end-links { margin-top: 40px; }
 .end-by { position: absolute; left: 80px; bottom: 70px; font-size: 17px; color: var(--muted); }
-#s20 .end-h { max-width: 1240px; }
+#s22 .end-h { max-width: 1240px; }
 
 /* page-view count */
 .bar .views { font-size: 12px; opacity: .7; padding: 0 6px; white-space: nowrap; }

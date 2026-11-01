@@ -34,9 +34,18 @@ API_TABLES = {
     "api.aa": [("fi_account", "accounts"), ("fi_txn", "transactions"), ("consent", "consents")],
 }
 
+# Both caches are keyed by the Exasol user that counted. A data generation forgets them (forget()).
+HEALTH_MAX_AGE = 60.0
+COUNTS_MAX_AGE = 60.0
 _cache: dict[str, tuple[float, list[dict]]] = {}
+_counts: dict[str, tuple[float, dict[str, int]]] = {}
 _lock = threading.Lock()
 _pool = ThreadPoolExecutor(max_workers=7, thread_name_prefix="health")
+
+# The overview's headline counts, read through the virtual schemas. Each subquery is a round trip
+# to a bank database, 3 to 6 s in all.
+COUNTS_SQL = ('SELECT (SELECT COUNT(*) FROM VS_CIF."company") C, (SELECT COUNT(*) FROM VS_CIF."partner") P, '
+              '(SELECT COUNT(*) FROM VS_LOS."application") A, (SELECT COUNT(*) FROM VS_CBS.ACCOUNT) ACC')
 
 
 def _entry(source: str, up: bool, tables: list[dict], ms: float | None) -> dict:
@@ -80,7 +89,29 @@ def _exasol(user_db: str) -> dict:
     return _entry("exasol", True, [{"name": f"CREDORA.{t}", "rows": int(row[t])} for t in EXASOL_TABLES], ms)
 
 
-def health(user_db: str, max_age: float = 20.0) -> list[dict]:
+def bank_counts(user_db: str, max_age: float = COUNTS_MAX_AGE) -> dict[str, int]:
+    """Companies, partners, credit needs on file and accounts at the bank, counted as the given
+    Exasol user and kept for a minute per user. The keys are the overview's response fields."""
+    with _lock:
+        hit = _counts.get(user_db)
+        if hit and time.monotonic() - hit[0] < max_age:
+            return dict(hit[1])
+    r = exa.query(user_db, COUNTS_SQL)[0]
+    counts = {"companies": int(r["C"]), "partners": int(r["P"]), "applications": int(r["A"]),
+              "accounts": int(r["ACC"])}
+    with _lock:
+        _counts[user_db] = (time.monotonic(), counts)
+    return dict(counts)
+
+
+def forget() -> None:
+    """Drop the cached health and counts, after the generator rewrote the sources."""
+    with _lock:
+        _cache.clear()
+        _counts.clear()
+
+
+def health(user_db: str, max_age: float = HEALTH_MAX_AGE) -> list[dict]:
     with _lock:
         hit = _cache.get(user_db)
         if hit and time.monotonic() - hit[0] < max_age:

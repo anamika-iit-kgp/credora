@@ -141,7 +141,8 @@ resource "aws_security_group" "app" {
 
 resource "random_password" "db" {
   for_each = toset(["oracle", "oracle_cbs", "oracle_ro", "mysql", "mysql_ro", "postgres", "postgres_ro", "mockdb", "mock_api", "app_secret",
-    "exa_svc", "exa_admin", "exa_datasci", "exa_loanops", "exa_rm", "exa_mcp"])
+    "exa_svc", "exa_admin", "exa_datasci", "exa_loanops", "exa_rm", "exa_mcp",
+    "exa_admin_ai", "exa_datasci_ai", "exa_loanops_ai", "exa_rm_ai", "exa_rm002"])
   length   = 24
   special  = false
 }
@@ -258,10 +259,18 @@ resource "aws_secretsmanager_secret_version" "runtime" {
     EXA_LOANOPS_PASSWORD = random_password.db["exa_loanops"].result
     EXA_RM_PASSWORD      = random_password.db["exa_rm"].result
     EXA_MCP_PASSWORD     = random_password.db["exa_mcp"].result
+    # Ask Credora's AI session users, one per person, in consumer group CREDORA_AI.
+    EXA_ADMIN_AI_PASSWORD   = random_password.db["exa_admin_ai"].result
+    EXA_DATASCI_AI_PASSWORD = random_password.db["exa_datasci_ai"].result
+    EXA_LOANOPS_AI_PASSWORD = random_password.db["exa_loanops_ai"].result
+    EXA_RM_AI_PASSWORD      = random_password.db["exa_rm_ai"].result
+    # A second relationship manager, so the row filter is proven for more than the demo one.
+    EXA_RM002_PASSWORD   = random_password.db["exa_rm002"].result
     APP_ADMIN_PASSWORD   = var.app_passwords["admin"]
     APP_DATASCI_PASSWORD = var.app_passwords["datasci"]
     APP_LOANOPS_PASSWORD = var.app_passwords["loanops"]
     APP_RM_PASSWORD      = var.app_passwords["rm"]
+    PUBLIC_DEMO          = var.public_demo
     ANTHROPIC_API_KEY    = var.anthropic_api_key
     AI_PROVIDER          = var.ai_provider
     AI_MODEL             = var.ai_model

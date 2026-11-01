@@ -37,6 +37,13 @@ CREATE TABLE IF NOT EXISTS offer_event (
 
 CREATE INDEX IF NOT EXISTS offer_app_ix ON offer (app_id);
 
+-- One offer per credit need and run. The backend inserts an offer only for an app_id not yet in the
+-- table, so the rule holds by construction. The index makes two overlapping exports fail instead
+-- of writing an offer twice. Rows written before the index existed may break the rule, so the
+-- index is then skipped with a warning until they are cleaned up. The generator splits this file
+-- on a semicolon at a line end, so the block stays on one line.
+DO $$ BEGIN CREATE UNIQUE INDEX IF NOT EXISTS offer_run_app_ux ON offer (run_id, app_id); EXCEPTION WHEN unique_violation THEN RAISE WARNING 'offer_run_app_ux not created, existing offers break it'; END $$;
+
 CREATE INDEX IF NOT EXISTS offer_event_offer_ix ON offer_event (offer_id);
 
 -- Policy maker-checker. The data scientist saves what-if runs and proposes one as the new policy;
