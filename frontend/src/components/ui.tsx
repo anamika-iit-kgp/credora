@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { animate } from "motion";
 import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock3, Inbox, RotateCcw, type LucideIcon } from "lucide-react";
 import type { Decision, DecisionMix } from "../api/types";
 import { ApiError } from "../api/client";
 import { num, rupees, rupeesShort } from "../lib/format";
 import { PageExplain } from "../explain/PageExplain";
+import { useExplain } from "../explain/ExplainContext";
+import { Refused } from "./Refused";
 
 export function PageHeader({
   title,
@@ -119,6 +120,11 @@ function reducedMotion() {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** Ease-out curve for the count-up, close to the cubic bezier the page transitions use. */
+function easeOut(t: number) {
+  return 1 - Math.pow(1 - t, 4);
+}
+
 /**
  * A figure that counts up to its value the first time it appears, then updates in place.
  * The final text is rendered on the server-free first paint, so nothing reads as missing if script is slow.
@@ -136,14 +142,17 @@ export function Counter({ value, format = num, className = "" }: { value: number
       return;
     }
     const decimals = Number.isInteger(value) ? 0 : 2;
-    const controls = animate(from, value, {
-      duration: from === 0 ? 0.9 : 0.4,
-      ease: [0.23, 1, 0.32, 1],
-      onUpdate: (v) => {
-        el.textContent = format(decimals ? Math.round(v * 100) / 100 : Math.round(v));
-      },
-    });
-    return () => controls.stop();
+    const ms = from === 0 ? 900 : 400;
+    const t0 = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - t0) / ms);
+      const v = from + (value - from) * easeOut(t);
+      el.textContent = format(decimals ? Math.round(v * 100) / 100 : Math.round(v));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [value, format]);
   return (
     <span ref={ref} className={`num ${className}`}>
@@ -198,9 +207,31 @@ export function Loading({ label = "Loading", rows = 6 }: { label?: string; rows?
   );
 }
 
+/**
+ * The 403 the API sends when Exasol itself refused a statement. It starts with "Exasol denied access for your role",
+ * then carries Exasol's own message, and the refused SQL on later lines when the API passes it along.
+ */
+function exasolRefusal(message: string | undefined): { message: string; sql?: string } | null {
+  if (!message) return null;
+  const m = /^Exasol denied access[^:]*:\s*([\s\S]+)$/i.exec(message);
+  const text = m ? m[1] : /insufficient privileges/i.test(message) ? message : null;
+  if (!text) return null;
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const rest = lines.slice(1).join("\n");
+  const sql = /^(SELECT|WITH|INSERT|UPDATE|DELETE|MERGE|EXECUTE|CREATE|ALTER|DROP|GRANT|IMPORT|EXPORT)\b/i.test(rest) ? rest : undefined;
+  return { message: lines[0] ?? text, sql };
+}
+
 export function ErrorState({ error, retry }: { error: unknown; retry?: () => void }) {
+  const { exasolUser } = useExplain();
   const e = error as ApiError | Error | undefined;
   const status = (e as ApiError)?.status;
+  const refusal = status === 403 ? exasolRefusal(e?.message) : null;
+  const notAssigned = status === 403 && /not assigned to you/i.test(e?.message ?? "");
+  const myBook = notAssigned || (refusal !== null && exasolUser === "CREDORA_RM");
   const title =
     status === 403
       ? "Your role cannot open this"
@@ -212,18 +243,24 @@ export function ErrorState({ error, retry }: { error: unknown; retry?: () => voi
   return (
     <div className="state state-error" role="alert">
       <CircleAlert aria-hidden="true" />
-      <p className="state-title">{title}</p>
-      <p className="state-body">{e?.message ?? "Unknown error."}</p>
-      {status === 403 && /not assigned to you/i.test(e?.message ?? "") && (
+      {refusal ? (
+        <Refused who={exasolUser} what="this read" message={refusal.message} sql={refusal.sql} />
+      ) : (
         <>
-          <p className="state-body small">
-            Exasol returns only the companies loan operations has assigned to you, through views filtered on
-            CURRENT_USER.
-          </p>
-          <Link className="btn btn-quiet btn-sm" to="/book">
-            Go to my companies
-          </Link>
+          <p className="state-title">{title}</p>
+          <p className="state-body">{e?.message ?? "Unknown error."}</p>
         </>
+      )}
+      {notAssigned && (
+        <p className="state-body small">
+          Exasol returns only the companies loan operations has assigned to you, through views filtered on
+          CURRENT_USER.
+        </p>
+      )}
+      {myBook && (
+        <Link className="btn btn-quiet btn-sm" to="/book">
+          Go to my companies
+        </Link>
       )}
       {retry && status !== 403 && status !== 404 && (
         <button className="btn btn-quiet btn-sm" onClick={retry}>

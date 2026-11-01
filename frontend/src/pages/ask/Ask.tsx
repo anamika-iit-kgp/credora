@@ -67,10 +67,10 @@ export function AskPage() {
   const header = (
     <PageHeader
       title="Ask Credora"
-      lede="Ask about the analysis in plain English. Claude answers by querying Exasol through the Exasol MCP server, logged in as your own role's Exasol user, so it can read exactly what your role may read. Every answer shows the SQL it ran."
+      lede="Ask about the analysis in plain English. Claude answers by querying Exasol through the Exasol MCP server, logged in as your own AI session user with your role's rights, so it can read exactly what your role may read. Every answer shows the SQL it ran."
     >
       <div className="xb-row">
-        <ExaBadge what="Answered from Exasol" detail="exasol-mcp-server as your role's user" term="exasol-mcp-server" />
+        <ExaBadge what="Answered from Exasol" detail="exasol-mcp-server as your AI session user" term="exasol-mcp-server" />
         <ExaBadge what="Semantic view" detail="certified metrics first" term="certified-metric" />
       </div>
     </PageHeader>
@@ -259,7 +259,7 @@ function HowAnswered({ steps, exasolUser }: { steps: AskStep[]; exasolUser?: str
               ? "Claude answered without calling the Exasol MCP server."
               : `Claude made ${steps.length} ${steps.length === 1 ? "call" : "calls"} to the Exasol MCP server${
                   queries ? `, ${queries} of them SQL ${queries === 1 ? "query" : "queries"}` : ""
-                }, logged in as ${exasolUser ?? "your role's Exasol user"} (read-only). Open a call to see what ran and what came back.`}
+                }, logged in as ${exasolUser ?? "your AI session user"} (read-only). Open a call to see what ran and what came back.`}
           </p>
         </div>
         {steps.length > 0 && (

@@ -44,9 +44,16 @@ class Settings:
         "CREDORA_DATASCI": _env("EXA_DATASCI_PASSWORD"),
         "CREDORA_LOANOPS": _env("EXA_LOANOPS_PASSWORD"),
         "CREDORA_RM": _env("EXA_RM_PASSWORD"),
+        # A second relationship manager (role R_RM), so the row filter is proven for more than the demo one.
+        "CREDORA_RM002": _env("EXA_RM002_PASSWORD"),
+        # Ask Credora's AI session users, one per person with the same role, in consumer group CREDORA_AI.
+        "CREDORA_ADMIN_AI": _env("EXA_ADMIN_AI_PASSWORD"),
+        "CREDORA_DATASCI_AI": _env("EXA_DATASCI_AI_PASSWORD"),
+        "CREDORA_LOANOPS_AI": _env("EXA_LOANOPS_AI_PASSWORD"),
+        "CREDORA_RM_AI": _env("EXA_RM_AI_PASSWORD"),
     })
     exa_pool_size: int = field(default_factory=lambda: int(_env("EXA_POOL_SIZE", "3")))
-    # Read-only Exasol user of the "Ask Credora" assistant, used only by the Exasol MCP server
+    # Read-only Exasol user for MCP clients outside the app and for the assistant's self-test
     exa_mcp_password: str = field(default_factory=lambda: _env("EXA_MCP_PASSWORD"))
     # Command that starts the Exasol MCP server over stdio; empty picks exasol-mcp-server on PATH
     # (the Docker image) or else `uvx exasol-mcp-server@2.3.0`

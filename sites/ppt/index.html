@@ -68,7 +68,7 @@
 <section class="slide" id="s1" aria-label="Title">
   <div class="ti-brand" data-a="rise"><img src="../_assets/credora-gem.svg" alt=""><b>Credora<span>for Sapphire Bank</span></b></div>
   <h1 class="ti-h" data-a="rise" data-d="90">Pre-approved corporate credit, decided inside Exasol.</h1>
-  <p class="ti-p" data-a="rise" data-d="180">An ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS. Sapphire Bank is fictional and all data is synthetic.</p>
+  <p class="ti-p" data-a="rise" data-d="180">An ExaThon India 2026 project. A bank's pre-approved corporate lending, decided inside Exasol Personal, built on the Exasol Personal Local Starter Kit and deployed on AWS. Sapphire Bank is fictional and all data is synthetic.</p>
   <p class="ti-by" data-a="rise" data-d="260">Anamika <span>· Product Manager @ Equitas Small Finance Bank</span></p>
   <div class="ti-links" data-a="rise" data-d="320">
     <a href="https://credora.loan"><svg class="ic"><use href="#i-monitor"/></svg><b>credora.loan</b> the app</a>
@@ -104,14 +104,14 @@
     <g class="n t-sap" transform="translate(520,287)" data-a="rise" data-d="1160"><rect width="200" height="66" rx="10"/><text x="16" y="29" class="lbl-s">Negotiation limit</text><text x="16" y="50" class="cap">floor ROI · max amount</text></g>
     <g class="n t-sap" transform="translate(520,369)" data-a="rise" data-d="1220"><rect width="200" height="66" rx="10"/><text x="16" y="29" class="lbl-s">Ranked top 50</text><text x="16" y="50" class="cap">PREFERRING · to RMs</text></g>
   </svg>
-  <aside class="sn">Credora is an ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS. It is Sapphire Bank's way to make pre-approved corporate loan offers, and the whole decision happens inside Exasol. Six sources go in. Three are bank databases read in place, and three are 3rd party APIs (CIBIL, GSTN, Account Aggregator) fetched on demand. One call to RUN_ANALYSIS comes out with an offer, a negotiation limit and a ranking for every company. It is live at credora.loan, the docs are at docs.credora.loan, and credora.link serves the 3rd party data via API.</aside>
+  <aside class="sn">Credora is an ExaThon India 2026 project. It is a bank's pre-approved corporate lending, decided inside Exasol Personal, built on the Exasol Personal Local Starter Kit and deployed on AWS. It is Sapphire Bank's way to make pre-approved corporate loan offers, and the whole decision happens inside Exasol. Six sources go in. Three are bank databases read in place, and three are 3rd party APIs (CIBIL, GSTN, Account Aggregator) fetched on demand. One call to RUN_ANALYSIS comes out with an offer, a negotiation limit and a ranking for every company. It is live at credora.loan, the docs are at docs.credora.loan, and credora.link serves the 3rd party data via API.</aside>
 </section>
 
 <!-- ============================================================ 2 · the problem -->
 <section class="slide" id="s2" aria-label="The banking problem">
   <div class="hd">
     <h2 data-a="rise">The bank already holds the data. Offers are still slow and manual.</h2>
-    <p data-a="rise" data-d="80">To make a corporate customer a credit offer, someone has to visit six systems, three in the bank and three 3rd party.</p>
+    <p data-a="rise" data-d="80">Sapphire Bank's credit team can't make pre-approved offers to the corporate customers it already serves, because the evidence sits in six separate systems and is gathered by hand, one company at a time. If this worked, every corporate customer would be decided in one run, and the relationship manager would call with an offer and a negotiation limit already set.</p>
   </div>
   <div class="bd">
     <svg class="dg" viewBox="0 0 1440 600" width="1440" height="600" role="img" aria-label="Today a credit officer visits six systems one company at a time. With Credora all six feed one Exasol call">
@@ -127,7 +127,7 @@
       <g class="n t-db" transform="translate(520,0) rotate(2.5)" data-a="pop" data-d="160"><rect width="260" height="96" rx="10"/><use href="#i-db" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Customer master · MySQL</text><text x="16" y="60" class="sub">companies, partners, KYC</text><text x="16" y="82" class="cap">Sapphire Bank</text></g>
       <g class="n t-db" transform="translate(560,220) rotate(-2)" data-a="pop" data-d="220"><rect width="260" height="96" rx="10"/><use href="#i-db" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Loans · PostgreSQL</text><text x="16" y="60" class="sub">credit need, 5,000 past loans</text><text x="16" y="82" class="cap">Sapphire Bank</text></g>
       <g class="n t-ext" transform="translate(10,250) rotate(2)" data-a="pop" data-d="280"><rect width="260" height="96" rx="10"/><use href="#i-gauge" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">CIBIL · credit bureau</text><text x="16" y="60" class="sub">partner and company reports</text><text x="16" y="82" class="cap">3rd party</text></g>
-      <g class="n t-ext" transform="translate(60,470) rotate(-2.5)" data-a="pop" data-d="340"><rect width="260" height="96" rx="10"/><use href="#i-receipt" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">GSTN · tax network</text><text x="16" y="60" class="sub">2–10 years of GST returns</text><text x="16" y="82" class="cap">3rd party</text></g>
+      <g class="n t-ext" transform="translate(60,470) rotate(-2.5)" data-a="pop" data-d="340"><rect width="260" height="96" rx="10"/><use href="#i-receipt" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">GSTN · tax network</text><text x="16" y="60" class="sub">2 to 10 years of GST returns</text><text x="16" y="82" class="cap">3rd party</text></g>
       <g class="n t-ext" transform="translate(500,450) rotate(3)" data-a="pop" data-d="400"><rect width="260" height="96" rx="10"/><use href="#i-wallet" class="ic" x="14" y="16" width="22" height="22"/><text x="46" y="33" class="lbl-s">Account Aggregator</text><text x="16" y="60" class="sub">partners' other-bank accounts</text><text x="16" y="82" class="cap">3rd party, with consent</text></g>
       <g class="n t-fe" data-a="pop" data-d="0"><circle class="b" cx="400" cy="300" r="48"/><use href="#i-user" class="ic" x="380" y="280" width="40" height="40"/></g>
       <text x="400" y="372" class="lbl-s mid" data-a="fade" data-d="200">Credit officer</text>
@@ -157,7 +157,7 @@
       </g>
     </svg>
   </div>
-  <aside class="sn">Here is the problem. Sapphire Bank has a large book of corporate current-account customers, and it already holds most of what it needs to lend to them. Transactions sit in Oracle core banking, partners and KYC in the MySQL customer master, the credit need on file and five thousand past loans in PostgreSQL. The rest is 3rd party data from CIBIL, GST returns and the Account Aggregator. Today a credit officer visits these one company at a time. Press next. Credora reads all six at once, inside one Exasol call, in about twenty-five seconds for all thousand companies.</aside>
+  <aside class="sn">Sapphire Bank's credit team can't make pre-approved offers to the corporate customers it already serves, because the evidence sits in six separate systems and is gathered by hand, one company at a time. If this worked, every corporate customer would be decided in one run, and the relationship manager would call with an offer and a negotiation limit already set. Sapphire Bank has a large book of corporate current-account customers, and it already holds most of what it needs to lend to them. Transactions sit in Oracle core banking, partners and KYC in the MySQL customer master, the credit need on file and five thousand past loans in PostgreSQL. The rest is 3rd party data from CIBIL, GST returns and the Account Aggregator. Today a credit officer visits these one company at a time. Press next. Credora reads all six at once, inside one Exasol call, in seventeen and a half seconds for all thousand companies.</aside>
 </section>
 
 <!-- ============================================================ 3 · the idea and the terms -->
@@ -233,8 +233,27 @@
   <aside class="sn">The idea is simple. Instead of waiting for customers to come in, the bank analyses the companies it already serves and approaches the best of them with a pre-approved offer. That is an amount, a rate and a tenure, plus a negotiation limit the relationship manager can move within. Six terms carry the rest of the talk. PD is the chance a company does not repay. RAROC is the return after expected loss and costs, over the capital held, and every offer must clear fifteen percent. DSCR asks whether the company's cash covers the repayments. GST returns, CIBIL and the Account Aggregator are the 3rd party evidence, fetched via API.</aside>
 </section>
 
-<!-- ============================================================ 4 · big picture -->
-<section class="slide" id="s4" aria-label="The big picture">
+<!-- ============================================================ 4 · what changes for the bank -->
+<section class="slide" id="s4" aria-label="What changes for the bank">
+  <div class="hd">
+    <h2 data-a="rise">What changes for the bank.</h2>
+    <p data-a="rise" data-d="80">The published run R20261031-1923 on 1,000 companies. Every figure below is read from Exasol, from that run.</p>
+  </div>
+  <div class="bd">
+    <div class="impact">
+      <div class="fig exa" data-a="rise" data-d="150"><div class="v">₹1,168.9<small>crore</small></div><p>of pre-approved offers to <span data-count="530">530</span> approved companies, against a credit need on file of ₹1,252.3 crore</p></div>
+      <div class="fig" data-a="rise" data-d="210"><div class="v">₹1,414.2<small>crore</small></div><p>is the top of the negotiation room, the limits Exasol set per company for the relationship managers</p></div>
+      <div class="fig" data-a="rise" data-d="270"><div class="v"><span data-count="530">530</span><small>· 202 · 268</small></div><p>APPROVE, REFER and DECLINE, decided in one call, each with its reasons</p></div>
+      <div class="fig" data-a="rise" data-d="330"><div class="v">₹258.7<small>crore</small></div><p>in the Top 50, at an average rate of <span data-count="10.82">10.82</span>% and a RAROC of <span data-count="21.2">21.2</span>%</p></div>
+      <div class="fig exa" data-a="rise" data-d="390"><div class="v"><span data-k="RUN_SECONDS" data-count></span><small>s</small></div><p>per run, so the whole book is decided again after every policy change or data refresh</p></div>
+      <div class="fig" data-a="rise" data-d="450"><div class="v">0<small>round trips</small></div><p>to a credit committee for a deal inside the limit. The relationship manager negotiates within it, and only a deal beyond it goes to loan operations</p></div>
+    </div>
+  </div>
+  <aside class="sn">What does the bank get? On the published run, Exasol decided a thousand companies. Five hundred and thirty are approved, two hundred and two referred to a person, two hundred and sixty-eight declined. The pre-approved offers to the approved companies total eleven hundred and sixty-nine crore rupees, against a credit need on file of twelve hundred and fifty-two crore, with negotiation room up to fourteen hundred and fourteen crore. The top fifty alone carry two hundred and fifty-nine crore at an average rate of ten point eight two percent and a RAROC of twenty-one point two percent. A run takes seventeen and a half seconds, so the bank can decide the whole book again after every policy change. And the relationship manager negotiates inside the limit Exasol set, so a deal within it needs no credit committee round trip.</aside>
+</section>
+
+<!-- ============================================================ 5 · big picture -->
+<section class="slide" id="s5" aria-label="The big picture">
   <div class="hd">
     <h2 data-a="rise">Everything meets in Exasol, and leaves as a decision.</h2>
     <p data-a="rise" data-d="80">Bank data is read in place, 3rd party data is fetched via API by UDFs, and every person and the AI read results as their own Exasol user.</p>
@@ -277,7 +296,7 @@
         <text x="506" y="38" class="sub">Personal 2026.1 · EC2 r6i.xlarge</text>
       </g>
       <g class="n t-db" transform="translate(384,70)" data-a="left" data-d="300"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Virtual schemas</text><text x="436" y="31" class="mn-s end">VS_CBS · VS_CIF · VS_LOS</text></g>
-      <g class="n t-svc" transform="translate(384,130)" data-a="left" data-d="350"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">API UDFs, Python SET</text><text x="436" y="31" class="mn-s end">16 in parallel</text></g>
+      <g class="n t-svc" transform="translate(384,130)" data-a="left" data-d="350"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">API UDFs, Python SET</text><text x="436" y="31" class="mn-s end">16 batches, 4 at a time</text></g>
       <g class="n t-q" transform="translate(384,190)" data-a="left" data-d="400"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">RUN_ANALYSIS, Lua</text><text x="436" y="31" class="mn-s end">13 logged steps</text></g>
       <g class="n t-svc" transform="translate(384,250)" data-a="left" data-d="450"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">ML in UDFs</text><text x="436" y="31" class="mn-s end">TRAIN_PD · PD_SCORE · ANOMALY_FLAG</text></g>
       <g class="n t-svc" transform="translate(384,310)" data-a="left" data-d="500"><rect width="452" height="50" rx="9"/><text x="16" y="31" class="lbl-s">Skyline ranking</text><text x="436" y="31" class="mn-s end">PREFERRING · top 50</text></g>
@@ -300,8 +319,8 @@
   <aside class="sn">The whole system on one page. On the left, the bank's three databases, read in place through virtual schemas, and the three 3rd party APIs, which Python UDFs call on demand. In the middle, Exasol does everything. Federation, API calls, the risk models, the decision, ranking, the semantic layer and security. On the right, the web app and Ask Credora read the results, each logged in as the signed-in person's own Exasol user. Offers go to the CRM, where relationship managers work them.</aside>
 </section>
 
-<!-- ============================================================ 5 · why Exasol -->
-<section class="slide" id="s5" aria-label="Why Exasol">
+<!-- ============================================================ 6 · why Exasol -->
+<section class="slide" id="s6" aria-label="Why Exasol">
   <div class="hd">
     <h2 data-a="rise">One engine does seven jobs, and the data never leaves it.</h2>
     <p data-a="rise" data-d="80">Exasol Personal used to the full, with open-source extensions from both GitHub organisations, exasol and exasol-labs.</p>
@@ -333,8 +352,8 @@
   <aside class="sn">Why Exasol? Because one engine does seven jobs here, and we used Exasol Personal to the full, with its open-source extensions from both GitHub organisations. Federation reads the bank's databases in place through oracle-virtual-schema and adbc-vs-rs. Python UDFs fetch 3rd party data via API. UDFs train and score the models, stored in BucketFS. Lua runs the whole pipeline as one call. PREFERRING ranks. exasol-semantic-views and the preprocessor framework give one definition of every metric. And roles, grants and views decide who sees what, for people and for the AI through the Exasol MCP server. Press next for the alternative, seven separate products with the data copied between them.</aside>
 </section>
 
-<!-- ============================================================ 6 · virtual schemas -->
-<section class="slide" id="s6" aria-label="Virtual schemas push queries down">
+<!-- ============================================================ 7 · virtual schemas -->
+<section class="slide" id="s7" aria-label="Virtual schemas push queries down">
   <div class="hd">
     <h2 data-a="rise">Virtual schemas push the work down. Nothing is copied.</h2>
     <p data-a="rise" data-d="80">Feature step 7 aggregates core banking by account and month. Exasol hands the join, the filter and the GROUP BY to Oracle.</p>
@@ -388,14 +407,14 @@
   <aside class="sn">Virtual schemas are how Exasol reads the bank without copying it. VS_CBS sits over Oracle core banking through Exasol's Oracle virtual schema adapter, from the exasol organisation. When step 7 asks for monthly totals, Exasol pushes the join, filter and GROUP BY down to Oracle, and only the totals come back. Next, MySQL and PostgreSQL go through adbc-vs-rs from exasol-labs, one Rust adapter for both engines, running in the Rust script language container from BucketFS and moving Arrow batches instead of rows. Next comes the point. The transactions never leave Oracle.</aside>
 </section>
 
-<!-- ============================================================ 7 · 3rd party data via API -->
-<section class="slide" id="s7" aria-label="UDFs fetch 3rd party data via API">
+<!-- ============================================================ 8 · 3rd party data via API -->
+<section class="slide" id="s8" aria-label="UDFs fetch 3rd party data via API">
   <div class="hd">
-    <h2 data-a="rise">Python UDFs fetch 3rd party data via API, 16 at a time.</h2>
-    <p data-a="rise" data-d="80">A SET script groups the keys into 16 buckets by the first hex digit of an MD5 hash, and Exasol runs one UDF instance per bucket, in parallel.</p>
+    <h2 data-a="rise">Python UDFs fetch 3rd party data via API, in 16 batches.</h2>
+    <p data-a="rise" data-d="80">A SET script groups the keys into 16 buckets by the first hex digit of an MD5 hash. Exasol runs one UDF instance per bucket, 4 at a time on the node's 4 cores, and each call makes 3 attempts before it fails naming the service.</p>
   </div>
   <div class="bd">
-    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="560" role="img" aria-label="Sixteen UDF instances call the CIBIL, GSTN and Account Aggregator APIs through CONNECTION objects. Replies are staged and purged with proof">
+    <svg class="dg" viewBox="0 0 1440 600" width="1440" height="560" role="img" aria-label="Sixteen UDF instances, run four at a time, call the CIBIL, GSTN and Account Aggregator APIs through CONNECTION objects. Replies are staged and purged with proof">
       <g data-a="fade" data-d="0">
         <rect class="zone exa" x="0" y="0" width="570" height="600" rx="14"/>
         <image href="../_assets/Exasol_Logo_2025_Bright.svg" x="20" y="16" height="22" width="100"/>
@@ -411,8 +430,8 @@
         <text x="20" y="162" class="mn">  <tspan fill="#93c5fd">FROM</tspan> <tspan fill="#5fc33b">VS_CIF</tspan>."partner" ...)</text>
         <text x="20" y="184" class="mn"><tspan fill="#93c5fd">GROUP BY</tspan> b</text>
       </g>
-      <g id="s7fan"></g>
-      <g id="s7bars"></g>
+      <g id="s8fan"></g>
+      <g id="s8bars"></g>
       <g>
         <path class="e c-ext" d="M820 195 L 1058 195" data-a="draw" data-d="900" data-pk="ext" data-tok="JSON" data-dur="2" data-beg="1.6" data-bounce/>
         <path class="e c-ext" d="M820 310 L 1058 310" data-a="draw" data-d="960" data-pk="ext" data-tok="JSON" data-dur="2" data-beg="1.9" data-bounce/>
@@ -421,33 +440,33 @@
       <g class="n t-sec" transform="translate(640,150)" data-a="pop" data-d="700"><rect width="180" height="90" rx="10"/><use href="#i-key" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="mn" style="fill:#f1f5f9;font-size:14.5px">MOCK_CIBIL</text><text x="14" y="58" class="cap">CONNECTION with</text><text x="14" y="76" class="cap">address + token</text></g>
       <g class="n t-sec" transform="translate(640,265)" data-a="pop" data-d="760"><rect width="180" height="90" rx="10"/><use href="#i-key" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="mn" style="fill:#f1f5f9;font-size:14.5px">MOCK_GSTN</text><text x="14" y="58" class="cap">never written</text><text x="14" y="76" class="cap">in the SQL text</text></g>
       <g class="n t-sec" transform="translate(640,380)" data-a="pop" data-d="820"><rect width="180" height="90" rx="10"/><use href="#i-key" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="mn" style="fill:#f1f5f9;font-size:14.5px">MOCK_AA</text><text x="14" y="58" class="cap">granted per role</text></g>
-      <g class="n t-ext" transform="translate(1060,150)" data-a="rise" data-d="1000"><rect width="360" height="90" rx="10"/><use href="#i-gauge" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">cibil.credora.link</text><text x="16" y="66" class="sub">3,490 consumer reports in 0.7 s</text></g>
-      <g class="n t-ext" transform="translate(1060,265)" data-a="rise" data-d="1060"><rect width="360" height="90" rx="10"/><use href="#i-receipt" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">gst.credora.link</text><text x="16" y="66" class="sub">71,217 GST returns in 1.4 s</text></g>
-      <g class="n t-ext" transform="translate(1060,380)" data-a="rise" data-d="1120"><rect width="360" height="90" rx="10"/><use href="#i-wallet" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">aa.credora.link</text><text x="16" y="66" class="sub">5,810 accounts in 3.2 s, with consent ids</text></g>
+      <g class="n t-ext" transform="translate(1060,150)" data-a="rise" data-d="1000"><rect width="360" height="90" rx="10"/><use href="#i-gauge" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">cibil.credora.link</text><text x="16" y="66" class="sub">3,492 consumer reports in 1.0 s</text></g>
+      <g class="n t-ext" transform="translate(1060,265)" data-a="rise" data-d="1060"><rect width="360" height="90" rx="10"/><use href="#i-receipt" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">gst.credora.link</text><text x="16" y="66" class="sub">71,665 GST returns in 1.6 s</text></g>
+      <g class="n t-ext" transform="translate(1060,380)" data-a="rise" data-d="1120"><rect width="360" height="90" rx="10"/><use href="#i-wallet" class="ic" x="16" y="16" width="24" height="24"/><text x="50" y="35" class="lbl-s">aa.credora.link</text><text x="16" y="66" class="sub">5,775 accounts in 3.6 s, with consent ids</text></g>
 
       <g class="n t-db" transform="translate(20,214)" data-a="rise" data-d="500"><rect width="350" height="112" rx="10"/><use href="#i-table" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s mn" style="fill:#f1f5f9">CREDORA_STAGE</text><text x="14" y="58" class="mn-s">CIBIL_CONSUMER · CIBIL_COMMERCIAL</text><text x="14" y="78" class="mn-s">GST_FILING · AA_ACCOUNT</text><text x="14" y="99" class="cap">every row carries PURGE_AT</text></g>
       <g data-f="1">
         <path class="e c-sec" d="M195 326 L 195 384"/>
         <g class="n t-sec" transform="translate(20,388)"><rect width="350" height="190" rx="10"/><use href="#i-trash" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s mn" style="fill:#f1f5f9">PURGE_EXPIRED · Lua</text><text x="14" y="60" class="sub">deletes rows past PURGE_AT,</text><text x="14" y="82" class="sub">every 15 minutes</text>
-          <use href="#i-hash" class="ic" x="14" y="104" width="20" height="20"/><text x="44" y="120" class="mn" style="fill:#f1f5f9">PURGE_LOG</text><text x="14" y="146" class="sub">row count + SHA-256 fingerprint</text><text x="14" y="168" class="cap">proof without keeping the data</text></g>
+          <use href="#i-hash" class="ic" x="14" y="104" width="20" height="20"/><text x="44" y="120" class="mn" style="fill:#f1f5f9">PURGE_LOG</text><text x="14" y="146" class="sub">row count + SHA-256 per 1,000-row chunk</text><text x="14" y="168" class="cap">proof without keeping the data</text></g>
       </g>
     </svg>
   </div>
-  <aside class="sn">3rd party data comes in via API, through Python SET UDFs, running in Exasol's Python 3 script language container. The SQL spreads the keys over sixteen buckets, and Exasol runs one UDF instance per bucket in parallel. Each calls a bulk endpoint on credora.link. The address and token live in CONNECTION objects, never in the SQL text. That is 3,490 CIBIL reports in under a second. Replies land in CREDORA_STAGE with a purge time. Next, PURGE_EXPIRED deletes them on time and keeps only a row count and a SHA-256 fingerprint as proof.</aside>
+  <aside class="sn">3rd party data comes in via API, through Python SET UDFs, running in Exasol's Python 3 script language container. The SQL spreads the keys over sixteen buckets, and Exasol runs one UDF instance per bucket, four at a time on the node's four cores. Each calls a bulk endpoint on credora.link, and makes three attempts before it fails naming the service. The address and token live in CONNECTION objects, never in the SQL text. That is 3,492 CIBIL reports in one second. Replies land in CREDORA_STAGE with a purge time. Next, PURGE_EXPIRED deletes them on time and keeps only a row count and a SHA-256 fingerprint as proof. The fingerprint is built per thousand-row chunk, because one run's GST rows are more than a single LISTAGG can hold.</aside>
 </section>
 
-<!-- ============================================================ 8 · RUN_ANALYSIS -->
-<section class="slide" id="s8" aria-label="RUN_ANALYSIS in Lua">
+<!-- ============================================================ 9 · RUN_ANALYSIS -->
+<section class="slide" id="s9" aria-label="RUN_ANALYSIS in Lua">
   <div class="hd">
     <h2 data-a="rise">One Lua call runs the whole analysis, step by logged step.</h2>
     <p data-a="rise" data-d="80"><code>EXECUTE SCRIPT CREDORA.RUN_ANALYSIS('&lt;run&gt;')</code> commits after every step, so the web app can watch the run as it happens.</p>
   </div>
   <div class="bd">
     <div class="run">
-      <ol class="steps" id="s8steps" aria-label="Steps of RUN_ANALYSIS"></ol>
+      <ol class="steps" id="s9steps" aria-label="Steps of RUN_ANALYSIS"></ol>
       <div class="runside">
-        <div class="clock"><div class="v" id="s8clock"></div><p>Measured on the live deployment for 1,000 companies, on one r6i.xlarge node.</p></div>
-        <div class="runlog" aria-label="CREDORA.RUN_LOG"><div class="h">CREDORA.RUN_LOG</div><div class="h">STEP STATUS   ROWS_OUT       MS</div><div id="s8log"></div></div>
+        <div class="clock"><div class="v" id="s9clock"></div><p>Measured on the live deployment for 1,000 companies, on one r6i.xlarge node.</p></div>
+        <div class="runlog" aria-label="CREDORA.RUN_LOG"><div class="h">CREDORA.RUN_LOG</div><div class="h">STEP STATUS   ROWS_OUT       MS</div><div id="s9log"></div></div>
         <p style="font-size:17px;line-height:1.45;color:var(--ink-2)">A failed step is logged with its error and stops the run. The last published run stays visible in the app.</p>
       </div>
     </div>
@@ -455,8 +474,8 @@
   <aside class="sn">This is the heart of it. One Lua script, RUN_ANALYSIS, runs thirteen steps. It refreshes the virtual schemas, reads the credit needs on file, fetches CIBIL, GST and Account Aggregator data, computes thirteen features with an Oracle pushdown, scores with the model, flags anomalies, decides the offer and the limit, ranks with PREFERRING, and shadow-scores the challenger. Each step commits and writes a row to RUN_LOG with its row count and time, so the web app shows the run live. The 850,000 core-banking transactions are grouped by month inside Oracle through the pushdown, so feature building takes about 3.6 seconds. The whole run takes 17.5 seconds.</aside>
 </section>
 
-<!-- ============================================================ 9 · ML inside Exasol -->
-<section class="slide" id="s9" aria-label="Machine learning inside Exasol">
+<!-- ============================================================ 10 · ML inside Exasol -->
+<section class="slide" id="s10" aria-label="Machine learning inside Exasol">
   <div class="hd">
     <h2 data-a="rise">The models are trained, stored and scored inside Exasol.</h2>
     <p data-a="rise" data-d="80">Past loans are read live from PostgreSQL. Two models train on the same loans and the same hold-out. Only the active one decides.</p>
@@ -476,17 +495,17 @@
       <text x="548" y="262" class="elbl end" data-a="fade" data-d="700">AUC, Gini, MODEL_PATH</text>
       <text x="418" y="436" class="elbl end" data-a="fade" data-d="900">loads the active pickle</text>
 
-      <g class="n t-db" transform="translate(0,40)" data-a="rise" data-d="0"><rect width="250" height="110" rx="10"/><use href="#i-db" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Past loans</text><text x="14" y="58" class="mn-s">VS_LOS."past_loan_training"</text><text x="14" y="80" class="cap">5,000 loans, ~8% defaulted</text><text x="14" y="98" class="cap">read live from PostgreSQL</text></g>
+      <g class="n t-db" transform="translate(0,40)" data-a="rise" data-d="0"><rect width="250" height="110" rx="10"/><use href="#i-db" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">Past loans</text><text x="14" y="58" class="mn-s">VS_LOS."past_loan_training"</text><text x="14" y="80" class="cap">5,000 loans, 7.5% defaulted</text><text x="14" y="98" class="cap">read live from PostgreSQL</text></g>
       <g class="n t-svc" transform="translate(340,20)" data-a="rise" data-d="200"><rect width="270" height="80" rx="10"/><text x="14" y="30" class="lbl-s mn" style="fill:#f1f5f9">TRAIN_PD · champion</text><text x="14" y="54" class="cap">gradient-boosted trees,</text><text x="14" y="71" class="cap">monotonic credit constraints</text></g>
       <g class="n t-svc" transform="translate(340,120)" data-a="rise" data-d="260"><rect width="270" height="80" rx="10"/><text x="14" y="30" class="lbl-s mn" style="fill:#f1f5f9">TRAIN_SCORECARD</text><text x="14" y="54" class="cap">challenger, logistic</text><text x="14" y="71" class="cap">regression scorecard</text></g>
-      <g class="n t-db" transform="translate(700,20)" data-a="rise" data-d="500"><rect width="260" height="180" rx="10"/><use href="#i-box" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">BucketFS</text><text x="14" y="62" class="mn-s">models/pd_&lt;version&gt;.pkl</text><text x="14" y="84" class="mn-s">models/pd_&lt;version&gt;-lr.pkl</text><text x="14" y="116" class="cap">every version kept, next to</text><text x="14" y="134" class="cap">the Rust SLC, the adapter</text><text x="14" y="152" class="cap">and the JDBC driver</text></g>
+      <g class="n t-db" transform="translate(700,20)" data-a="rise" data-d="500"><rect width="260" height="180" rx="10"/><use href="#i-box" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s">BucketFS</text><text x="14" y="62" class="mn-s">models/pd_&lt;version&gt;.pkl</text><text x="14" y="84" class="mn-s">models/pd_&lt;version&gt;-lr.pkl</text><text x="14" y="116" class="cap">every version kept, with its</text><text x="14" y="134" class="cap">SHA-256 in MODEL_REGISTRY,</text><text x="14" y="152" class="cap">checked before unpickling</text></g>
 
       <g class="n t-db" transform="translate(760,250)" data-a="rise" data-d="700"><rect width="430" height="170" rx="10"/><use href="#i-table" class="ic" x="14" y="14" width="22" height="22"/><text x="44" y="31" class="lbl-s mn" style="fill:#f1f5f9">CREDORA.MODEL_REGISTRY</text>
         <text x="14" y="62" class="cap">MODEL</text><text x="170" y="62" class="cap">AUC</text><text x="250" y="62" class="cap">GINI</text><text x="336" y="62" class="cap">IS_ACTIVE</text>
         <text x="14" y="98" class="sub" style="fill:#f1f5f9">boosting</text><text x="170" y="98" class="mn" style="fill:#f1f5f9" data-k="AUC_CHAMPION"></text><text x="250" y="98" class="mn" data-k="GINI_CHAMPION"></text>
         <text x="14" y="140" class="sub" style="fill:#f1f5f9">scorecard</text><text x="170" y="140" class="mn" style="fill:#f1f5f9" data-k="AUC_CHALLENGER"></text><text x="250" y="140" class="mn" data-k="GINI_CHALLENGER"></text>
         <text x="96" y="98" class="cap">&lt;v&gt;</text><text x="96" y="140" class="cap">&lt;v&gt;-lr</text>
-        <g transform="translate(340,82)"><rect width="44" height="24" rx="12" fill="#5fc33b" id="s9track"/><circle cx="32" cy="12" r="9" fill="#04110a" id="s9knob"/></g>
+        <g transform="translate(340,82)"><rect width="44" height="24" rx="12" fill="#5fc33b" id="s10track"/><circle cx="32" cy="12" r="9" fill="#04110a" id="s10knob"/></g>
         <g transform="translate(340,124)"><rect width="44" height="24" rx="12" fill="#334155"/><circle cx="12" cy="12" r="9" fill="#94a3b8"/></g>
       </g>
 
@@ -504,25 +523,25 @@
       </g>
     </svg>
   </div>
-  <aside class="sn">Machine learning never leaves the database. TRAIN_PD reads five thousand past loans live from PostgreSQL through VS_LOS, trains gradient-boosted trees with monotonic credit constraints, measures them on a hold-out, and writes the pickle to BucketFS and a row to MODEL_REGISTRY, with AUC 0.756. TRAIN_SCORECARD trains a logistic regression challenger on the same loans and the same hold-out, with AUC 0.769. PD_SCORE loads the active pickle and scores a thousand companies in about two seconds. Next, an Isolation Forest flagged 30 unusual companies, and 4 that would have been approved were referred to a person instead. The challenger shadow-scores every run. It would change 713 grades and 62 decisions. Next, it decides nothing until the admin approves activation.</aside>
+  <aside class="sn">Machine learning never leaves the database. TRAIN_PD reads five thousand past loans live from PostgreSQL through VS_LOS, trains gradient-boosted trees with monotonic credit constraints, measures them on a hold-out, and writes the pickle to BucketFS and a row to MODEL_REGISTRY, with AUC 0.756. TRAIN_SCORECARD trains a logistic regression challenger on the same loans and the same hold-out, with AUC 0.769. Both numbers sit near the ceiling the synthetic data allows. The generator draws each default from a logistic curve over the company's hidden risk, so even a model that knew that risk exactly would score about 0.78. The scorecard beats the trees because that relationship is logistic and linear, and five thousand loans favour the simpler model. PD_SCORE checks the file's SHA-256 against MODEL_REGISTRY, loads the active pickle and scores a thousand companies in about two seconds. Next, an Isolation Forest flagged 30 unusual companies, and 4 that would have been approved were referred to a person instead. The challenger shadow-scores every run. It would change 713 grades and 62 decisions. Next, it decides nothing until the admin approves activation.</aside>
 </section>
 
-<!-- ============================================================ 10 · PREFERRING -->
-<section class="slide" id="s10" aria-label="PREFERRING skyline ranking">
+<!-- ============================================================ 11 · PREFERRING -->
+<section class="slide" id="s11" aria-label="PREFERRING skyline ranking">
   <div class="hd">
     <h2 data-a="rise">PREFERRING ranks on three goals at once, with no weights.</h2>
     <p data-a="rise" data-d="80">The skyline is every approved company that no other beats on return, risk and amount together. Peel it off, take the next skyline, until 50 are ranked.</p>
   </div>
   <div class="bd">
     <div class="sky">
-      <svg viewBox="0 0 860 560" id="s10svg" role="img" aria-label="Illustrative scatter of approved companies, peeled into skyline layers">
+      <svg viewBox="0 0 860 560" id="s11svg" role="img" aria-label="Illustrative scatter of approved companies, peeled into skyline layers">
         <rect x="60" y="0" width="800" height="500" fill="#0b1222" rx="10"/>
         <path d="M60 500 H 860" stroke="#475569" stroke-width="1.5"/>
         <path d="M60 0 V 500" stroke="#475569" stroke-width="1.5"/>
         <text x="460" y="534" class="sub mid">probability of default · lower is better</text>
         <text x="-250" y="36" class="sub mid" transform="rotate(-90)">RAROC at the offer · higher is better</text>
         <text x="844" y="26" class="cap end">dot size = offer amount · illustrative companies</text>
-        <g id="s10dots"></g>
+        <g id="s11dots"></g>
       </svg>
       <div class="sky-side">
         <div class="code" style="font-size:15px"><span class="k">UPDATE</span> CREDORA.DECISIONS
@@ -534,16 +553,16 @@
   <span class="o">PREFERRING HIGH</span> RAROC_OFFER
      <span class="o">PLUS LOW</span> PD
      <span class="o">PLUS HIGH</span> OFFER_AMOUNT)</div>
-        <div class="meter"><div class="v" id="s10v"></div><div class="track"><i id="s10bar"></i></div><p id="s10p"></p></div>
-        <p style="font-size:17px;line-height:1.45;color:var(--ink-2)">On the measured run the layers held 83 companies by the time 50 were reached, in 0.02 s. The best 50 approved go to the relationship managers.</p>
+        <div class="meter"><div class="v" id="s11v"></div><div class="track"><i id="s11bar"></i></div><p id="s11p"></p></div>
+        <p style="font-size:17px;line-height:1.45;color:var(--ink-2)">On the measured run two layers held 63 companies by the time 50 were reached, in 0.03 s. The best 50 approved go to the relationship managers.</p>
       </div>
     </div>
   </div>
-  <aside class="sn">Ranking is where Exasol's PREFERRING clause shines. Instead of inventing weights for return, risk and size, we ask for the skyline, the companies no other company beats on all three at once. Those are layer one. We mark them, ask again for the next skyline, and repeat until fifty are ranked. These dots are illustrative. On the real run the layers held 83 companies, and the whole step took two hundredths of a second.</aside>
+  <aside class="sn">Ranking is where Exasol's PREFERRING clause shines. Instead of inventing weights for return, risk and size, we ask for the skyline, the companies no other company beats on all three at once. Those are layer one. We mark them, ask again for the next skyline, and repeat until fifty are ranked. These dots are illustrative. On the real run two layers held 63 companies, and the whole step took three hundredths of a second.</aside>
 </section>
 
-<!-- ============================================================ 11 · semantic layer -->
-<section class="slide" id="s11" aria-label="Semantic layer and preprocessor">
+<!-- ============================================================ 12 · semantic layer -->
+<section class="slide" id="s12" aria-label="Semantic layer and preprocessor">
   <div class="hd">
     <h2 data-a="rise">One certified definition serves the app, the analyst and the AI.</h2>
     <p data-a="rise" data-d="80">CREDORA_SEM.PORTFOLIO holds <span data-k="CERTIFIED_METRICS"></span> certified metrics. The SQL preprocessor compiles semantic queries per role, inside Exasol.</p>
@@ -593,11 +612,11 @@
   <aside class="sn">Numbers like the approval rate are defined once, in the semantic model CREDORA_SEM.PORTFOLIO, built with exasol-semantic-views from exasol-labs, with sixteen certified metrics with synonyms and verified questions. The web app, an analyst's SQL client and Ask Credora all read the same definition, so the AI cannot invent its own version of a metric. Next, how it works. Exasol has one SQL preprocessor slot. The preprocessor framework, also from exasol-labs, owns it and runs one rule per role. For the RM, the semantic module compiles the query into plain SQL over the latest-run views the RM may read. It costs about four milliseconds.</aside>
 </section>
 
-<!-- ============================================================ 12 · roles -->
-<section class="slide" id="s12" aria-label="Roles enforced by Exasol">
+<!-- ============================================================ 13 · roles -->
+<section class="slide" id="s13" aria-label="Roles enforced by Exasol">
   <div class="hd">
     <h2 data-a="rise">Exasol, not the app, decides who sees what.</h2>
-    <p data-a="rise" data-d="80">Four people, four Exasol users. A relationship manager reads only the V_RM_* views, which return the companies assigned to CURRENT_USER.</p>
+    <p data-a="rise" data-d="80">Four people, four Exasol users, and an AI user for each with the same role. A relationship manager reads only the V_RM_* views, which return the companies assigned to CURRENT_USER.</p>
   </div>
   <div class="bd">
     <svg viewBox="0 0 820 600" width="820" height="560" style="position:absolute;left:0;top:0" role="img" aria-label="Rings of visibility. 3rd party data, bank data and results, and the RM's views">
@@ -621,7 +640,7 @@
       </g>
       <g class="n t-svc" transform="translate(176,330)" data-a="rise" data-d="450"><rect width="220" height="40" rx="8"/><text x="14" y="26" class="mn-s" style="fill:#f1f5f9">V_RM_DECISIONS</text></g>
       <g class="n t-svc" transform="translate(414,330)" data-a="rise" data-d="490"><rect width="230" height="40" rx="8"/><text x="14" y="26" class="mn-s" style="fill:#f1f5f9">V_RM_COMPANY (full PAN)</text></g>
-      <g id="s12rows" transform="translate(176,390)"></g>
+      <g id="s13rows" transform="translate(176,390)"></g>
       <g class="n t-fe" transform="translate(300,488)" data-a="pop" data-d="600"><rect width="220" height="48" rx="24"/><use href="#i-user" class="ic" x="14" y="12" width="24" height="24"/><text x="46" y="30" class="lbl-s">CREDORA_RM</text></g>
       <g class="n t-fe" transform="translate(360,14)" data-a="pop" data-d="650"><rect width="214" height="30" rx="15"/><text x="107" y="20" class="mn-s mid" style="fill:#f1f5f9">CREDORA_ADMIN</text></g>
       <g class="n t-fe" transform="translate(586,14)" data-a="pop" data-d="700"><rect width="214" height="30" rx="15"/><text x="107" y="20" class="mn-s mid" style="fill:#f1f5f9">CREDORA_DATASCI</text></g>
@@ -648,17 +667,17 @@
  <span class="k">AND</span> a.EXA_USER = <span class="o">CURRENT_USER</span>
 <span class="k">JOIN</span> CREDORA.RUN_PUBLISH p
   <span class="k">ON</span> p.RUN_ID = d.RUN_ID;</div>
-      <p style="font-size:17px;line-height:1.45;color:var(--ink-2)" data-a="fade" data-d="500">The view runs with its owner's rights, so R_RM needs no grant on the tables underneath. In production each RM gets an own Exasol user, and the same views work unchanged.</p>
+      <p style="font-size:17px;line-height:1.45;color:var(--ink-2)" data-a="fade" data-d="500">The view runs with its owner's rights, so R_RM needs no grant on the tables underneath. A second manager, CREDORA_RM002, and the RM's AI user CREDORA_RM_AI run the same SELECT in the control room's proof panel. With one Exasol user per RM the views work unchanged.</p>
     </div>
   </div>
-  <aside class="sn">Access is enforced by the database. Each role has its own Exasol user, and every screen reads as that user. The rings show reach. Admin and data scientist see raw 3rd party data. Loan operations sees the bank databases and all results. The relationship manager sees only the V_RM views. Next, the RM tries to read DECISIONS directly, and Exasol answers insufficient privileges. Next, the RM reads V_RM_DECISIONS instead, which joins the assignments on CURRENT_USER, and gets exactly the companies loan operations assigned, at full detail. In the demo that is a book of 25 companies.</aside>
+  <aside class="sn">Access is enforced by the database. Each role has its own Exasol user, and every screen reads as that user. Each person's Ask Credora session has an AI user of its own with the same role, and the control room proves the row filter by running one SELECT as the RM, as her AI user and as a second manager. The rings show reach. Admin and data scientist see raw 3rd party data. Loan operations sees the bank databases and all results. The relationship manager sees only the V_RM views. Next, the RM tries to read DECISIONS directly, and Exasol answers insufficient privileges. Next, the RM reads V_RM_DECISIONS instead, which joins the assignments on CURRENT_USER, and gets exactly the companies loan operations assigned, at full detail. In the demo that is a book of 25 companies.</aside>
 </section>
 
-<!-- ============================================================ 13 · Ask Credora -->
-<section class="slide" id="s13" aria-label="Ask Credora sequence">
+<!-- ============================================================ 14 · Ask Credora -->
+<section class="slide" id="s14" aria-label="Ask Credora sequence">
   <div class="hd">
     <h2 data-a="rise">Ask Credora logs in as you, so the AI cannot read more than you.</h2>
-    <p data-a="rise" data-d="80">Claude reaches Exasol only through the official Exasol MCP server (exasol/mcp-server), started for each question on the app host as the signed-in role's own Exasol user.</p>
+    <p data-a="rise" data-d="80">Claude reaches Exasol only through the official Exasol MCP server (exasol/mcp-server), started for each question on the app host as the signed-in person's own AI user, which holds the same role and sits in a low-priority consumer group.</p>
   </div>
   <div class="bd">
     <svg class="dg" viewBox="0 0 1440 610" width="1440" height="560" role="img" aria-label="Sequence of person, backend, MCP server, Exasol, Claude">
@@ -710,11 +729,11 @@
       </g>
     </svg>
   </div>
-  <aside class="sn">Ask Credora is plain-English questions over the analysis. Watch the role travel. In step one the question arrives with the login token, here as the RM. In two and three a topic gate asks Claude, with no tools, whether this is about Credora, and anything else is refused before Exasol is touched. In four and five exasol_login maps the role to its Exasol user, and the backend starts the official Exasol MCP server, from the exasol organisation, as CREDORA_RM with writes switched off. In six to nine Claude picks tools and writes SQL, and Exasol checks the RM's grants on every statement. In ten to twelve the answer comes back with every SQL statement it ran. A jailbroken prompt still cannot read more than the person who signed in.</aside>
+  <aside class="sn">Ask Credora is plain-English questions over the analysis. Watch the role travel. In step one the question arrives with the login token, here as the RM. In two and three a topic gate asks Claude, with no tools, whether this is about Credora, and anything else is refused before Exasol is touched. In four and five exasol_login maps the role to the person's AI user, and the backend starts the official Exasol MCP server, from the exasol organisation, as CREDORA_RM_AI with writes switched off. That user holds the RM's role and sits in the CREDORA_AI consumer group, with a sixty second limit and two gigabytes of memory, so the AI cannot starve the analysis. In six to nine Claude picks tools and writes SQL, and Exasol checks the RM's grants on every statement. In ten to twelve the answer comes back with every SQL statement it ran. A jailbroken prompt still cannot read more than the person who signed in.</aside>
 </section>
 
-<!-- ============================================================ 14 · workflow -->
-<section class="slide" id="s14" aria-label="The workflow end to end">
+<!-- ============================================================ 15 · workflow -->
+<section class="slide" id="s15" aria-label="The workflow end to end">
   <div class="hd">
     <h2 data-a="rise">From a published run to a disbursed loan, in four roles.</h2>
     <p data-a="rise" data-d="80">Each hand-off is a row in Exasol or the CRM, so admin, data scientist and loan operations can track every company.</p>
@@ -765,8 +784,8 @@
   <aside class="sn">Here is the people side, end to end. The data scientist trains models and runs what-if on policy, but cannot switch them on. The admin approves model activation and policy proposals, which writes the new CONFIG and starts an official rerun as the service user. The data scientist publishes the run. Loan operations assigns companies to relationship managers. The RM sees only the assigned companies, at full detail, negotiates inside the limit, and logs the status from contacted to disbursed. Admin, data scientist and loan operations track every company along the way.</aside>
 </section>
 
-<!-- ============================================================ 15 · AWS -->
-<section class="slide" id="s15" aria-label="AWS deployment">
+<!-- ============================================================ 16 · AWS -->
+<section class="slide" id="s16" aria-label="AWS deployment">
   <div class="hd">
     <h2 data-a="rise">Started on the starter kit, deployed to AWS with one command.</h2>
   </div>
@@ -818,7 +837,7 @@
     </svg>
     <div class="deprow">
       <div class="dep-kit" data-a="rise" data-d="1500"><b>Before AWS, on a laptop</b>Exasol Personal Local Starter Kit (exakit 0.2.3) with local Exasol, MCP setup, exapump, pyexasol</div>
-      <div class="code dep-cmd"><span class="c">$&nbsp;</span><span id="s15cmd" class="t">python deploy/credora.py deploy --env &lt;name&gt;</span></div>
+      <div class="code dep-cmd"><span class="c">$&nbsp;</span><span id="s16cmd" class="t">python deploy/credora.py deploy --env &lt;name&gt;</span></div>
       <div class="deps">
         <div data-a="rise" data-d="1800">Exasol on EC2, launcher 2.3.0</div>
         <div data-a="rise" data-d="1950">RDS ×3, app host, S3, DNS (OpenTofu)</div>
@@ -832,22 +851,22 @@
   <aside class="sn">Credora started on a laptop, on the Exasol Personal Local Starter Kit, exakit 0.2.3, with exapump and pyexasol. Then we deployed Exasol Personal to AWS with the official launcher, version 2.3.0, running Exasol 2026.1.0. One region, Mumbai. The launcher creates the VPC and the Exasol node, an r6i.xlarge. OpenTofu adds three private RDS databases, the app host, S3, Secrets Manager and Route 53 for both domains, credora.loan for the bank and credora.link for the 3rd party data APIs. Only ports 80 and 443 are open to the world. And all of it is one command, in any AWS account, with nothing account-specific in the code.</aside>
 </section>
 
-<!-- ============================================================ 16 · numbers -->
-<section class="slide" id="s16" aria-label="Scale and numbers">
+<!-- ============================================================ 17 · numbers -->
+<section class="slide" id="s17" aria-label="Scale and numbers">
   <div class="hd">
-    <h2 data-a="rise">Realistic volumes for a mid-size corporate book.</h2>
+    <h2 data-a="rise">Realistic volumes for a large book of corporate customers.</h2>
     <p data-a="rise" data-d="80">The data is synthetic, but the volumes are not small. Rows per source on a log scale, and what one run costs.</p>
   </div>
   <div class="bd">
     <div class="stats">
       <div>
-        <div class="vol" id="s16vol"></div>
+        <div class="vol" id="s17vol"></div>
         <div class="vol-axis"><span></span><div><span>1k</span><span>10k</span><span>100k</span><span>1M</span></div><span></span></div>
       </div>
       <div class="figs">
         <div class="fig exa" data-a="rise" data-d="200"><div class="v"><span data-k="RUN_SECONDS" data-count></span><small>s</small></div><p>the full analysis of 1,000 companies, 13 steps, one Exasol call</p></div>
         <div class="fig" data-a="rise" data-d="260"><div class="v" data-k="AUC_CHAMPION"></div><p>AUC of the champion. The challenger scorecard reaches <span data-k="AUC_CHALLENGER"></span></p></div>
-        <div class="fig" data-a="rise" data-d="320"><div class="v"><span data-count="16">16</span></div><p>UDF instances fetching 3rd party data via API in parallel</p></div>
+        <div class="fig" data-a="rise" data-d="320"><div class="v"><span data-count="16">16</span></div><p>batches of keys per 3rd party fetch, which Exasol runs 4 at a time on the node's 4 cores</p></div>
         <div class="fig" data-a="rise" data-d="380"><div class="v"><span data-k="ANOMALY_FLAGGED" data-count></span></div><p>companies flagged by the Isolation Forest, and <span data-k="ANOMALY_REFERRED"></span> approvals became referrals</p></div>
         <div class="fig wide" data-a="rise" data-d="440"><div class="v">~<span data-count="75">75</span><small>s</small></div><p>to regenerate all the synthetic data, with 1,000 companies, ~3,500 partners, every source rebuilt consistently. Semantic routing adds ~4 ms per statement.</p></div>
       </div>
@@ -856,8 +875,8 @@
   <aside class="sn">Some numbers, all measured on the live deployment. Eight hundred and fifty thousand current-account transactions in Oracle, four hundred thousand other-bank transactions behind the Account Aggregator, seventy-one thousand GST returns, five thousand past loans to learn from. One RUN_ANALYSIS call over all of it takes 17.5 seconds on a single node. The champion model reaches an AUC of 0.756, the challenger 0.769. The anomaly flag picked out 30 companies. And the whole synthetic world regenerates in about seventy-five seconds.</aside>
 </section>
 
-<!-- ============================================================ 17 · security and failure -->
-<section class="slide" id="s17" aria-label="Security and failure modes">
+<!-- ============================================================ 18 · security and failure -->
+<section class="slide" id="s18" aria-label="Security and failure modes">
   <div class="hd">
     <h2 data-a="rise">Narrow doors, and failures that stay contained.</h2>
   </div>
@@ -866,15 +885,15 @@
       <div class="layers">
         <div class="lay" data-a="left" data-d="100"><svg class="ic" style="color:var(--fe)"><use href="#i-globe"/></svg><div><b>Network</b><p>Only 80 and 443 are public. Exasol's ports open to admin IPs only, and RDS sits in private subnets.</p></div></div>
         <div class="lay" data-a="left" data-d="170"><svg class="ic" style="color:var(--sec)"><use href="#i-shield"/></svg><div><b>Database grants</b><p>A user per role. A refused query reaches the app as <code>403 Exasol denied access for your role</code>.</p></div></div>
-        <div class="lay" data-a="left" data-d="240"><svg class="ic" style="color:var(--q)"><use href="#i-bot"/></svg><div><b>AI in the same boundary</b><p>MCP writes off, a topic gate before any query, every SQL statement shown with the answer.</p></div></div>
+        <div class="lay" data-a="left" data-d="240"><svg class="ic" style="color:var(--q)"><use href="#i-bot"/></svg><div><b>AI in the same boundary</b><p>MCP writes off, an AI user per person in a low-priority consumer group, a topic gate before any query, every SQL statement shown with the answer.</p></div></div>
         <div class="lay" data-a="left" data-d="310"><svg class="ic" style="color:var(--cloud)"><use href="#i-key"/></svg><div><b>Secrets</b><p>Generated per deployment into Secrets Manager. API tokens live in CONNECTION objects. None in the repo.</p></div></div>
-        <div class="lay" data-a="left" data-d="380"><svg class="ic" style="color:var(--svc)"><use href="#i-trash"/></svg><div><b>Consent and retention</b><p>3rd party replies carry a purge time. PURGE_EXPIRED deletes them and keeps a SHA-256 proof.</p></div></div>
+        <div class="lay" data-a="left" data-d="380"><svg class="ic" style="color:var(--svc)"><use href="#i-trash"/></svg><div><b>Consent and retention</b><p>3rd party replies carry a purge time. PURGE_EXPIRED deletes them and keeps a SHA-256 proof per 1,000-row chunk.</p></div></div>
       </div>
       <table class="fails" aria-label="Failure modes">
         <thead><tr><th>If this fails</th><th>What happens</th><th>Recovery</th></tr></thead>
         <tbody>
-          <tr data-a="rise" data-d="300"><td><i></i>A bank database</td><td>That step fails and is logged, and the last published run stays visible</td><td>Re-run when it is back</td></tr>
-          <tr data-a="rise" data-d="370"><td><i></i>A 3rd party API</td><td>The fetch fails with the API's error, and nothing half-done is published</td><td>Re-run, the relays are stateless</td></tr>
+          <tr data-a="rise" data-d="300"><td><i></i>A bank database</td><td>That step fails and stays in RUN_LOG with its error, and the last published run stays visible</td><td>Re-run when it is back</td></tr>
+          <tr data-a="rise" data-d="370"><td><i></i>A 3rd party API</td><td>The UDF makes 3 attempts, then the step fails naming the service, stays in RUN_LOG, and nothing half-done is published</td><td>Re-run, the relays are stateless</td></tr>
           <tr data-a="rise" data-d="440"><td><i></i>A preprocessor module</td><td>The framework skips it (fail-open), and plain SQL keeps working</td><td>Fix or remove its rule</td></tr>
           <tr data-a="rise" data-d="510"><td><i></i>The Exasol node</td><td>The app shows the last results it can reach, and analysis and AI pause</td><td>Restart, and <code>deploy</code> recreates objects</td></tr>
           <tr data-a="rise" data-d="580"><td><i></i>The app host</td><td>The site is down, but Exasol and the databases are unaffected</td><td><code>credora.py ship</code></td></tr>
@@ -887,39 +906,58 @@
   <aside class="sn">Security in brief. Only the web ports are public, Exasol is limited to admin IPs, and the bank databases are private. The database enforces every role, and the AI sits inside the same boundary with writes switched off. Secrets are generated per deployment, and consent-based data is purged with proof. On the right are the failure modes, and each one is contained. A source outage fails one logged step and keeps the last published results. A broken preprocessor module is skipped. A question outside the grants is simply refused, which is the access control working.</aside>
 </section>
 
-<!-- ============================================================ 18 · demo map -->
-<section class="slide" id="s18" aria-label="Demo map">
+<!-- ============================================================ 19 · demo map -->
+<section class="slide" id="s19" aria-label="Demo map">
   <div class="hd">
     <h2 data-a="rise">Every screen in the demo proves an Exasol feature.</h2>
     <p data-a="rise" data-d="80">Explain mode shows it live, with an Exasol console showing the SQL behind each screen, an ⓘ glossary, and a control room.</p>
   </div>
   <div class="bd">
     <svg class="dg" viewBox="0 0 1440 600" width="1440" height="570" role="img" aria-label="App screens linked to the Exasol features they demonstrate">
-      <g id="s18links"></g>
-      <g id="s18left"></g>
-      <g id="s18right"></g>
+      <g id="s19links"></g>
+      <g id="s19left"></g>
+      <g id="s19right"></g>
     </svg>
   </div>
   <aside class="sn">If you open the app, here is what to look at. Sources proves federation. credora.link shows the 3rd party data APIs the UDFs call. Analysis runs and the company report show every step of the Lua script with its SQL. Risk models and approvals show training, BucketFS and activation. Top 50 is PREFERRING. The RM's book is row-level security. Ask Credora shows the semantic layer and per-role access for the AI. And explain mode puts an Exasol console, a glossary and a control room on top of every screen.</aside>
 </section>
 
-<!-- ============================================================ 19 · thank you, open source -->
-<section class="slide" id="s19" aria-label="Built with Exasol open source">
+<!-- ============================================================ 20 · thank you, open source -->
+<section class="slide" id="s20" aria-label="Built with Exasol open source">
   <div class="hd">
     <h2 data-a="rise">Built with Exasol open source. Thank you.</h2>
     <p data-a="rise" data-d="80">Every project below runs in the live deployment, from both GitHub organisations, exasol and exasol-labs. Thank you to the Exasol team and the contributors.</p>
   </div>
   <div class="bd">
-    <div class="oss" id="s19list"></div>
+    <div class="oss" id="s20list"></div>
   </div>
   <aside class="sn">Credora is assembled from Exasol's own products and open-source projects, from both the exasol and the exasol-labs GitHub organisations. The starter kit is where we began, with exapump and pyexasol. Exasol Personal and its launcher run the database. The Oracle virtual schema, adbc-vs-rs and the Rust language container read the bank in place. The script language containers run our Python and Java. exasol-semantic-views and the preprocessor framework give certified metrics per role, and the Exasol MCP server lets the AI query as the signed-in role. Thank you to everyone who built them.</aside>
 </section>
 
-<!-- ============================================================ 20 · closing -->
-<section class="slide" id="s20" aria-label="Closing">
+<!-- ============================================================ 21 · what I learnt -->
+<section class="slide" id="s21" aria-label="What I learnt about Exasol Personal">
+  <div class="hd">
+    <h2 data-a="rise">What I learnt about Exasol Personal.</h2>
+    <p data-a="rise" data-d="80">Six things the build taught me. Each one is now in the code or the docs.</p>
+  </div>
+  <div class="bd">
+    <div class="learn">
+      <div class="lay" data-a="rise" data-d="120"><svg class="ic" style="color:var(--db)"><use href="#i-db"/></svg><div><b>Pushdown is worth checking function by function</b><p>The Oracle adapter does not push TRUNC(date, 'MM'), so step 7 groups by TO_CHAR(date, 'YYYY-MM'). That took the run from 24.7 s to 17.5 s.</p></div></div>
+      <div class="lay" data-a="rise" data-d="190"><svg class="ic" style="color:var(--exa)"><use href="#i-table"/></svg><div><b>EXPLAIN VIRTUAL makes pushdown provable</b><p>The Sources screen shows the SQL each database receives, so the claim is Exasol's own. It is also how the TRUNC gap was found.</p></div></div>
+      <div class="lay" data-a="rise" data-d="260"><svg class="ic" style="color:var(--sec)"><use href="#i-network"/></svg><div><b>The java-17 container loses DNS after a restart</b><p>It has no /etc/resolv.conf or /etc/hosts. exasol/hotfix/slc_dns_fix.sh links both to the node's /conf files again after every Exasol restart.</p></div></div>
+      <div class="lay" data-a="rise" data-d="330"><svg class="ic" style="color:var(--cloud)"><use href="#i-hash"/></svg><div><b>LISTAGG stops at 2,000,000 characters</b><p>One run's GST rows are more than that, so the purge fingerprint is built per 1,000-row chunk, and the proof is the hash of the chunk hashes.</p></div></div>
+      <div class="lay" data-a="rise" data-d="400"><svg class="ic" style="color:var(--q)"><use href="#i-bot"/></svg><div><b>The MCP server can log in as any user</b><p>So the AI gets the person's own rights and nothing more. A prompt cannot widen what Exasol grants.</p></div></div>
+      <div class="lay" data-a="rise" data-d="470"><svg class="ic" style="color:var(--fe)"><use href="#i-users"/></svg><div><b>Consumer groups are per user</b><p>So the AI got its own users, one per person with the same role, in a low-priority group with a 60 s limit and 2 GiB of memory.</p></div></div>
+    </div>
+  </div>
+  <aside class="sn">Six things I learnt about Exasol Personal while building this. First, pushdown is worth checking function by function. The Oracle adapter does not push TRUNC of a date to the month, so step seven groups by TO_CHAR instead, and the run went from twenty-four point seven seconds to seventeen and a half. Second, EXPLAIN VIRTUAL makes pushdown provable, and it is how that gap was found. Third, the java-17 script language container loses DNS after an Exasol restart, and a small hotfix script re-adds the resolv.conf links. Fourth, LISTAGG stops at two million characters, so the purge fingerprints are chunked. Fifth, the MCP server can log in as any user, so the AI gets exactly the person's rights. Sixth, consumer groups are per user, so the AI got its own users. All six are in the code and the docs.</aside>
+</section>
+
+<!-- ============================================================ 22 · closing -->
+<section class="slide" id="s22" aria-label="Closing">
   <div class="ti-brand" data-a="rise"><img src="../_assets/credora-gem.svg" alt=""><b>Credora<span>for Sapphire Bank</span></b></div>
   <p class="end-h" data-a="rise" data-d="80">Contributions welcome. Want to build on Credora, adapt it, or buy or license it?</p>
-  <p class="end-p" data-a="rise" data-d="140">Raise an issue at <b>github.com/anamika-iit-kgp/credora</b>. Credora is an ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS.</p>
+  <p class="end-p" data-a="rise" data-d="140">Raise an issue at <b>github.com/anamika-iit-kgp/credora</b>. Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal, built on the Exasol Personal Local Starter Kit and deployed on AWS.</p>
   <div class="end-links">
     <a href="https://github.com/anamika-iit-kgp/credora/issues" data-a="rise" data-d="200"><svg class="ic" style="color:var(--ink)"><use href="#i-github"/></svg><div><b>Raise an issue</b><span>github.com/anamika-iit-kgp/credora</span></div></a>
     <a href="https://credora.loan" data-a="rise" data-d="250"><svg class="ic" style="color:var(--fe)"><use href="#i-monitor"/></svg><div><b>credora.loan</b><span>the app · one-click sign-in for all four roles</span></div></a>
@@ -930,7 +968,7 @@
     <span>Built for ExaThon India 2026 · Powered by</span><img src="../_assets/Exasol_Logo_2025_Bright.svg" alt="Exasol"><span>Personal</span>
   </div>
   <p class="end-by" data-a="fade" data-d="550">Project by Anamika, Product Manager @ Equitas Small Finance Bank. Sapphire Bank is fictional and all data is synthetic.</p>
-  <aside class="sn">That is Credora. A bank's scattered data, decided inside Exasol, and handed to the people who make the call. It is an ExaThon India 2026 project, a hands-on try-out of the Exasol Personal Local Starter Kit and Exasol Personal, deployed on AWS. Contributions are welcome. If you want to build on Credora, adapt it for your bank, or talk about buying or licensing it, raise an issue at github.com/anamika-iit-kgp/credora. Everything you saw is live at credora.loan. Thank you.</aside>
+  <aside class="sn">That is Credora. A bank's scattered data, decided inside Exasol, and handed to the people who make the call. It is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal, built on the Exasol Personal Local Starter Kit and deployed on AWS. Contributions are welcome. If you want to build on Credora, adapt it for your bank, or talk about buying or licensing it, raise an issue at github.com/anamika-iit-kgp/credora. Everything you saw is live at credora.loan. Thank you.</aside>
 </section>
 
 </div>
@@ -940,7 +978,7 @@
 
 <nav class="bar" id="bar" aria-label="Slide controls">
   <button type="button" id="bPrev" aria-label="Previous slide"><svg class="ic"><use href="#i-left"/></svg></button>
-  <span class="count" id="count" aria-live="polite">1 / 20</span>
+  <span class="count" id="count" aria-live="polite">1 / 22</span>
   <button type="button" id="bNext" aria-label="Next slide"><svg class="ic"><use href="#i-right"/></svg></button>
   <button type="button" id="bNotes" aria-pressed="false" aria-label="Speaker notes (N)"><svg class="ic"><use href="#i-notes"/></svg></button>
   <button type="button" id="bFull" class="hide-phone" aria-label="Full screen (F)"><svg class="ic"><use href="#i-max"/></svg></button>

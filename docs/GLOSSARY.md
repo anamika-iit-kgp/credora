@@ -7,7 +7,7 @@ All data in Credora is synthetic.
 ## Contents
 
 - [Exasol](#exasol) (56 terms)
-- [Banking](#banking) (40 terms)
+- [Banking](#banking) (44 terms)
 - [AI](#ai) (6 terms)
 - [AWS](#aws) (4 terms)
 - [The Credora app](#the-credora-app) (12 terms)
@@ -89,7 +89,7 @@ From [`exasol/lua/06_run_analysis.sql`](../exasol/lua/06_run_analysis.sql).
 
 ```lua
 local ch = query([[
-  SELECT MODEL_VERSION, MODEL_PATH FROM CREDORA.MODEL_REGISTRY
+  SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY
   WHERE NOT IS_ACTIVE AND ALGORITHM <> (SELECT MAX(ALGORITHM) FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE)
   ORDER BY TRAINED_AT DESC LIMIT 1]])
 ```
@@ -101,7 +101,7 @@ local ch = query([[
 
 Stores a plain-English description on a table, column, schema or script, inside the database, where every SQL tool and AI can read it.
 
-**In Exasol.** Every Credora table and column (17 tables and 196 columns in CREDORA and CREDORA_STAGE), both schemas, the scheduler's tables and all 14 Credora scripts and UDFs carry their meaning from this glossary. The Exasol MCP server's describe tools return them to Ask Credora, so its prompt lists column names only. Exasol allows comments on views only inside CREATE VIEW.
+**In Exasol.** Every Credora table and column (19 tables and 197 columns in CREDORA and CREDORA_STAGE), both schemas, the scheduler's tables and all 15 Credora scripts and UDFs carry their meaning from this glossary. The Exasol MCP server's describe tools return them to Ask Credora, so its prompt lists column names only. Exasol allows comments on views only inside CREATE VIEW.
 
 **Objects.** `EXA_ALL_TABLES.TABLE_COMMENT`, `EXA_ALL_COLUMNS.COLUMN_COMMENT`, `EXA_ALL_SCRIPTS.SCRIPT_COMMENT`
 
@@ -165,7 +165,7 @@ CREATE OR REPLACE CONNECTION MOCK_CIBIL
 
 Exasol's workload management. Users are put in groups that get a share of CPU, a priority, a statement time limit and a memory limit.
 
-**In Exasol.** CREDORA_BATCH (high priority) is for CREDORA_SVC, which runs the analysis, training and the Exasol Scheduler's jobs. CREDORA_APP (medium, 5-minute statement limit) is for the four role users behind the screens. CREDORA_AI (low, 60 s, 2 GiB of temporary memory per session) is for CREDORA_MCP. A session cannot change its group, so Ask Credora's sessions as a role user get the same AI limits per session (see QUERY_TIMEOUT). The AI cannot starve or hang the bank's analysis. Every audited statement shows its group.
+**In Exasol.** CREDORA_BATCH (high priority) holds CREDORA_SVC, which runs the analysis, training, the CRM export and the Exasol Scheduler's jobs. CREDORA_APP (medium, 5-minute statement limit) holds the role users behind the screens, CREDORA_ADMIN, CREDORA_DATASCI, CREDORA_LOANOPS, CREDORA_RM and the second relationship manager CREDORA_RM002. CREDORA_AI (low, 60 s per statement, 2 GiB of temporary memory per session and 4 GiB for the group) holds the four AI session users CREDORA_ADMIN_AI, CREDORA_DATASCI_AI, CREDORA_LOANOPS_AI and CREDORA_RM_AI, and CREDORA_MCP. A session cannot change its group, so Ask Credora never logs in as the person, and its limits need no session settings. The AI cannot starve or hang the bank's analysis. Every audited statement shows its group.
 
 **Objects.** `EXA_CONSUMER_GROUPS`, `CREDORA_BATCH`, `CREDORA_APP`, `CREDORA_AI`
 
@@ -175,6 +175,8 @@ From [`exasol/sql/16_resources.sql`](../exasol/sql/16_resources.sql).
 ALTER CONSUMER GROUP CREDORA_AI SET PRECEDENCE = '100', CPU_WEIGHT = '100', QUERY_TIMEOUT = 60,
   SESSION_TEMP_DB_RAM_LIMIT = '2G', GROUP_TEMP_DB_RAM_LIMIT = '4G';
 ALTER USER CREDORA_SVC SET CONSUMER_GROUP = CREDORA_BATCH;
+ALTER USER CREDORA_RM SET CONSUMER_GROUP = CREDORA_APP;
+ALTER USER CREDORA_RM_AI SET CONSUMER_GROUP = CREDORA_AI;
 ALTER USER CREDORA_MCP SET CONSUMER_GROUP = CREDORA_AI;
 ```
 
@@ -282,7 +284,7 @@ SVC = "CREDORA_SVC"
 
 A SQL function that returns the name of the database user running the query.
 
-**In Exasol.** The V_RM_* views compare RM_ASSIGNMENT.EXA_USER with CURRENT_USER, so the same view returns a different book for each RM login (in the demo, CREDORA_RM acts for RM001).
+**In Exasol.** The V_RM_* views compare RM_ASSIGNMENT.EXA_USER with CURRENT_USER, with the _AI suffix of an AI session user stripped by REGEXP_REPLACE, so the same view returns a different book for each RM login and the AI sees its person's book (in the demo, CREDORA_RM acts for RM001 and CREDORA_RM002 for RM002).
 
 **Objects.** `CREDORA.V_RM_ASSIGNMENT`, `CREDORA.RM_ASSIGNMENT`
 
@@ -292,7 +294,7 @@ From [`exasol/sql/13_rm_row_security.sql`](../exasol/sql/13_rm_row_security.sql)
 CREATE OR REPLACE VIEW CREDORA.V_RM_ASSIGNMENT AS
 SELECT a.CIF_ID, a.RM_ID, a.ASSIGNED_BY, a.ASSIGNED_AT
 FROM CREDORA.RM_ASSIGNMENT a
-WHERE a.EXA_USER = CURRENT_USER;
+WHERE a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$', '');
 ```
 
 **Exasol docs.** https://docs.exasol.com/db/latest/sql_references/functions/alphabeticallistfunctions/current_user.htm
@@ -304,15 +306,18 @@ WHERE a.EXA_USER = CURRENT_USER;
 
 Exasol's official server that lets an AI model look up tables and run read-only SQL through standard tool calls (MCP).
 
-**In Exasol.** For each Ask Credora question the backend starts exasol-mcp-server 2.3.0 over stdio, logged in as the signed-in person's Exasol user (exasol_login()). CREDORA_MCP is only the fallback. Write queries, BucketFS writes and preprocessor tools are switched off.
+**In Exasol.** For each Ask Credora question the backend starts exasol-mcp-server 2.3.0 over stdio, logged in as the person's own AI session user, CREDORA_ADMIN_AI, CREDORA_DATASCI_AI, CREDORA_LOANOPS_AI or CREDORA_RM_AI (exasol_login()). That user holds the same role as the person and sits in consumer group CREDORA_AI, where Exasol itself applies the 60 s statement limit and the 2 GiB temporary memory limit, with no per-session SQL. A signed-in role without a configured AI password gets HTTP 503 with the text "Ask Credora is not set up for this role." CREDORA_MCP remains only for AI clients outside the app. Write queries, BucketFS writes and preprocessor tools are switched off.
 
-**Objects.** `CREDORA_ADMIN`, `CREDORA_RM`, `CREDORA_MCP`, `R_MCP`
+**Objects.** `CREDORA_ADMIN_AI`, `CREDORA_RM_AI`, `CREDORA_AI`, `CREDORA_MCP`, `R_MCP`
 
 From [`backend/app/assistant.py`](../backend/app/assistant.py).
 
 ```python
 MCP_SERVER_PACKAGE = "exasol-mcp-server@2.3.0"
+# The read-only user for sessions that belong to no signed-in person (the self-test). A person's
+# questions always run as that person's AI session user, see exasol_login.
 MCP_USER = "CREDORA_MCP"
+AI_USER_SUFFIX = "_AI"
 # Read-only: SELECT and metadata only; no writes, no BucketFS, no profiling.
 MCP_SETTINGS = {
     "enable_read_query": True,
@@ -349,9 +354,9 @@ sh(["exasol", "init", "aws", "ubuntu", "--deployment-dir", str(self.exasol_dir),
 
 A database login. In Credora each app role has its own Exasol user, so the database itself knows who is reading.
 
-**In Exasol.** CREDORA_ADMIN, CREDORA_DATASCI, CREDORA_LOANOPS and CREDORA_RM each hold the matching role. CREDORA_SVC runs jobs and CREDORA_MCP is the Ask Credora fallback. Passwords come from the deployment's runtime secret in AWS Secrets Manager.
+**In Exasol.** CREDORA_ADMIN, CREDORA_DATASCI, CREDORA_LOANOPS and CREDORA_RM each hold the matching role, and a second relationship manager CREDORA_RM002 (role R_RM) proves the row filter works for any manager. Each person also has an AI session user, CREDORA_ADMIN_AI, CREDORA_DATASCI_AI, CREDORA_LOANOPS_AI or CREDORA_RM_AI, which holds the same role and sits in consumer group CREDORA_AI, and Ask Credora logs in as it. CREDORA_SVC runs jobs and CREDORA_MCP is the read-only user for AI clients outside the app. Passwords come from the deployment's runtime secret in AWS Secrets Manager.
 
-**Objects.** `CREDORA_ADMIN`, `CREDORA_DATASCI`, `CREDORA_LOANOPS`, `CREDORA_RM`, `CREDORA_SVC`, `CREDORA_MCP`
+**Objects.** `CREDORA_ADMIN`, `CREDORA_DATASCI`, `CREDORA_LOANOPS`, `CREDORA_RM`, `CREDORA_RM002`, `CREDORA_RM_AI`, `CREDORA_SVC`, `CREDORA_MCP`
 
 From [`deploy/exasol_setup.py`](../deploy/exasol_setup.py).
 
@@ -375,7 +380,7 @@ def create_users(ex: Exasol, secret: dict) -> None:
 
 Exasol's own record of every statement. It shows who ran it, when, how long it took, how much CPU and memory it used, and whether it worked. It answers the regulator's "who ran what" from the database rather than from the app.
 
-**In Exasol.** Auditing is on. Every Credora session and statement is tagged `credora:<app user>:<feature>`. The tag goes into the session's client name (pyexasol `client_name`) and a leading SQL comment, which Exasol keeps in the audit log. The admin's Exasol audit screen reads EXA_DBA_AUDIT_SQL joined with EXA_DBA_AUDIT_SESSIONS as CREDORA_ADMIN (SELECT ANY DICTIONARY), with filters for the Exasol user, app user, feature, result and time, and shows one RUN_ANALYSIS with every statement it ran and the COMMIT that closes each step.
+**In Exasol.** Auditing is on. Every Credora session and statement is tagged `credora:<app user>:<feature>`. The tag goes into the session's client name (pyexasol `client_name`) and a leading SQL comment, which Exasol keeps in the audit log. The admin's Exasol audit screen reads EXA_DBA_AUDIT_SQL joined with EXA_DBA_AUDIT_SESSIONS as CREDORA_ADMIN (SELECT ANY DICTIONARY, granted to that user and not to role R_ADMIN, so CREDORA_ADMIN_AI cannot read it), with filters for the Exasol user, app user, feature, result and time, and shows one RUN_ANALYSIS with every statement it ran and the COMMIT that closes each step. Secrets inside `IDENTIFIED BY '...'` are masked with REGEXP_REPLACE inside Exasol before the text leaves the database.
 
 **Objects.** `EXA_DBA_AUDIT_SQL`, `EXA_DBA_AUDIT_SESSIONS`, `CREDORA_ADMIN`
 
@@ -397,7 +402,7 @@ WHERE s.USER_NAME LIKE 'CREDORA\_%' AND q.SQL_TEXT LIKE '/*credora:loanops:%'
 
 An open-source scheduler from exasol-labs whose jobs are rows in an Exasol table. Jobs are defined, run and audited in SQL.
 
-**In Exasol.** One container on the app host (the pinned v0.4.1 release binary) logs in as CREDORA_SVC and runs SCHED.SCHED_TASKS. `credora_purge_expired` runs every 15 minutes (consent-based data deleted on time, with SHA-256 proof). Nightly at 02:00 IST it runs `credora_refresh_vs_cbs`, with `credora_refresh_vs_cif` and `credora_refresh_vs_los` as finalizers, so they run even if Oracle fails. Every run is a row in SCHED.SCHED_HISTORY. Only the deploy user may write SCHED_TASKS.
+**In Exasol.** One container on the app host (docker-compose.yml, the pinned v0.4.1 release binary) logs in to Exasol as CREDORA_SVC and runs the tasks in SCHED.SCHED_TASKS. `credora_purge_expired` runs every 15 minutes (consent-based data deleted on time, with SHA-256 proof). Nightly at 02:00 IST it runs `credora_refresh_vs_cbs`, with `credora_refresh_vs_cif` and `credora_refresh_vs_los` as finalizers, so they run even if Oracle fails. Every run is a row in SCHED.SCHED_HISTORY. Only the deploy user may write SCHED_TASKS.
 
 **Objects.** `SCHED.SCHED_TASKS`, `SCHED.SCHED_HISTORY`, `CREDORA.PURGE_EXPIRED`
 
@@ -628,7 +633,7 @@ def activate(version: str) -> None:
 
 The table that lists every trained risk model, with when it was trained, how good it is and where the file is.
 
-**In Exasol.** CREDORA.TRAIN_MODEL inserts one row per model with ALGORITHM, AUC, GINI, N_TRAIN, DEFAULT_RATE, FEATURE_IMPORTANCE and MODEL_PATH in BucketFS. IS_ACTIVE marks the one model that decides.
+**In Exasol.** CREDORA.TRAIN_MODEL inserts one row per model with ALGORITHM, AUC, GINI, N_TRAIN, DEFAULT_RATE, FEATURE_IMPORTANCE, MODEL_PATH in BucketFS and MODEL_SHA256, the hash of the pickle the trainer uploaded. PD_SCORE checks the file's SHA-256 against it before unpickling, so a replaced or damaged model file never scores. MODEL_VERSION is the primary key. IS_ACTIVE marks the one model that decides.
 
 **Objects.** `CREDORA.MODEL_REGISTRY`
 
@@ -638,7 +643,8 @@ From [`exasol/sql/01_schemas.sql`](../exasol/sql/01_schemas.sql).
 CREATE TABLE IF NOT EXISTS CREDORA.MODEL_REGISTRY (
   MODEL_VERSION VARCHAR(20), TRAINED_AT TIMESTAMP, ALGORITHM VARCHAR(80), AUC DECIMAL(6,4), GINI DECIMAL(6,4),
   N_TRAIN DECIMAL(10), DEFAULT_RATE DECIMAL(6,4), FEATURE_IMPORTANCE VARCHAR(20000), MODEL_PATH VARCHAR(200),
-  IS_ACTIVE BOOLEAN
+  IS_ACTIVE BOOLEAN, MODEL_SHA256 VARCHAR(64),
+  CONSTRAINT MODEL_REGISTRY_PK PRIMARY KEY (MODEL_VERSION)
 );
 ```
 
@@ -688,21 +694,30 @@ c.execute("CREATE OR REPLACE JAVA ADAPTER SCRIPT ADAPTER.ORACLE_ADAPTER AS\n"
 
 A trained model saved as a file (Python pickle), so it can be loaded again later to score new companies.
 
-**In Exasol.** TRAIN_PD and TRAIN_SCORECARD save models/pd_<version>.pkl to BucketFS. PD_SCORE opens /buckets/bfsdefault/default/models/pd_<version>.pkl, waits up to 60 s for it to reach the node, and caches it per UDF instance.
+**In Exasol.** TRAIN_PD and TRAIN_SCORECARD save models/pd_<version>.pkl to BucketFS and emit its SHA-256, stored in MODEL_REGISTRY.MODEL_SHA256. PD_SCORE opens /buckets/bfsdefault/default/models/pd_<version>.pkl, waits up to 60 s for it to reach the node, checks the file's SHA-256 against the registry before unpickling, and caches it per UDF instance.
 
 **Objects.** `CREDORA.PD_SCORE`, `BUCKETFS_MODELS`
 
 From [`exasol/udf/05_ml_udfs.sql`](../exasol/udf/05_ml_udfs.sql).
 
 ```python
-def load(path):
+def load(path, expected_sha256):
     if path not in _cache:
         for _ in range(60):  # a freshly trained model can take a few seconds to sync to every node
             if os.path.exists(path):
                 break
             time.sleep(1)
         with open(path, "rb") as f:
-            _cache[path] = pickle.load(f)
+            data = f.read()
+        # The registry row carries the SHA-256 the trainer computed from the bytes it uploaded. A file
+        # that hashes differently was replaced or damaged after training and is never unpickled. Rows
+        # registered before the hash existed carry NULL and load unchecked.
+        if expected_sha256 is not None:
+            found = hashlib.sha256(data).hexdigest()
+            if found != expected_sha256.lower():
+                raise RuntimeError(f"Model file {path} does not match MODEL_REGISTRY.MODEL_SHA256 "
+                                   f"(expected {expected_sha256}, found {found})")
+        _cache[path] = pickle.loads(data)
 ```
 
 **Exasol docs.** https://docs.exasol.com/db/latest/database_concepts/bucketfs/bucketfs.htm
@@ -759,21 +774,26 @@ EXECUTE SCRIPT PREPROC.RULE_ENSURE('ROLE', 'R_DATASCI', 'TRANSLATE', 'PREPROC_RT
 
 3rd party data fetched via API is deleted on time, and a fingerprint of what was deleted is kept, so an auditor can check it without the data.
 
-**In Exasol.** CREDORA.PURGE_EXPIRED finds CREDORA_STAGE rows past PURGE_AT, writes the row count and HASH_SHA256 of their key columns to CREDORA.PURGE_LOG, then deletes them. The Exasol Scheduler runs it as CREDORA_SVC every 15 minutes (task `credora_purge_expired` in SCHED.SCHED_TASKS), inside Exasol, and records each run in SCHED.SCHED_HISTORY.
+**In Exasol.** CREDORA.PURGE_EXPIRED finds CREDORA_STAGE rows past PURGE_AT, sorts them by key, cuts them into chunks of 1,000, hashes each chunk with HASH_SHA256 of LISTAGG and writes the row count and the hash of the chunk hashes to CREDORA.PURGE_LOG, then deletes them. One run's GST rows are above Exasol's 2,000,000-character LISTAGG limit, so one hash over all rows is not possible. Each table is purged in its own transaction, and the whole purge is skipped while an analysis logged a step in the last 3 minutes. The Exasol Scheduler, a container on the app host, runs it as CREDORA_SVC every 15 minutes (task `credora_purge_expired` in SCHED.SCHED_TASKS) and records each run in SCHED.SCHED_HISTORY.
 
 **Objects.** `CREDORA.PURGE_EXPIRED`, `CREDORA.PURGE_LOG`, `CREDORA_STAGE`, `SCHED.SCHED_TASKS`
 
 From [`exasol/lua/08_purge.sql`](../exasol/lua/08_purge.sql).
 
 ```lua
-local runs = query([[SELECT RUN_ID, COUNT(*) N,
-                            HASH_SHA256(LISTAGG(]] .. x.key .. [[, '|') WITHIN GROUP (ORDER BY ]] .. x.key .. [[)) H
-                     FROM CREDORA_STAGE.]] .. x.t .. [[ WHERE PURGE_AT <= SYSTIMESTAMP GROUP BY RUN_ID]])
+local runs = query([[
+  SELECT RUN_ID, CAST(SUM(N) AS DECIMAL(18)) N, HASH_SHA256(LISTAGG(H, '|') WITHIN GROUP (ORDER BY CHUNK_NO)) H
+  FROM (SELECT RUN_ID, CHUNK_NO, COUNT(*) N, HASH_SHA256(LISTAGG(K, '|') WITHIN GROUP (ORDER BY K)) H
+        FROM (SELECT RUN_ID, ]] .. x.key .. [[ K,
+                     FLOOR((ROW_NUMBER() OVER (PARTITION BY RUN_ID ORDER BY ]] .. x.key .. [[) - 1) / 1000) CHUNK_NO
+              FROM CREDORA_STAGE.]] .. x.t .. [[ WHERE ]] .. due .. [[)
+        GROUP BY RUN_ID, CHUNK_NO)
+  GROUP BY RUN_ID]], {c = cutoff})
 for i = 1, #runs do
   query([[INSERT INTO CREDORA.PURGE_LOG VALUES (SYSTIMESTAMP, :t, :r, :n, :h)]],
         {t = 'CREDORA_STAGE.' .. x.t, r = runs[i].RUN_ID, n = runs[i].N, h = runs[i].H})
-  query('DELETE FROM CREDORA_STAGE.' .. x.t .. ' WHERE RUN_ID = :r AND PURGE_AT <= SYSTIMESTAMP', {r = runs[i].RUN_ID})
-  out[#out + 1] = {x.t, runs[i].RUN_ID, runs[i].N}
+  local res = query('DELETE FROM CREDORA_STAGE.' .. x.t .. ' WHERE RUN_ID = :r AND ' .. due,
+                    {r = runs[i].RUN_ID, c = cutoff})
 ```
 
 **Exasol docs.** https://docs.exasol.com/db/latest/sql_references/functions/alphabeticallistfunctions/hash_sha256.htm
@@ -839,21 +859,20 @@ def run(ctx):
 
 The longest a single statement may run before Exasol cancels it.
 
-**In Exasol.** Ask Credora starts the Exasol MCP server through a small wrapper that runs `ALTER SESSION SET QUERY_TIMEOUT = 60`, `ALTER SESSION SET NICE = 'ON'` and `ALTER SESSION SET SESSION_TEMP_DB_RAM_LIMIT = '2G'` in every session it opens, and names the session `credora:<role>:ask-credora`. The consumer groups CREDORA_AI (60 s) and CREDORA_APP (300 s) carry a limit too. A runaway query ends with "Query terminated because timeout has been reached".
+**In Exasol.** Ask Credora's sessions log in as the person's AI session user, which sits in consumer group CREDORA_AI, so Exasol itself cancels any statement after 60 s and caps temporary memory at 2 GiB per session. No ALTER SESSION is run, and there is no per-session SQL to get right. CREDORA_APP carries a 300 s limit for the screens, and CREDORA_BATCH has none. The wrapper mcp_session.py only sets the client name `credora:<app user>:ask-credora` for the audit log. A runaway AI query ends with "Query terminated because timeout has been reached".
 
-**Objects.** `EXA_PARAMETERS`, `CREDORA_AI`, `CREDORA_APP`
+**Objects.** `EXA_CONSUMER_GROUPS`, `CREDORA_AI`, `CREDORA_APP`
 
-From [`backend/app/assistant.py`](../backend/app/assistant.py).
+From [`exasol/sql/16_resources.sql`](../exasol/sql/16_resources.sql).
 
-```python
-AI_SESSION_SQL = [
-    "ALTER SESSION SET QUERY_TIMEOUT = 60",
-    "ALTER SESSION SET NICE = 'ON'",
-    "ALTER SESSION SET SESSION_TEMP_DB_RAM_LIMIT = '2G'",
-]
+```sql
+ALTER CONSUMER GROUP CREDORA_BATCH SET PRECEDENCE = '900', CPU_WEIGHT = '900', QUERY_TIMEOUT = 0;
+ALTER CONSUMER GROUP CREDORA_APP SET PRECEDENCE = '500', CPU_WEIGHT = '400', QUERY_TIMEOUT = 300;
+ALTER CONSUMER GROUP CREDORA_AI SET PRECEDENCE = '100', CPU_WEIGHT = '100', QUERY_TIMEOUT = 60,
+  SESSION_TEMP_DB_RAM_LIMIT = '2G', GROUP_TEMP_DB_RAM_LIMIT = '4G';
 ```
 
-**Exasol docs.** https://docs.exasol.com/db/latest/sql/alter_session.htm
+**Exasol docs.** https://docs.exasol.com/db/latest/sql/alter_consumer_group.htm
 
 **See also.** [Consumer group](#consumer-group), [Exasol MCP server](#exasol-mcp-server)
 
@@ -862,7 +881,7 @@ AI_SESSION_SQL = [
 
 Loan operations decides which relationship manager works which company.
 
-**In Exasol.** CREDORA.RM_ASSIGNMENT has one row per company with RM_ID and EXA_USER, the Exasol user that logs in for that manager. Assigning again moves the company. The web app MERGEs it as CREDORA_SVC. The V_RM_* views filter on it with CURRENT_USER.
+**In Exasol.** CREDORA.RM_ASSIGNMENT has one row per company with RM_ID and EXA_USER, the Exasol user that logs in for that manager. Assigning again moves the company. The web app MERGEs it as CREDORA_SVC. The V_RM_* views filter on it with CURRENT_USER, minus the _AI suffix of an AI session user. The demo has two manager users, CREDORA_RM for RM001 and CREDORA_RM002 for RM002.
 
 **Objects.** `CREDORA.RM_ASSIGNMENT`, `CREDORA.V_RM_ASSIGNMENT`
 
@@ -908,7 +927,7 @@ def create_roles(ex: Exasol) -> None:
 
 A view that returns only the rows the logged-in person may see, decided by the database rather than the app.
 
-**In Exasol.** Each V_RM_* view joins CREDORA.RM_ASSIGNMENT on EXA_USER = CURRENT_USER and CREDORA.RUN_PUBLISH, so a relationship manager gets only assigned companies from published runs. The V_LATEST_* views behind the semantic layer apply the same filter through V_SESSION_SCOPE.
+**In Exasol.** Each V_RM_* view joins CREDORA.RM_ASSIGNMENT on EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$', '') and CREDORA.RUN_PUBLISH, so a relationship manager gets only assigned companies from published runs, and the AI session user CREDORA_RM_AI sees exactly the book of CREDORA_RM. The V_LATEST_* views behind the semantic layer apply the same filter through V_SESSION_SCOPE. The control room panel "Row-level security, proven by Exasol" (GET /api/admin/rls-proof) runs the same SELECT as CREDORA_RM, CREDORA_RM_AI and CREDORA_RM002 and shows Exasol refusing CREDORA_RM on CREDORA.DECISIONS.
 
 **Objects.** `CREDORA.V_RM_DECISIONS`, `CREDORA.V_RM_COMPANY`, `CREDORA.V_RM_FEATURES`, `CREDORA.V_RM_SCORES`, `CREDORA.V_RM_ASSIGNMENT`, `CREDORA.V_RM_LOAN_STATUS`
 
@@ -918,7 +937,7 @@ From [`exasol/sql/13_rm_row_security.sql`](../exasol/sql/13_rm_row_security.sql)
 CREATE OR REPLACE VIEW CREDORA.V_RM_DECISIONS AS
 SELECT d.*
 FROM CREDORA.DECISIONS d
-JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = d.CIF_ID AND a.EXA_USER = CURRENT_USER
+JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = d.CIF_ID AND a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$', '')
 JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = d.RUN_ID;
 ```
 
@@ -978,7 +997,7 @@ CREATE TABLE IF NOT EXISTS CREDORA.RUN_LOG (
 
 A SCALAR UDF handles one row at a time. A SET UDF gets a whole group of rows at once, which suits bulk API calls and model training.
 
-**In Exasol.** The fetch, training and scoring UDFs are SET scripts. GROUP BY SUBSTR(HASH_MD5(key), 1, 1) splits the keys into 16 groups, so 16 instances run in parallel. PD_SCORE uses 4 groups, one per core. CREDORA.CREDIT_MEMO is a SCALAR script that EMITS one memo per company row.
+**In Exasol.** The fetch, training and scoring UDFs are SET scripts. GROUP BY SUBSTR(HASH_MD5(key), 1, 1) spreads the keys over 16 batches (one hex digit of an MD5), and Exasol runs the UDF instances 4 at a time on the 4-core node. Each API call is tried up to 3 times, with pauses of 1 s and 2 s, before the run fails with the service named. PD_SCORE uses 4 groups, one per core. CREDORA.CREDIT_MEMO is a SCALAR script that EMITS one memo per company row.
 
 **Objects.** `CREDORA.CIBIL_CONSUMER_FETCH`, `CREDORA.PD_SCORE`, `CREDORA.CREDIT_MEMO`
 
@@ -1046,14 +1065,14 @@ def install_rust_slc(ex: Exasol) -> None:
 
 A system privilege to read every system table, including those about other users and sessions.
 
-**In Exasol.** Only R_ADMIN holds it in Credora. Other roles see the EXA_ALL_* tables, which list only objects they may use.
+**In Exasol.** Only the user CREDORA_ADMIN holds it in Credora, not the role R_ADMIN, so the admin's AI session user CREDORA_ADMIN_AI (same role) cannot read the audit log or the system tables of anyone. 07_security.sql revokes it from R_ADMIN on older deployments. Other users see the EXA_ALL_* tables, which list only objects they may use.
 
-**Objects.** `R_ADMIN`
+**Objects.** `CREDORA_ADMIN`, `R_ADMIN`
 
-From [`exasol/sql/07_security.sql`](../exasol/sql/07_security.sql).
+From [`exasol/sql/16_resources.sql`](../exasol/sql/16_resources.sql).
 
 ```sql
-GRANT SELECT ANY DICTIONARY TO R_ADMIN;
+GRANT SELECT ANY DICTIONARY TO CREDORA_ADMIN;
 ```
 
 **Exasol docs.** https://docs.exasol.com/db/latest/database_concepts/privileges.htm
@@ -1083,7 +1102,7 @@ EXECUTE SCRIPT SEMANTIC_ADMIN.ADD_SEMANTIC_OBJECT('credora', 'PORTFOLIO', 'compa
 
 A session is one open connection to Exasol, with its own settings and transaction.
 
-**In Exasol.** The backend keeps a small pool of pyexasol sessions per Exasol user (client name credora-backend). Long jobs such as RUN_ANALYSIS get their own CREDORA_SVC session. Each Ask Credora question starts an MCP server that opens its own session as the role's user.
+**In Exasol.** The backend keeps a small pool of pyexasol sessions per Exasol user (client name credora-backend). Long jobs such as RUN_ANALYSIS get their own CREDORA_SVC session. Each Ask Credora question starts an MCP server that opens its own session as the person's AI session user (CREDORA_<ROLE>_AI, consumer group CREDORA_AI).
 
 **Objects.** `CREDORA_SVC`, `CREDORA_RM`, `EXA_ALL_SESSIONS`
 
@@ -1177,7 +1196,7 @@ EMITS (gstin VARCHAR(15), legal_name VARCHAR(120), pan VARCHAR(10), state_name V
 
 An Exasol view reads its tables with the rights of the view's owner. A user only needs the right to read the view, not the tables under it.
 
-**In Exasol.** R_RM is granted the V_RM_* views but has no grant on DECISIONS, SCORES, FEATURES or APPLICATIONS. CREDORA.V_SESSION_SCOPE reads EXA_DBA_ROLE_PRIVS with its owner's rights to tell whether the logged-in user holds R_RM.
+**In Exasol.** R_RM is granted the V_RM_* views but has no grant on DECISIONS, SCORES, FEATURES or APPLICATIONS. CREDORA.V_SESSION_SCOPE reads EXA_DBA_ROLE_PRIVS with its owner's rights to tell whether the logged-in user holds R_RM, and strips the _AI suffix of an AI session user from CURRENT_USER.
 
 **Objects.** `CREDORA.V_SESSION_SCOPE`, `CREDORA.V_RM_DECISIONS`, `CREDORA.V_LATEST_DECISION`
 
@@ -1185,7 +1204,7 @@ From [`exasol/sql/13_rm_row_security.sql`](../exasol/sql/13_rm_row_security.sql)
 
 ```sql
 CREATE OR REPLACE VIEW CREDORA.V_SESSION_SCOPE AS
-SELECT CURRENT_USER EXA_USER,
+SELECT REGEXP_REPLACE(CURRENT_USER, '_AI$', '') EXA_USER,
        CASE WHEN EXISTS (SELECT 1 FROM EXA_DBA_ROLE_PRIVS p
                          WHERE p.GRANTEE = CURRENT_USER AND p.GRANTED_ROLE = 'R_RM') THEN TRUE ELSE FALSE END IS_RM
 FROM DUAL;
@@ -1287,7 +1306,7 @@ r = requests.post(f"{conn.address}/v1/fi/bulk", json={"pans": pans[i:i + 200], "
 
 Approve means a pre-approved offer. Refer means an offer that a credit committee reviews first. Decline means no offer.
 
-**In Exasol.** DECLINE on any hard fail. REFER when KYC is not verified, the grade is C2 or D, the offer is under half the indicated need, the hurdle needs a rate above the rate card, or the anomaly model flagged the company. Otherwise APPROVE.
+**In Exasol.** DECLINE on any hard fail. REFER when KYC is not verified, no GST returns are on file (GST_TURNOVER_12M is 0 or GST_LATE_FILINGS_12M is null, reason "No GST returns on file"), the grade is C2 or D, the offer is under half the indicated need, the hurdle needs a rate above the rate card, or the anomaly model flagged the company. Otherwise APPROVE.
 
 **Objects.** `CREDORA.DECISIONS`
 
@@ -1295,11 +1314,15 @@ From [`exasol/lua/06_run_analysis.sql`](../exasol/lua/06_run_analysis.sql).
 
 ```sql
 CASE WHEN FAILS IS NOT NULL THEN 'DECLINE'
-     WHEN KYC_STATUS <> 'VERIFIED' OR GRADE IN ('C2', 'D') OR OFFER_AMT < AMOUNT_REQUESTED * 0.5
+     WHEN KYC_STATUS <> 'VERIFIED' OR GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL  -- no GST returns on file means a person looks first, never a decline
+          OR GRADE IN ('C2', 'D') OR OFFER_AMT < AMOUNT_REQUESTED * 0.5
           OR FLOOR_ROI_RAW > LIST_ROI
           OR OFFER_AMT <= 0 THEN 'REFER'
      WHEN ANOMALY IS NOT NULL THEN 'REFER'  -- unusual figures: a person looks first; never a decline
      ELSE 'APPROVE' END DECISION,
+NULLIF(TRIM(BOTH ';' FROM COALESCE(FAILS, '') ||
+       CASE WHEN KYC_STATUS <> 'VERIFIED' THEN ';KYC ' || KYC_STATUS ELSE '' END ||
+       CASE WHEN GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL THEN ';No GST returns on file' ELSE '' END ||
 ```
 
 **See also.** [Hard fail](#hard-fail), [KYC](#kyc), [Isolation Forest anomaly flag](#anomaly-flag)
@@ -1342,6 +1365,17 @@ MIN(CASE WHEN c.SCORE = -1 THEN 650 ELSE c.SCORE END) MIN_SCORE,
 ```
 
 **See also.** [CIBIL commercial report](#cibil-commercial), [Hard fail](#hard-fail)
+
+<a id="cicra-2005"></a>
+### CICRA 2005
+
+The Credit Information Companies (Regulation) Act, 2005. It governs credit bureaus such as CIBIL and how lenders pull and use credit reports, with the customer's consent.
+
+**In Exasol.** The CIBIL UDFs fetch reports only for the bank's own customers and their partners, and every raw reply in CREDORA_STAGE carries PURGE_AT, so the report is kept only as long as the run needs it.
+
+**Objects.** `CREDORA.CIBIL_CONSUMER_FETCH`, `CREDORA.CIBIL_COMMERCIAL_FETCH`, `CREDORA_STAGE.CIBIL_CONSUMER`, `CREDORA_STAGE.CIBIL_COMMERCIAL`
+
+From [`exasol/udf/04_api_udfs.sql`](../exasol/udf/04_api_udfs.sql).
 
 <a id="cmr-rank"></a>
 ### CMR rank
@@ -1527,7 +1561,7 @@ The monthly GST summary return in which the business declares and pays its tax.
 
 A policy rule that blocks an offer whatever the model says.
 
-**In Exasol.** Wilful defaulter, CMR rank 9 or 10, 4 or more late GST returns in 12 months, a partner's CIBIL score below 600, or a bounce ratio above 8% gives DECLINE. The reasons are stored in DECISIONS.HARD_FAILS.
+**In Exasol.** Wilful defaulter, CMR rank 9 or 10, 4 or more late GST returns in 12 months (only when GST_LATE_FILINGS_12M is not null), a partner's CIBIL score below 600, or a bounce ratio above 8% gives DECLINE. A company with no GST returns on file is never declined for it. It is REFERRED with the reason "No GST returns on file". The reasons are stored in DECISIONS.HARD_FAILS.
 
 **Objects.** `CREDORA.DECISIONS`
 
@@ -1536,7 +1570,8 @@ From [`exasol/lua/06_run_analysis.sql`](../exasol/lua/06_run_analysis.sql).
 ```sql
 CASE WHEN WILFUL_DEFAULT THEN 'Wilful defaulter;' ELSE '' END ||
 CASE WHEN CMR_RANK >= 9 THEN 'CIBIL CMR rank ' || CMR_RANK || ';' ELSE '' END ||
-CASE WHEN GST_LATE_FILINGS_12M >= 4 THEN GST_LATE_FILINGS_12M || ' late GST returns in 12 months;' ELSE '' END ||
+CASE WHEN GST_LATE_FILINGS_12M IS NOT NULL AND GST_LATE_FILINGS_12M >= 4
+     THEN GST_LATE_FILINGS_12M || ' late GST returns in 12 months;' ELSE '' END ||
 CASE WHEN PARTNER_MIN_SCORE < 600 THEN 'Partner CIBIL ' || PARTNER_MIN_SCORE || ' below 600;' ELSE '' END ||
 CASE WHEN BOUNCE_RATIO > 0.08 THEN 'Bounce ratio ' || ROUND(BOUNCE_RATIO * 100, 1) || '%;' ELSE '' END), '') FAILS
 ```
@@ -1570,6 +1605,15 @@ What the company has told the bank it might need, with product, amount, tenure a
 **Objects.** `VS_LOS`, `CREDORA.APPLICATIONS`
 
 **See also.** [Pre-approved offer](#pre-approved-offer), [Working capital (WC)](#working-capital), [Term loan (TL)](#term-loan)
+
+<a id="kfs"></a>
+### KFS (Key Facts Statement)
+
+A one-page statement of the loan's cost that a lender gives the borrower before the loan, with the rate, fees and the annual percentage rate (APR).
+
+**In Exasol.** Not implemented. The offer in CREDORA.DECISIONS has an amount, ROI and tenure, and no KFS or APR fields. They would be needed before a real customer saw the offer.
+
+**Objects.** `CREDORA.DECISIONS`
 
 <a id="kyc"></a>
 ### KYC
@@ -1618,6 +1662,28 @@ One person makes a change and a second person checks and approves it. No one can
 **In Exasol.** For offers, the RM proposes terms and loan operations verifies and sanctions. For policy, the data scientist proposes and the admin approves. Each step is a separate login and a separate Exasol user.
 
 **See also.** [Offer stages](#offer-stages), [Policy proposal](#policy-proposal), [Model activation approval](#model-activation-approval)
+
+<a id="model-risk-management"></a>
+### Model risk management
+
+How a bank controls the risk that a credit model is wrong. The RBI's 2024 guidance on model risk management for credit asks for validation, a record of each model, and approval before a model is used.
+
+**In Exasol.** TRAIN_MODEL trains the champion and the challenger on the same loans and the same hold-out and records both in MODEL_REGISTRY with AUC, Gini and a SHA-256 of the model file. The challenger is scored in the shadow on every run, and a version decides nothing until the admin approves its activation.
+
+**Objects.** `CREDORA.TRAIN_MODEL`, `CREDORA.MODEL_REGISTRY`, `CREDORA.CHALLENGER_SCORES`
+
+From [`exasol/udf/05_ml_udfs.sql`](../exasol/udf/05_ml_udfs.sql).
+
+<a id="nayak-committee"></a>
+### Nayak committee (turnover method)
+
+An RBI committee whose turnover method sizes a working-capital limit as a share of the borrower's annual turnover.
+
+**In Exasol.** The policy key MAX_GST_SHARE_PCT in CREDORA.CONFIG (20% by default) caps the working-capital offer as a share of the company's 12-month GST turnover. DSCR caps it again.
+
+**Objects.** `CREDORA.CONFIG`, `CREDORA.DECISIONS`
+
+From [`exasol/lua/06_run_analysis.sql`](../exasol/lua/06_run_analysis.sql).
 
 <a id="negotiation-limit"></a>
 ### Negotiation limit
@@ -1839,9 +1905,9 @@ ELSE LEAST(GST_TURNOVER_12M * GST_SHARE / 100, CASH / MIN_DSCR / (GREATEST(LIST_
 
 Plain-English questions about the analysis, answered by Claude with the exact SQL it ran.
 
-**In Exasol.** Answers come from the semantic view CREDORA_SEM.PORTFOLIO first, then plain SQL where the role's grants allow. The MCP server logs in as the signed-in role's Exasol user, so Exasol decides what the AI can read.
+**In Exasol.** Answers come from the semantic view CREDORA_SEM.PORTFOLIO first, then plain SQL where the role's grants allow. The MCP server logs in as the person's own AI session user (CREDORA_RM_AI for the relationship manager), which holds the same role as the person, so Exasol decides what the AI can read.
 
-**Objects.** `CREDORA_SEM.PORTFOLIO`, `CREDORA_ADMIN`, `CREDORA_RM`
+**Objects.** `CREDORA_SEM.PORTFOLIO`, `CREDORA_ADMIN_AI`, `CREDORA_RM_AI`
 
 **See also.** [Exasol MCP server](#exasol-mcp-server), [Ask Credora topic gate](#topic-gate), [Semantic view (exasol-semantic-views)](#semantic-view), [MCP tool call](#mcp-tool-call)
 
@@ -1875,7 +1941,7 @@ async def _on_topic(client: Any, question: str) -> bool:
 
 Anthropic's AI model. In Credora it answers plain-English questions and writes short credit memos.
 
-**In Exasol.** Claude never connects to Exasol directly. It reads data only through Exasol MCP server tool calls as the person's Exasol user, or receives the facts inside the CREDIT_MEMO UDF.
+**In Exasol.** Claude never connects to Exasol directly. It reads data only through Exasol MCP server tool calls as the person's AI session user, or receives the facts inside the CREDIT_MEMO UDF.
 
 **Objects.** `AI_LLM`, `CREDORA.CREDIT_MEMO`
 
@@ -1934,7 +2000,7 @@ except asyncio.TimeoutError:
 
 A machine-learning model trained on the bank's 5,000 past loans that estimates how likely each company is to default.
 
-**In Exasol.** CREDORA.TRAIN_PD trains gradient-boosted trees (scikit-learn HistGradientBoosting with monotonic constraints) in a Python UDF on VS_LOS."past_loan_training", read live from PostgreSQL. Step 9 scores every company with CREDORA.PD_SCORE, which also returns each feature's effect on the PD.
+**In Exasol.** CREDORA.TRAIN_PD trains gradient-boosted trees (scikit-learn HistGradientBoosting with monotonic constraints) in a Python UDF on VS_LOS."past_loan_training", read live from PostgreSQL. Step 9 scores every company with CREDORA.PD_SCORE, which checks the model file's SHA-256 against MODEL_REGISTRY before unpickling and also returns each feature's effect on the PD.
 
 **Objects.** `CREDORA.TRAIN_PD`, `CREDORA.PD_SCORE`, `CREDORA.SCORES`, `VS_LOS`
 
@@ -1948,11 +2014,11 @@ step(9, 'Score probability of default (ML UDF)', function()
            CASE WHEN pd < 0.01 THEN 'A1' WHEN pd < 0.02 THEN 'A2' WHEN pd < 0.035 THEN 'B1' WHEN pd < 0.05 THEN 'B2'
                 WHEN pd < 0.08 THEN 'C1' WHEN pd < 0.12 THEN 'C2' ELSE 'D' END,
            contributions
-    FROM (SELECT CREDORA.PD_SCORE(:mp, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT,
+    FROM (SELECT CREDORA.PD_SCORE(:mp, :mh, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT,
                                   AVG_BALANCE_12M, INFLOW_VOLATILITY, BOUNCE_RATIO, CMR_RANK, PARTNER_MIN_SCORE,
                                   PARTNER_AVG_SCORE, PARTNER_OVERDUE_AMT, PARTNER_OTHER_BANK_BAL, DSCR)
           FROM CREDORA.FEATURES WHERE RUN_ID = :r GROUP BY MOD(ASCII(SUBSTR(HASH_MD5(APP_ID), 1, 1)), 4))]],
-    {r = run_id, mv = model_version, mp = model_path}))
+    {r = run_id, mv = model_version, mp = model_path, mh = model_sha256}))
 ```
 
 **See also.** [PD (probability of default)](#pd), [Risk grade](#grade), [MODEL_REGISTRY](#model-registry), [Challenger scorecard model](#challenger-model)
@@ -2050,7 +2116,7 @@ def _trace(conn, user, sql, params, t0, rows, error=None):
 
 A live map of the database. It shows schemas, virtual schemas, scripts and their language containers, connections, the model registry, roles and grants, the preprocessor, the semantic model and the latest run.
 
-**In Exasol.** GET /api/exasol/control-room reads Exasol's system tables (EXA_ALL_SCHEMAS, EXA_ALL_OBJECTS, EXA_ALL_VIRTUAL_SCHEMAS, EXA_ALL_SCRIPTS, EXA_ALL_CONNECTIONS, EXA_PARAMETERS, SEMANTIC_CATALOG) as the signed-in role's own Exasol user, so each role sees what its grants allow. The admin also reads EXA_DBA_* and EXA_DBA_SESSIONS through SELECT ANY DICTIONARY. Cached for a few seconds per role.
+**In Exasol.** GET /api/exasol/control-room reads Exasol's system tables (EXA_ALL_SCHEMAS, EXA_ALL_OBJECTS, EXA_ALL_VIRTUAL_SCHEMAS, EXA_ALL_SCRIPTS, EXA_ALL_CONNECTIONS, EXA_PARAMETERS, SEMANTIC_CATALOG) as the signed-in role's own Exasol user, so each role sees what its grants allow. The admin also reads EXA_DBA_* and EXA_DBA_SESSIONS through SELECT ANY DICTIONARY, granted to the user CREDORA_ADMIN only. The panel "Row-level security, proven by Exasol" (GET /api/admin/rls-proof, admin and data scientist) runs one count as CREDORA_RM, CREDORA_RM_AI and CREDORA_RM002 and shows Exasol refusing CREDORA_RM on CREDORA.DECISIONS. Cached for a few seconds per role.
 
 **Objects.** `EXA_ALL_SCHEMAS`, `EXA_ALL_OBJECTS`, `EXA_ALL_VIRTUAL_SCHEMAS`, `EXA_ALL_SCRIPTS`, `EXA_DBA_SESSIONS`
 
@@ -2091,7 +2157,7 @@ From [`exasol/sql/13_rm_row_security.sql`](../exasol/sql/13_rm_row_security.sql)
 CREATE OR REPLACE VIEW CREDORA.V_RM_LOAN_STATUS AS
 SELECT l.EVENT_ID, l.CIF_ID, l.RM_ID, l.STATUS, l.NOTE, l.LOGGED_BY, l.LOGGED_AT
 FROM CREDORA.LOAN_STATUS_LOG l
-JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = l.CIF_ID AND a.EXA_USER = CURRENT_USER;
+JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = l.CIF_ID AND a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$', '');
 ```
 
 **See also.** [Offer stages](#offer-stages), [Disbursal](#disbursal)

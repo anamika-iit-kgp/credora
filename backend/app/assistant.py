@@ -1,11 +1,16 @@
 """Ask Credora: plain-English questions about the analysis, answered by Claude with the Exasol MCP server.
 
 The backend starts the official Exasol MCP server (exasol-mcp-server) over stdio for each question,
-logged in as the signed-in person's own Exasol user (CREDORA_ADMIN, _DATASCI, _LOANOPS or _RM), so
-Exasol's grants decide what the AI may read: admins and data scientists see results, the bank's
-databases through the virtual schemas and the raw 3rd party data; loan operations sees results and the
-bank's databases; relationship managers see results and the masked company view only. The MCP server
-runs with writes switched off. Claude gets the server's tools, runs SQL through them, and answers. Every tool call is
+logged in as the signed-in person's AI session user (CREDORA_ADMIN_AI, _DATASCI_AI, _LOANOPS_AI or
+_RM_AI). That user holds the same role as the person, so Exasol's grants decide what the AI may read.
+Admins and data scientists see results, the bank's databases through the virtual schemas and the raw
+3rd party data. Loan operations sees results and the bank's databases. Relationship managers see
+their own book only, because the row filter treats CREDORA_RM_AI as CREDORA_RM
+(exasol/sql/13_rm_row_security.sql). The AI users sit in consumer group CREDORA_AI, whose statement
+timeout and memory limit cap every query the AI runs (exasol/sql/16_resources.sql), and the admin's
+AI user has no dictionary access, so the AI cannot read the audit log or the system tables. A role
+whose AI user has no password gets a 503, never another user. The MCP server runs with writes
+switched off. Claude gets the server's tools, runs SQL through them, and answers. Every tool call is
 returned with the answer so the UI can show how the answer was found.
 
 Claude is told to answer from the semantic layer first: CREDORA_SEM.PORTFOLIO, a semantic view
@@ -25,13 +30,18 @@ import shutil
 import time
 from typing import Any
 
+from fastapi import HTTPException
+
 from . import ai, console, exa, runs
 from .config import settings
 
 log = logging.getLogger("credora.assistant")
 
 MCP_SERVER_PACKAGE = "exasol-mcp-server@2.3.0"
+# The read-only user for sessions that belong to no signed-in person (the self-test). A person's
+# questions always run as that person's AI session user, see exasol_login.
 MCP_USER = "CREDORA_MCP"
+AI_USER_SUFFIX = "_AI"
 # Read-only: SELECT and metadata only; no writes, no BucketFS, no profiling.
 MCP_SETTINGS = {
     "enable_read_query": True,
@@ -228,17 +238,18 @@ companies by PAN or GSTIN. Raw rows are purged after their purge time, so older 
 """
 
 ROLE_PROMPTS = {
-    "admin": "YOUR ROLE: Admin, logged in as CREDORA_ADMIN (read-only). You may read every CREDORA object "
-             "above, the semantic view, Sapphire Bank's databases and the raw 3rd party data:" + BANK_DATA_PROMPT
-             + STAGE_PROMPT,
-    "datasci": "YOUR ROLE: Data scientist, logged in as CREDORA_DATASCI (read-only). You may read every "
-               "CREDORA object above, the semantic view, Sapphire Bank's databases and the raw 3rd party data:"
-               + BANK_DATA_PROMPT + STAGE_PROMPT,
-    "loanops": "YOUR ROLE: Loan operations, logged in as CREDORA_LOANOPS (read-only). You may read every "
-               "CREDORA object above, the semantic view and Sapphire Bank's databases. You may NOT read the "
-               "raw 3rd party data in CREDORA_STAGE; for CIBIL, GST or AA facts use the features and decisions."
-               + BANK_DATA_PROMPT,
-    "rm": "YOUR ROLE: Relationship manager, logged in as CREDORA_RM (read-only). Exasol shows you ONLY the "
+    "admin": "YOUR ROLE: Admin, logged in as CREDORA_ADMIN_AI (read-only, the admin's AI session user). You "
+             "may read every CREDORA object above, the semantic view, Sapphire Bank's databases and the raw 3rd "
+             "party data, but not Exasol's system tables or audit log:" + BANK_DATA_PROMPT + STAGE_PROMPT,
+    "datasci": "YOUR ROLE: Data scientist, logged in as CREDORA_DATASCI_AI (read-only, the data scientist's AI "
+               "session user). You may read every CREDORA object above, the semantic view, Sapphire Bank's "
+               "databases and the raw 3rd party data:" + BANK_DATA_PROMPT + STAGE_PROMPT,
+    "loanops": "YOUR ROLE: Loan operations, logged in as CREDORA_LOANOPS_AI (read-only, loan operations' AI "
+               "session user). You may read every CREDORA object above, the semantic view and Sapphire Bank's "
+               "databases. You may NOT read the raw 3rd party data in CREDORA_STAGE; for CIBIL, GST or AA facts "
+               "use the features and decisions." + BANK_DATA_PROMPT,
+    "rm": "YOUR ROLE: Relationship manager, logged in as CREDORA_RM_AI (read-only, the AI session user that "
+          "acts for CREDORA_RM). Exasol shows you ONLY the "
           "companies loan operations assigned to you, in published runs; it filters the rows itself, so "
           "every query below already returns only your companies and needs no RM filter. You may read: "
           "CREDORA.V_RM_DECISIONS (same columns as DECISIONS), V_RM_SCORES (as SCORES), V_RM_FEATURES (as "
@@ -270,15 +281,10 @@ def system_prompt(run_id: str | None, role: str = "rm") -> str:
     return out
 
 
-# Exasol cannot move one session into another consumer group (groups belong to users and roles, and
-# Ask Credora logs in as the person's own role user), so the AI's limits are set per session: every
-# connection the MCP server opens runs these first (app/mcp_session.py). A runaway AI query is
-# cancelled after 60 s, holds at most 2 GiB of temporary memory, and runs at reduced priority.
-AI_SESSION_SQL = [
-    "ALTER SESSION SET QUERY_TIMEOUT = 60",
-    "ALTER SESSION SET NICE = 'ON'",
-    "ALTER SESSION SET SESSION_TEMP_DB_RAM_LIMIT = '2G'",
-]
+# The MCP server is started through a wrapper that names each session for Exasol's audit log
+# (app/mcp_session.py). The AI's limits come from the consumer group of its session user, CREDORA_AI
+# (exasol/sql/16_resources.sql). A runaway AI query is cancelled after 60 s, holds at most 2 GiB of
+# temporary memory, and runs at the lowest priority. No session setting is needed for that.
 MCP_SESSION_WRAPPER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_session.py")
 MCP_PYTHON = "/opt/exasol-mcp/bin/python"  # the MCP server's own virtual environment (backend/Dockerfile)
 
@@ -294,12 +300,27 @@ def server_command() -> list[str]:
     return ["uvx", MCP_SERVER_PACKAGE]
 
 
-def exasol_login(role: str | None) -> tuple[str, str]:
-    """The Exasol user the MCP server logs in as: the signed-in person's role user, or CREDORA_MCP."""
+def ai_user(role: str | None) -> str | None:
+    """The AI session user of a signed-in role, CREDORA_<ROLE>_AI, or None when there is no role."""
     user = exa.ROLE_USER.get(role or "")
-    if user and settings.exa_passwords.get(user):
-        return user, settings.exa_passwords[user]
-    return MCP_USER, settings.exa_mcp_password
+    return f"{user}{AI_USER_SUFFIX}" if user else None
+
+
+def exasol_login(role: str | None) -> tuple[str, str]:
+    """The Exasol user the MCP server logs in as, with its password.
+
+    A signed-in person's questions run as that person's AI session user (CREDORA_RM_AI for the
+    relationship manager, and so on), which holds the person's role and sits in consumer group
+    CREDORA_AI. A role whose AI user has no password gets a 503 and never another user. Without a
+    role (the self-test) the read-only CREDORA_MCP is used.
+    """
+    if not role:
+        return MCP_USER, settings.exa_mcp_password
+    user = ai_user(role)
+    password = settings.exa_passwords.get(user or "", "")
+    if not user or not password:
+        raise HTTPException(503, "Ask Credora is not set up for this role.")
+    return user, password
 
 
 def server_env(base: dict[str, str] | None = None, role: str | None = None) -> dict[str, str]:
@@ -311,9 +332,8 @@ def server_env(base: dict[str, str] | None = None, role: str | None = None) -> d
         "EXA_USER": user,
         "EXA_PASSWORD": password,
         "EXA_MCP_SETTINGS": json.dumps(MCP_SETTINGS),
-        # Read by app/mcp_session.py: the audit tag and the per-session limits of the AI's sessions.
+        # Read by app/mcp_session.py, the audit tag of the AI's sessions.
         "CREDORA_CLIENT_NAME": exa.client_tag(role or "mcp", "ask-credora"),
-        "CREDORA_SESSION_SQL": json.dumps(AI_SESSION_SQL),
         "EXASOL_TELEMETRY_DISABLE": "yes",
         "FASTMCP_SHOW_SERVER_BANNER": "false",
         "FASTMCP_CHECK_FOR_UPDATES": "off",
@@ -324,7 +344,9 @@ def server_env(base: dict[str, str] | None = None, role: str | None = None) -> d
 
 
 def enabled() -> bool:
-    return ai.enabled() and bool(settings.exa_mcp_password)
+    """Ask Credora is on when an AI provider is configured and at least one AI session user has a
+    password. A role whose own AI user is not set up still gets a 503 when it asks."""
+    return ai.enabled() and any(settings.exa_passwords.get(f"{u}{AI_USER_SUFFIX}") for u in exa.ROLE_USER.values())
 
 
 def status() -> dict:
@@ -401,6 +423,10 @@ async def ask(question: str, role: str = "rm") -> dict:
     client = ai.client()
     if client is None or not enabled():
         raise AssistantUnavailable("Ask Credora is off: no AI provider is configured on this server.")
+    try:
+        exa_user, _ = exasol_login(role)
+    except HTTPException as e:  # the route answers 503 with this text, before any AI call
+        raise AssistantUnavailable(str(e.detail)) from e
 
     if not await _on_topic(client, question):
         return {"answer": OFF_TOPIC_ANSWER, "steps": [], "model": settings.ai_model, "run_id": None,
@@ -421,7 +447,7 @@ async def ask(question: str, role: str = "rm") -> dict:
             log.warning("Exasol MCP server failed: %s", e)
             raise AssistantUnavailable("The Exasol MCP server could not start. Try again shortly.") from e
     return {"answer": answer, "steps": steps, "model": settings.ai_model, "run_id": run_id,
-            "exasol_user": exasol_login(role)[0]}
+            "exasol_user": exa_user}
 
 
 async def _on_topic(client: Any, question: str) -> bool:
@@ -472,7 +498,7 @@ async def _loop(client: Any, session: Any, system: str, tools: list[dict], messa
                 text, is_error = "The query took too long.", True
             except Exception as e:  # noqa: BLE001 - reported to Claude as a failed tool call
                 text, is_error = f"Tool call failed: {e}", True
-            console.mcp_call(b.name, b.input or {}, exasol_login(console.current().role)[0],
+            console.mcp_call(b.name, b.input or {}, ai_user(console.current().role) or MCP_USER,
                              (time.perf_counter() - t0) * 1000, is_error, text[:300] if is_error else None)
             steps.append({"tool": b.name, "input": b.input or {}, "result_preview": clip(text, PREVIEW_CHARS),
                           "is_error": is_error})

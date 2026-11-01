@@ -236,3 +236,244 @@ th.sel input {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- the demo rail on the Overview: the workflow across roles ---------- */
+.rail {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--hi-inset), var(--shadow-rest);
+}
+.rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 52px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rail-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rail-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+.rail-sub {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--muted);
+}
+.rail-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  overflow: hidden;
+}
+.rail-step {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 18px 18px;
+}
+.rail-step + .rail-step {
+  border-left: 1px solid var(--line-soft);
+}
+/* the arrow head on the divider, in the direction the work moves */
+.rail-step + .rail-step::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 24px;
+  width: 8px;
+  height: 8px;
+  border-top: 1.5px solid var(--line-strong);
+  border-right: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+.rail-n {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.rail-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  align-content: start;
+}
+.rail-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+.rail-role svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.75;
+  color: var(--muted);
+}
+.tag-you {
+  background: var(--sapphire-tint);
+  color: var(--sapphire);
+}
+.rail-text {
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--muted);
+}
+.rail-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+/* the viewer's own step */
+.rail-step.is-mine {
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--sapphire) 14%, transparent) 0%, transparent 60%),
+    var(--surface);
+}
+.rail-step.is-mine::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--sapphire);
+}
+.rail-step.is-mine .rail-n {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-accent);
+}
+.rail-step.is-mine .rail-role svg {
+  color: var(--sapphire);
+}
+
+/* switch role: a small menu of the demo users */
+.rail-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rail-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 250px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  animation: fade var(--dur-fast) ease both;
+}
+.rail-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.rail-menu-item:hover,
+.rail-menu-item:focus-visible {
+  background: var(--surface-3);
+}
+.rail-menu-item svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.75;
+  color: var(--muted);
+}
+.rail-menu-item code {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.rail-menu-item[aria-current] {
+  color: var(--sapphire);
+}
+.rail-menu-item[aria-current] svg {
+  color: var(--sapphire);
+}
+.rail-error {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--decline);
+}
+
+@media (max-width: 980px) {
+  .rail-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rail-step:nth-child(3) {
+    border-left: 0;
+  }
+  .rail-step:nth-child(3)::before {
+    display: none;
+  }
+  .rail-step:nth-child(n + 3) {
+    border-top: 1px solid var(--line-soft);
+  }
+}
+@media (max-width: 640px) {
+  .rail-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail-step + .rail-step {
+    border-left: 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .rail-step + .rail-step::before {
+    display: none;
+  }
+  .rail-menu {
+    right: auto;
+    left: 0;
+  }
+}

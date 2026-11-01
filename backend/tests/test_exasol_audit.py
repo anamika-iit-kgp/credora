@@ -163,17 +163,21 @@ def test_scheduler_history_is_utc():
 
 # ---------------------------------------------------------------- Ask Credora's sessions, TLS pinning
 
-def test_mcp_sessions_get_the_ai_limits_and_a_tag(monkeypatch):
+def test_mcp_sessions_log_in_as_the_ai_user_with_a_tag(monkeypatch):
+    # The AI user sits in consumer group CREDORA_AI, which carries the limits, so no session SQL.
+    s = assistant.settings
+    monkeypatch.setattr(assistant, "settings",
+                        type(s)(**{**s.__dict__, "exa_passwords": {**s.exa_passwords, "CREDORA_LOANOPS_AI": "pw"}}))
     env = assistant.server_env({}, "loanops")
+    assert env["EXA_USER"] == "CREDORA_LOANOPS_AI"
     assert env["CREDORA_CLIENT_NAME"] == "credora:loanops:ask-credora"
-    sql = json.loads(env["CREDORA_SESSION_SQL"])
-    assert "ALTER SESSION SET QUERY_TIMEOUT = 60" in sql and any("NICE" in s for s in sql)
-    assert any("SESSION_TEMP_DB_RAM_LIMIT" in s for s in sql)
+    assert "CREDORA_SESSION_SQL" not in env
 
 
 def test_fingerprint_is_pinned_when_configured(monkeypatch):
     s = exa.settings
-    monkeypatch.setattr(exa, "settings", type(s)(**{**s.__dict__, "exasol_fingerprint": "AB12" * 16}))
+    monkeypatch.setattr(exa, "settings", type(s)(**{**s.__dict__, "exasol_fingerprint": "AB12" * 16,
+                                                   "exa_passwords": {**s.exa_passwords, "CREDORA_ADMIN_AI": "pw"}}))
     assert exa.dsn().endswith("/" + "AB12" * 16 + ":" + s.exasol_port)
     assert exa.ssl_options() is None  # pyexasol checks the fingerprint itself
     monkeypatch.setattr(assistant, "settings", exa.settings)
@@ -183,7 +187,8 @@ def test_fingerprint_is_pinned_when_configured(monkeypatch):
 
 def test_without_fingerprint_the_certificate_is_not_checked(monkeypatch):
     s = exa.settings
-    monkeypatch.setattr(exa, "settings", type(s)(**{**s.__dict__, "exasol_fingerprint": ""}))
+    monkeypatch.setattr(exa, "settings", type(s)(**{**s.__dict__, "exasol_fingerprint": "",
+                                                   "exa_passwords": {**s.exa_passwords, "CREDORA_ADMIN_AI": "pw"}}))
     assert "/" not in exa.dsn()
     assert exa.ssl_options() == {"cert_reqs": 0}
     monkeypatch.setattr(assistant, "settings", exa.settings)

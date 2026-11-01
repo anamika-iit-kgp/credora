@@ -12,6 +12,8 @@ import threading
 from decimal import Decimal
 from typing import Any
 
+from fastapi import HTTPException
+from psycopg import errors
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
@@ -35,6 +37,10 @@ SCHEMA_SQL = [
       action VARCHAR(20) NOT NULL, amount NUMERIC(18,2), roi NUMERIC(6,3), tenure INTEGER,
       note VARCHAR(400), at TIMESTAMP NOT NULL DEFAULT now())""",
     "CREATE INDEX IF NOT EXISTS offer_app_ix ON offer (app_id)",
+    # One offer per credit need and run. sync_offers inserts a row only for an app_id not yet in the
+    # table, so the rule holds by construction. The index makes two exports that overlap fail
+    # instead of writing the same offer twice. ensure_schema skips it while old duplicates exist.
+    "CREATE UNIQUE INDEX IF NOT EXISTS offer_run_app_ux ON offer (run_id, app_id)",
     "CREATE INDEX IF NOT EXISTS offer_event_offer_ix ON offer_event (offer_id)",
     # Denormalised so the CRM can scope offers to an RM and show names without the bank master.
     "ALTER TABLE offer ADD COLUMN IF NOT EXISTS legal_name VARCHAR(120)",
@@ -100,7 +106,12 @@ def ensure_schema() -> None:
         return
     with pool().connection() as c:
         for stmt in SCHEMA_SQL:
-            c.execute(stmt)
+            try:
+                c.execute(stmt)
+            except errors.UniqueViolation as e:
+                # Rows written before a unique index existed break its rule. The index waits until
+                # they are cleaned up. The pool is in autocommit, so the other statements still run.
+                log.warning("skipped %s, existing rows break it (%s)", stmt.split(" ON ")[0], e)
     _schema_ready = True
 
 
@@ -190,23 +201,29 @@ def sync_offers(run_id: str, decisions: list[dict]) -> dict[str, int]:
              None if d.get("PD") is None else round(float(d["PD"]), 5), d.get("RANK_NO"), d.get("OFFER_AMOUNT"),
              d.get("OFFER_ROI"), d.get("OFFER_TENURE"), d.get("FLOOR_ROI"), d.get("MAX_AMOUNT"),
              d.get("MAX_TENURE"), stage_for(d["DECISION"])) for d in decisions]
-    with pool().connection() as c, c.transaction():
-        c.execute(f"CREATE TEMP TABLE run_offer ON COMMIT DROP AS SELECT {', '.join(cols)} FROM offer WITH NO DATA")
-        with c.cursor().copy(f"COPY run_offer ({', '.join(cols)}) FROM STDIN") as cp:
-            for r in rows:
-                cp.write_row(r)
-        sets = ", ".join(f"{k} = t.{k}" for k in cols if k != "app_id")
-        updated = c.execute(
-            f"UPDATE offer o SET {sets}, agreed_amount = NULL, agreed_roi = NULL, agreed_tenure = NULL, "
-            f"updated_at = now() FROM run_offer t WHERE o.app_id = t.app_id AND o.stage IN ('OFFERED', 'DECLINED')"
-        ).rowcount
-        inserted = c.execute(
-            f"INSERT INTO offer ({', '.join(cols)}) SELECT {', '.join('t.' + k for k in cols)} FROM run_offer t "
-            f"WHERE NOT EXISTS (SELECT 1 FROM offer o WHERE o.app_id = t.app_id)").rowcount
-        kept = c.execute(
-            "UPDATE offer o SET legal_name = t.legal_name, rm_id = t.rm_id FROM run_offer t "
-            "WHERE o.app_id = t.app_id AND o.stage IN ('NEGOTIATING', 'ESCALATED', 'VERIFIED', 'SANCTIONED')"
-        ).rowcount
+    try:
+        with pool().connection() as c, c.transaction():
+            c.execute(f"CREATE TEMP TABLE run_offer ON COMMIT DROP AS SELECT {', '.join(cols)} FROM offer WITH NO DATA")
+            with c.cursor().copy(f"COPY run_offer ({', '.join(cols)}) FROM STDIN") as cp:
+                for r in rows:
+                    cp.write_row(r)
+            sets = ", ".join(f"{k} = t.{k}" for k in cols if k != "app_id")
+            updated = c.execute(
+                f"UPDATE offer o SET {sets}, agreed_amount = NULL, agreed_roi = NULL, agreed_tenure = NULL, "
+                f"updated_at = now() FROM run_offer t WHERE o.app_id = t.app_id AND o.stage IN ('OFFERED', 'DECLINED')"
+            ).rowcount
+            inserted = c.execute(
+                f"INSERT INTO offer ({', '.join(cols)}) SELECT {', '.join('t.' + k for k in cols)} FROM run_offer t "
+                f"WHERE NOT EXISTS (SELECT 1 FROM offer o WHERE o.app_id = t.app_id)").rowcount
+            kept = c.execute(
+                "UPDATE offer o SET legal_name = t.legal_name, rm_id = t.rm_id FROM run_offer t "
+                "WHERE o.app_id = t.app_id AND o.stage IN ('NEGOTIATING', 'ESCALATED', 'VERIFIED', 'SANCTIONED')"
+            ).rowcount
+    except errors.UniqueViolation as e:
+        # offer_run_app_ux. Another export wrote this run's offers while this one ran. Its rows
+        # stand and this transaction rolled back, so nothing is written twice.
+        raise HTTPException(409, f"The offers of run {run_id} were just written by another request. "
+                                 "Reload to see them.") from e
     return {"updated": updated, "inserted": inserted, "kept": kept}
 
 

@@ -20,7 +20,7 @@ STEP_INFO: dict[int, dict[str, Any]] = {
                  "statement. Exasol pushes the reads down to each database. {rows} applications read.",
             engine="SQL · virtual schema", object="CREDORA.APPLICATIONS", sources=["bank.postgres", "bank.mysql"]),
     3: dict(name="Fetch partners' CIBIL consumer reports",
-            what="A Python UDF calls the CIBIL API's bulk endpoint, spread over 16 parallel UDF instances. "
+            what="A Python UDF calls the CIBIL API's bulk endpoint, in 16 batches that Exasol runs 4 at a time, each call tried up to 3 times. "
                  "{rows} consumer reports staged in CREDORA_STAGE with a 7-day purge time.",
             engine="Python UDF", object="CREDORA.CIBIL_CONSUMER_FETCH", sources=["api.cibil", "bank.mysql"]),
     4: dict(name="Fetch the company's CIBIL commercial report",

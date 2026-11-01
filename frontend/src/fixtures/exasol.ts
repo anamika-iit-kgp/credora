@@ -2,7 +2,7 @@
 // The statements follow the backend's real SQL (backend/app/routes/*.py); the control room follows what each
 // role's Exasol user really reads on the live database (EXA_ALL_*, EXA_ROLE_*, EXA_DBA_*).
 
-import type { ConsoleEntry, ControlRoom, CrSchema, CrScript, Section } from "../api/exasol";
+import type { ConsoleEntry, ControlRoom, CrSchema, CrScript, RlsProofRow, Section } from "../api/exasol";
 
 type Role = "admin" | "datasci" | "loanops" | "rm";
 interface U {
@@ -22,7 +22,9 @@ const buffers = new Map<string, ConsoleEntry[]>();
 
 function push(u: U, session: string | null, label: string, e: Partial<ConsoleEntry> & Pick<ConsoleEntry, "kind">, at = Date.now()) {
   const list = buffers.get(u.username) ?? [];
-  const last = list.slice(-6).find((x) => x.kind === "sql" && e.kind === "sql" && x.sql === e.sql && x.session === session && at - Date.parse(x.at) < 15000);
+  const last = list
+    .slice(-6)
+    .find((x) => x.kind === "sql" && e.kind === "sql" && x.sql === e.sql && x.exa_user === (e.exa_user ?? null) && x.session === session && at - Date.parse(x.at) < 15000);
   if (last) {
     last.repeat += 1;
     last.seq = ++seq;
@@ -57,6 +59,15 @@ const sql = (u: U, session: string | null, label: string, text: string, ms: numb
   push(u, session, label, { kind: "sql", sql: text.replace(/^\n+|\s+$/g, ""), exa_user: exa, ms: jitter(ms), rows }, at);
 
 const LATEST = `(SELECT RUN_ID FROM CREDORA.V_LATEST_RUN)`;
+
+/** The statements behind /api/admin/rls-proof, one per relationship manager user, as the backend records them. */
+export function recordRlsProof(u: U, session: string | null, rows: RlsProofRow[]) {
+  const L = "Row-level security proof";
+  for (const r of rows) {
+    if (r.error) push(u, session, L, { kind: "sql", exa_user: r.exa_user, sql: r.sql, ms: r.ms, error: r.error });
+    else sql(u, session, L, r.sql, r.ms, r.rows ?? 0, r.exa_user);
+  }
+}
 
 /** The statements a request would make the backend run, by path. */
 export function recordFixture(u: U, method: string, path: string, session: string | null) {
@@ -441,23 +452,25 @@ const ROLE_GRANTS: Record<string, { users: string[]; system: string[]; objects: 
       OBJ("INSERT", "TABLE", "SCHED.SCHED_HISTORY"),
     ],
   },
+  // SELECT ANY DICTIONARY is granted to the user CREDORA_ADMIN, not to R_ADMIN, so the admin's AI
+  // session user (CREDORA_ADMIN_AI, role R_ADMIN only) cannot read the system tables or the audit log.
   R_ADMIN: {
-    users: ["CREDORA_ADMIN"],
-    system: ["CREATE SESSION", "SELECT ANY DICTIONARY"],
+    users: ["CREDORA_ADMIN", "CREDORA_ADMIN_AI"],
+    system: ["CREATE SESSION"],
     objects: ["CREDORA_STAGE", "CREDORA", "VS_CBS", "VS_CIF", "VS_LOS", "CREDORA_SEM"].map((s) => OBJ("SELECT", "SCHEMA", s)),
   },
   R_DATASCI: {
-    users: ["CREDORA_DATASCI"],
+    users: ["CREDORA_DATASCI", "CREDORA_DATASCI_AI"],
     system: ["CREATE SESSION"],
     objects: ["CREDORA_STAGE", "CREDORA", "VS_CBS", "VS_CIF", "VS_LOS", "CREDORA_SEM"].map((s) => OBJ("SELECT", "SCHEMA", s)),
   },
   R_LOANOPS: {
-    users: ["CREDORA_LOANOPS"],
+    users: ["CREDORA_LOANOPS", "CREDORA_LOANOPS_AI"],
     system: ["CREATE SESSION"],
     objects: ["CREDORA", "VS_CBS", "VS_CIF", "VS_LOS", "CREDORA_SEM"].map((s) => OBJ("SELECT", "SCHEMA", s)),
   },
   R_RM: {
-    users: ["CREDORA_RM"],
+    users: ["CREDORA_RM", "CREDORA_RM002", "CREDORA_RM_AI"],
     system: ["CREATE SESSION"],
     objects: [
       OBJ("SELECT", "SCHEMA", "CREDORA_SEM"),
@@ -565,7 +578,17 @@ export function controlRoomFixture(role: Role): ControlRoom {
             })),
             7,
           ),
-    security: ok({ scope: role === "admin" ? "dba" : "own", roles, users: role === "admin" ? ["CREDORA_ADMIN", "CREDORA_DATASCI", "CREDORA_LOANOPS", "CREDORA_MCP", "CREDORA_RM", "CREDORA_SVC", "SYS"] : [] }, 35),
+    security: ok(
+      {
+        scope: role === "admin" ? "dba" : "own",
+        roles,
+        users:
+          role === "admin"
+            ? ["CREDORA_ADMIN", "CREDORA_ADMIN_AI", "CREDORA_DATASCI", "CREDORA_DATASCI_AI", "CREDORA_LOANOPS", "CREDORA_LOANOPS_AI", "CREDORA_MCP", "CREDORA_RM", "CREDORA_RM002", "CREDORA_RM_AI", "CREDORA_SVC", "SYS"]
+            : [],
+      },
+      35,
+    ),
     preprocessor: ok(
       {
         system: "PREPROC_RT.MASTER",
@@ -597,7 +620,7 @@ export function controlRoomFixture(role: Role): ControlRoom {
               ["CREDORA_DATASCI", "IDLE", "NOT SPECIFIED", "credora:datasci:web", "CREDORA_APP", "0:04:51"],
               ["CREDORA_LOANOPS", "IDLE", "NOT SPECIFIED", "credora:loanops:web", "CREDORA_APP", "0:12:29"],
               ["CREDORA_RM", "IDLE", "NOT SPECIFIED", "credora:rm:web", "CREDORA_APP", "0:21:03"],
-              ["CREDORA_RM", "IDLE", "NOT SPECIFIED", "exasol-mcp-server", "CREDORA_APP", "0:00:41"],
+              ["CREDORA_RM_AI", "IDLE", "NOT SPECIFIED", "credora:rm:ask-credora", "CREDORA_AI", "0:00:41"],
             ].map(([user, status, command, client, group, duration], i) => ({
               session_id: `${1880577361 - i * 3}861607424`,
               user,

@@ -61,7 +61,8 @@ def activate(version: str) -> None:
     # The role users are read-only in Exasol; the switch is made by the service account.
     exa.query(exa.SVC, "UPDATE CREDORA.MODEL_REGISTRY SET IS_ACTIVE = (MODEL_VERSION = {v})", {"v": version})
     console.event(f"MODEL_REGISTRY.IS_ACTIVE switched to {version}. The next RUN_ANALYSIS scores with it (PD_SCORE "
-                  "loads its pickle from BucketFS)", exa_user=exa.SVC, objects=["CREDORA.MODEL_REGISTRY"])
+                  "loads its pickle from BucketFS after checking its SHA-256 against MODEL_SHA256)",
+                  exa_user=exa.SVC, objects=["CREDORA.MODEL_REGISTRY"])
 
 
 # ---------------------------------------------------------------- CRM store

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import threading
 from contextlib import asynccontextmanager
 
@@ -42,7 +43,7 @@ async def lifespan(app: FastAPI):
     crm.close()
 
 
-app = FastAPI(title="Credora API", version="1.0", lifespan=lifespan, docs_url="/api/docs",
+app = FastAPI(title="Credora API", version="1.1.0", lifespan=lifespan, docs_url="/api/docs",
               openapi_url="/api/openapi.json", redoc_url=None)
 
 for r in (core.router, explorer.router, analysis.router, ml.router, offers.router, policy.router, workflow.router,
@@ -59,7 +60,11 @@ app.include_router(exasol_audit.router)
 async def exa_query_error(request: Request, e: pyexasol.ExaQueryError):
     msg = getattr(e, "message", str(e))
     if getattr(e, "code", "") == "42500" or "insufficient privileges" in msg:
-        return JSONResponse({"detail": f"Exasol denied access for your role: {msg.split(' (Session')[0]}"}, 403)
+        # The refused statement goes with the message, on its own line, so the screen can show the
+        # SQL that Exasol turned down. It ran as the caller's own Exasol user, so it is theirs to see.
+        sql = re.sub(r"^/\*.*?\*/\s*", "", " ".join(str(getattr(e, "query", "") or "").split()))
+        detail = f"Exasol denied access for your role: {msg.split(' (Session')[0]}"
+        return JSONResponse({"detail": f"{detail}\n{sql}" if sql else detail}, 403)
     log.warning("Exasol query failed: %s", msg)
     return JSONResponse({"detail": f"Exasol query failed: {msg.split(' (Session')[0]}"}, 500)
 

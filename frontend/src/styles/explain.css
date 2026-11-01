@@ -1642,7 +1642,6 @@
   }
 }
 @media (max-width: 640px) {
-  .topbar-who-label,
   .topbar-btn-text {
     display: none;
   }
@@ -1720,4 +1719,82 @@
 }
 .xb-row:empty {
   display: none;
+}
+
+/* ---------- the Exasol strip: what this screen ran so far, always on, click to open the console ---------- */
+.xstrip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border: 1px solid color-mix(in srgb, var(--exa) 30%, var(--line));
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--exa-tint) 60%, transparent);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+.xstrip > svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.85;
+  color: var(--exa);
+}
+.xstrip:hover {
+  background: var(--exa-tint);
+  border-color: color-mix(in srgb, var(--exa) 55%, transparent);
+}
+.xstrip:active {
+  transform: scale(0.98);
+}
+.xstrip.is-on {
+  border-color: var(--exa);
+}
+.xstrip-screen {
+  font-weight: 600;
+  color: var(--ink);
+}
+.xstrip-sep {
+  color: var(--faint);
+}
+.xstrip code {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--exa);
+}
+.xstrip-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.xstrip-short {
+  display: none;
+}
+@media (max-width: 980px) {
+  .xstrip-user {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .xstrip {
+    padding: 0 9px 0 8px;
+  }
+  .xstrip-screen,
+  .xstrip-sep-screen,
+  .xstrip-word {
+    display: none;
+  }
+  .xstrip-short {
+    display: inline;
+  }
 }

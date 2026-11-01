@@ -4,7 +4,7 @@ import { ACTION_EXPLAIN } from "./actions";
 import { useExplain, type ActionToast } from "./ExplainContext";
 
 const SHOWN_STEPS = 3;
-const LIFETIME_MS = 22_000;
+const LIFETIME_MS = 10_000;
 
 function Toast({ t }: { t: ActionToast }) {
   const { dismissToast, setConsoleOpen, consoleOpen } = useExplain();
@@ -13,14 +13,14 @@ function Toast({ t }: { t: ActionToast }) {
   const [held, setHeld] = useState(false);
   const left = useRef(LIFETIME_MS);
 
-  // Leaves on its own unless the reader is holding it (hover, focus or expanded steps).
+  // Leaves on its own after ten seconds unless the reader is holding it (hover, focus or expanded steps).
   useEffect(() => {
     if (held || all) return;
     const start = Date.now();
     const id = window.setTimeout(() => dismissToast(t.key), left.current);
     return () => {
       window.clearTimeout(id);
-      left.current = Math.max(4000, left.current - (Date.now() - start));
+      left.current = Math.max(3000, left.current - (Date.now() - start));
     };
   }, [held, all, dismissToast, t.key]);
 
@@ -80,14 +80,22 @@ function Toast({ t }: { t: ActionToast }) {
   );
 }
 
-/** Action explanations, bottom right; announced politely to screen readers. */
+/**
+ * Action explanations, bottom right, announced politely to screen readers.
+ * One at a time. A newer explanation replaces the one on screen instead of stacking under it.
+ */
 export function ActionToasts() {
-  const { toasts } = useExplain();
+  const { toasts, dismissToast } = useExplain();
+  const latest = toasts.length > 0 ? toasts[toasts.length - 1] : null;
+
+  useEffect(() => {
+    if (!latest) return;
+    for (const t of toasts) if (t.key !== latest.key) dismissToast(t.key);
+  }, [toasts, latest, dismissToast]);
+
   return (
     <ol className="xp-toasts" aria-live="polite" aria-label="What Exasol is doing">
-      {toasts.map((t) => (
-        <Toast key={t.key} t={t} />
-      ))}
+      {latest && <Toast key={latest.key} t={latest} />}
     </ol>
   );
 }

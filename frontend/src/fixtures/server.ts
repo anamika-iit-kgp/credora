@@ -33,7 +33,8 @@ import type { PolicyLeverChange, PolicyProposal, WhatIfRun } from "../api/types"
 import type { ActivationRequest, LoanStatus, LoanStatusEvent, LoanStatusRow } from "../api/types";
 import { num, rupeesShort } from "../lib/format";
 import { buildFeatures, buildReasons, buildSteps } from "./report";
-import { exasolFixture, recordFixture } from "./exasol";
+import type { RlsProofRow } from "../api/exasol";
+import { exasolFixture, recordFixture, recordRlsProof } from "./exasol";
 import {
   AS_OF,
   BASE_POLICY,
@@ -765,7 +766,8 @@ function sources(): SourceHealth[] {
 
 /* ------------------------------ router ------------------------------ */
 
-type Handler = (ctx: { u: User; body: Record<string, unknown>; q: URLSearchParams; m: RegExpExecArray }) => unknown;
+/** `tab` is the Explain console's session id of the calling tab (header X-Credora-Session). */
+type Handler = (ctx: { u: User; body: Record<string, unknown>; q: URLSearchParams; m: RegExpExecArray; tab: string | null }) => unknown;
 const routes: [string, RegExp, Handler][] = [];
 const on = (method: string, pattern: string, h: Handler) =>
   routes.push([method, new RegExp(`^${pattern.replace(/\{(\w+)\}/g, "([^/]+)")}$`), h]);
@@ -876,6 +878,22 @@ on("GET", "/api/admin/sources", ({ u }) => {
 on("GET", "/api/admin/audit", ({ u, q }) => {
   need(u, ["admin"]);
   return S.audit.slice(0, Number(q.get("limit") ?? 100));
+});
+
+on("GET", "/api/admin/rls-proof", ({ u, tab }) => {
+  need(u, ["admin", "datasci"]);
+  // V_RM_DECISIONS holds one row per assigned company per published run, as on the live database.
+  const published = Math.max(1, Object.keys(wf().published).length);
+  const book = (rm: string) => Object.values(wf().assignments).filter((a) => a.rm_id === rm).length * published;
+  const view = "SELECT COUNT(*) N FROM CREDORA.V_RM_DECISIONS";
+  const rows: RlsProofRow[] = [
+    { exa_user: "CREDORA_RM", sql: view, rows: book(DEMO_RM), error: null, ms: 12.4 },
+    { exa_user: "CREDORA_RM_AI", sql: view, rows: book(DEMO_RM), error: null, ms: 11.8 },
+    { exa_user: "CREDORA_RM002", sql: view, rows: book("RM002"), error: null, ms: 10.9 },
+    { exa_user: "CREDORA_RM", sql: "SELECT COUNT(*) N FROM CREDORA.DECISIONS", rows: null, error: "insufficient privileges for selecting from table DECISIONS", ms: 3.1 },
+  ];
+  recordRlsProof(u, tab, rows);
+  return rows;
 });
 
 on("GET", "/api/admin/purge-log", ({ u }) => {
@@ -1970,7 +1988,7 @@ export function installFixtures() {
       const match = re.exec(url.pathname);
       if (!match) continue;
       try {
-        const out = h({ u, body, q: url.searchParams, m: match });
+        const out = h({ u, body, q: url.searchParams, m: match, tab });
         if (method !== "GET") save();
         return json(200, out);
       } catch (e) {

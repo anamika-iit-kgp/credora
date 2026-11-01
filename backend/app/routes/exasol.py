@@ -1,8 +1,10 @@
-"""Explain mode: the Exasol console and the Exasol control room.
+"""Explain mode. The Exasol console, the Exasol control room and the row-level security proof.
 
 GET /api/exasol/console       the statements this browser session made Exasol run (app/console.py)
 GET /api/exasol/control-room  a live map of the database, read as the caller's own Exasol user, so
                               each role sees exactly what its grants allow
+GET /api/admin/rls-proof      one count run as three relationship manager users in turn, and a
+                              table read Exasol refuses, so the row filter is shown by Exasol itself
 """
 
 from __future__ import annotations
@@ -17,16 +19,17 @@ from typing import Any, Callable
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from .. import console, exa
-from ..auth import User, current_user
+from ..auth import User, current_user, require
+from ..config import settings
 
 log = logging.getLogger("credora.exasol")
 
-router = APIRouter(prefix="/api/exasol")
+router = APIRouter(prefix="/api")
 
 
 # ---------------------------------------------------------------- console
 
-@router.get("/console")
+@router.get("/exasol/console")
 def exasol_console(request: Request, since: int = Query(0, ge=0), scope: str = Query("session"),
                    user: User = Depends(current_user)):
     """The caller's own entries newer than `since`. `scope=user` drops the browser-session filter;
@@ -62,14 +65,19 @@ DEPLOYMENT = "Exasol Personal on AWS EC2 (launcher 2.3.0)"
 ROLES = ("R_SVC", "R_ADMIN", "R_DATASCI", "R_LOANOPS", "R_RM", "R_MCP")
 
 
+def _error_text(e: BaseException) -> str:
+    """The first line of what Exasol said, without the session suffix pyexasol adds."""
+    msg = str(getattr(e, "message", None) or e).split(" (Session:")[0].strip().splitlines()
+    return msg[0] if msg else type(e).__name__
+
+
 def _section(fn: Callable[[], Any]) -> dict:
     """Run one part; a refusal by Exasol is part of the answer (it shows the grants at work)."""
     t0 = time.perf_counter()
     try:
         return {"ok": True, "data": fn(), "ms": round((time.perf_counter() - t0) * 1000, 1)}
     except Exception as e:  # noqa: BLE001
-        msg = str(getattr(e, "message", None) or e).split(" (Session:")[0].strip().splitlines()
-        msg = msg[0] if msg else type(e).__name__
+        msg = _error_text(e)
         denied = "insufficient privileges" in msg.lower() or "42500" in msg
         return {"ok": False, "denied": denied, "error": console.redact(msg[:300]),
                 "ms": round((time.perf_counter() - t0) * 1000, 1)}
@@ -265,7 +273,7 @@ def build(role: str) -> dict:
     return out
 
 
-@router.get("/control-room")
+@router.get("/exasol/control-room")
 def control_room(user: User = Depends(current_user), fresh: bool = Query(False)):
     """A live map of the database as the caller's Exasol user sees it. Cached for a few seconds per role."""
     now = time.monotonic()
@@ -284,3 +292,53 @@ def control_room(user: User = Depends(current_user), fresh: bool = Query(False))
         with _cache_lock:
             _cache[user.role] = (time.monotonic(), data)
     return {**data, "cached": False}
+
+
+# ---------------------------------------------------------------- row-level security proof
+
+RLS_VIEW_SQL = "SELECT COUNT(*) N FROM CREDORA.V_RM_DECISIONS"
+RLS_TABLE_SQL = "SELECT COUNT(*) N FROM CREDORA.DECISIONS"
+# (Exasol user, statement) in the order shown. The demo relationship manager, her AI session user
+# (the row filter strips the _AI suffix, so the count is the same), a second manager (a different
+# book), and the table under the view, which role R_RM holds no grant on, so Exasol refuses it.
+RLS_PROOF: tuple[tuple[str, str], ...] = (
+    ("CREDORA_RM", RLS_VIEW_SQL),
+    ("CREDORA_RM_AI", RLS_VIEW_SQL),
+    ("CREDORA_RM002", RLS_VIEW_SQL),
+    ("CREDORA_RM", RLS_TABLE_SQL),
+)
+NOT_CONFIGURED = "not configured"
+
+
+def _count_as(exa_user: str, sql: str) -> dict:
+    """Run one count as the given Exasol user on a connection of its own, closed right after, so
+    the proof users hold no pooled session. Exasol's refusal is part of the answer."""
+    t0 = time.perf_counter()
+    if not settings.exa_passwords.get(exa_user):
+        return {"exa_user": exa_user, "sql": sql, "rows": None, "error": NOT_CONFIGURED, "ms": 0.0}
+    rows: int | None = None
+    error: str | None = None
+    conn = None
+    try:
+        conn = exa.new_connection(exa_user)
+        rows = int(exa.traced_execute(conn, exa_user, sql).fetchval() or 0)
+    except Exception as e:  # noqa: BLE001 - a refusal or a failed login is reported, not raised
+        error = console.redact(_error_text(e)[:300])
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:  # noqa: BLE001
+                pass
+    return {"exa_user": exa_user, "sql": sql, "rows": rows, "error": error,
+            "ms": round((time.perf_counter() - t0) * 1000, 1)}
+
+
+def rls_proof() -> list[dict]:
+    return [_count_as(user, sql) for user, sql in RLS_PROOF]
+
+
+@router.get("/admin/rls-proof")
+def rls_proof_route(user: User = Depends(require("admin", "datasci"))):
+    """The row filter at work, as Exasol runs it for each relationship manager user in turn."""
+    return rls_proof()

@@ -292,7 +292,7 @@
 <rect x="400" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
 <rect x="400" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
 <text x="410" y="208" fill="white" font-size="10" font-weight="600">CIBIL consumer</text>
-<text x="410" y="224" fill="#94a3b8" font-size="8">16 parallel UDFs</text>
+<text x="410" y="224" fill="#94a3b8" font-size="8">16 batches, 4 UDFs at a time</text>
 <text x="410" y="236" fill="#94a3b8" font-size="8">→ CIBIL_CONSUMER</text>
 <rect x="580" y="190" width="150" height="140" rx="6" fill="#0f172a"/>
 <rect x="580" y="190" width="150" height="140" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
@@ -468,7 +468,7 @@
         </div>
         <ul>
           <li>• Steps 1–2 read the bank&#x27;s databases in place through the three virtual schemas</li>
-          <li>• Steps 3–6 fetch 3rd party data from CIBIL, GSTN and AA via API, from parallel UDFs</li>
+          <li>• Steps 3–6 fetch 3rd party data from CIBIL, GSTN and AA via API, from Python UDFs in 16 batches</li>
           <li>• Every step writes its rows and milliseconds to RUN_LOG</li>
         </ul>
       </div>

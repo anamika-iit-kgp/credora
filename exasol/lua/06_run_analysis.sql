@@ -19,13 +19,19 @@ CREATE OR REPLACE LUA SCRIPT CREDORA.TRAIN_MODEL(model_version) RETURNS ROWCOUNT
                    "avg_balance_12m", "inflow_volatility", "bounce_ratio", "cmr_rank",
                    "partner_min_score", "partner_avg_score", "partner_overdue_amt",
                    "partner_other_bank_bal", "dscr", "defaulted_flag" = 1]]
+  -- Each trainer emits the SHA-256 of the pickle it uploaded. It is stored with the row, and PD_SCORE
+  -- refuses a model file that no longer hashes to it.
+  local columns = [[(MODEL_VERSION, TRAINED_AT, ALGORITHM, AUC, GINI, N_TRAIN, DEFAULT_RATE, FEATURE_IMPORTANCE,
+                     MODEL_PATH, IS_ACTIVE, MODEL_SHA256)]]
   local res = query([[
-    INSERT INTO CREDORA.MODEL_REGISTRY
-    SELECT model_version, SYSTIMESTAMP, algorithm, auc, gini, n_train, default_rate, feature_importance, model_path, FALSE
+    INSERT INTO CREDORA.MODEL_REGISTRY ]] .. columns .. [[
+    SELECT model_version, SYSTIMESTAMP, algorithm, auc, gini, n_train, default_rate, feature_importance, model_path,
+           FALSE, model_sha256
     FROM (SELECT CREDORA.TRAIN_PD(:v, ]] .. inputs .. [[) FROM VS_LOS."past_loan_training")]], {v = model_version})
   query([[
-    INSERT INTO CREDORA.MODEL_REGISTRY
-    SELECT model_version, SYSTIMESTAMP, algorithm, auc, gini, n_train, default_rate, feature_importance, model_path, FALSE
+    INSERT INTO CREDORA.MODEL_REGISTRY ]] .. columns .. [[
+    SELECT model_version, SYSTIMESTAMP, algorithm, auc, gini, n_train, default_rate, feature_importance, model_path,
+           FALSE, model_sha256
     FROM (SELECT CREDORA.TRAIN_SCORECARD(:v, ]] .. inputs .. [[) FROM VS_LOS."past_loan_training")]],
     {v = model_version .. '-lr'})
   query([[UPDATE CREDORA.MODEL_REGISTRY SET IS_ACTIVE = (MODEL_VERSION = :v)]], {v = model_version})
@@ -92,19 +98,22 @@ function decide(scores)
            NULLIF(TRIM(BOTH ';' FROM
              CASE WHEN WILFUL_DEFAULT THEN 'Wilful defaulter;' ELSE '' END ||
              CASE WHEN CMR_RANK >= 9 THEN 'CIBIL CMR rank ' || CMR_RANK || ';' ELSE '' END ||
-             CASE WHEN GST_LATE_FILINGS_12M >= 4 THEN GST_LATE_FILINGS_12M || ' late GST returns in 12 months;' ELSE '' END ||
+             CASE WHEN GST_LATE_FILINGS_12M IS NOT NULL AND GST_LATE_FILINGS_12M >= 4
+                  THEN GST_LATE_FILINGS_12M || ' late GST returns in 12 months;' ELSE '' END ||
              CASE WHEN PARTNER_MIN_SCORE < 600 THEN 'Partner CIBIL ' || PARTNER_MIN_SCORE || ' below 600;' ELSE '' END ||
              CASE WHEN BOUNCE_RATIO > 0.08 THEN 'Bounce ratio ' || ROUND(BOUNCE_RATIO * 100, 1) || '%;' ELSE '' END), '') FAILS
     FROM sized s)
   SELECT :r, APP_ID, CIF_ID, LEGAL_NAME, RM_ID, PRODUCT, AMOUNT_REQUESTED, TENURE_REQUESTED,
          CASE WHEN FAILS IS NOT NULL THEN 'DECLINE'
-              WHEN KYC_STATUS <> 'VERIFIED' OR GRADE IN ('C2', 'D') OR OFFER_AMT < AMOUNT_REQUESTED * 0.5
+              WHEN KYC_STATUS <> 'VERIFIED' OR GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL  -- no GST returns on file means a person looks first, never a decline
+                   OR GRADE IN ('C2', 'D') OR OFFER_AMT < AMOUNT_REQUESTED * 0.5
                    OR FLOOR_ROI_RAW > LIST_ROI
                    OR OFFER_AMT <= 0 THEN 'REFER'
               WHEN ANOMALY IS NOT NULL THEN 'REFER'  -- unusual figures: a person looks first; never a decline
               ELSE 'APPROVE' END DECISION,
          NULLIF(TRIM(BOTH ';' FROM COALESCE(FAILS, '') ||
                 CASE WHEN KYC_STATUS <> 'VERIFIED' THEN ';KYC ' || KYC_STATUS ELSE '' END ||
+                CASE WHEN GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL THEN ';No GST returns on file' ELSE '' END ||
                 CASE WHEN FLOOR_ROI_RAW > LIST_ROI THEN ';Hurdle needs ROI above rate card' ELSE '' END ||
                 CASE WHEN ANOMALY IS NOT NULL THEN ';Anomaly: ' || ANOMALY ELSE '' END), '') HARD_FAILS,
          GRADE, PD,
@@ -128,7 +137,7 @@ import('CREDORA.DECISION_LOGIC', 'logic')
 local p = {r = run_id}
 local cleared = query([[DELETE FROM CREDORA.CHALLENGER_SCORES WHERE RUN_ID = :r]], p)
 local ch = query([[
-  SELECT MODEL_VERSION, MODEL_PATH FROM CREDORA.MODEL_REGISTRY
+  SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY
   WHERE NOT IS_ACTIVE AND ALGORITHM <> (SELECT MAX(ALGORITHM) FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE)
   ORDER BY TRAINED_AT DESC LIMIT 1]])
 if #ch == 0 then return cleared end  -- no challenger trained yet
@@ -137,11 +146,11 @@ local res = query([[
   SELECT :r, app_id, :mv, pd,
          CASE WHEN pd < 0.01 THEN 'A1' WHEN pd < 0.02 THEN 'A2' WHEN pd < 0.035 THEN 'B1' WHEN pd < 0.05 THEN 'B2'
               WHEN pd < 0.08 THEN 'C1' WHEN pd < 0.12 THEN 'C2' ELSE 'D' END
-  FROM (SELECT CREDORA.PD_SCORE(:mp, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT,
+  FROM (SELECT CREDORA.PD_SCORE(:mp, :mh, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT,
                                 AVG_BALANCE_12M, INFLOW_VOLATILITY, BOUNCE_RATIO, CMR_RANK, PARTNER_MIN_SCORE,
                                 PARTNER_AVG_SCORE, PARTNER_OVERDUE_AMT, PARTNER_OTHER_BANK_BAL, DSCR)
         FROM CREDORA.FEATURES WHERE RUN_ID = :r GROUP BY MOD(ASCII(SUBSTR(HASH_MD5(APP_ID), 1, 1)), 4))]],
-  {r = run_id, mv = ch[1].MODEL_VERSION, mp = ch[1].MODEL_PATH})
+  {r = run_id, mv = ch[1].MODEL_VERSION, mp = ch[1].MODEL_PATH, mh = ch[1].MODEL_SHA256})
 -- The decision it would have given: the decision step's own SQL, fed the challenger's PD and grade.
 query([[
   MERGE INTO CREDORA.CHALLENGER_SCORES c
@@ -173,7 +182,12 @@ local function step(no, name, fn)
     log(no, name, 'OK', res or 0, t0, null)
     query('COMMIT')  -- make each finished step visible to the web app at once
   else
+    -- The failing step's half-done work goes back, as before. The FAILED row then gets its own
+    -- commit, because error() makes Exasol roll back everything this script has not committed,
+    -- which took the FAILED row with it and left the web app (backend/app/jobs.py) nothing to show.
+    pquery('ROLLBACK')
     log(no, name, 'FAILED', 0, t0, string.sub(tostring(res), 1, 1900))
+    query('COMMIT')
     error(res)
   end
 end
@@ -207,7 +221,8 @@ step(2, 'Read credit needs on file', function()
     LEFT JOIN (SELECT "cif_id", COUNT(*) n FROM VS_CIF."partner" GROUP BY "cif_id") p ON p."cif_id" = a."cif_id"]], p))
 end)
 
--- 3-6. 3rd party data fetched via API by the API UDFs. Keys are spread over 16 parallel UDF instances.
+-- 3-6. 3rd party data fetched via API by the API UDFs. Keys are spread over 16 batches (one hex digit
+--      of an MD5), and Exasol runs the UDF instances 4 at a time on the 4-core node.
 step(3, 'Fetch CIBIL consumer reports (API)', function()
   query('DELETE FROM CREDORA_STAGE.CIBIL_CONSUMER WHERE RUN_ID = :r', p)
   return rows(query([[
@@ -313,7 +328,9 @@ step(7, 'Compute features', function()
     SELECT :r, app.APP_ID, app.CIF_ID,
            ROUND(((YEAR(app.APPLIED_ON) * 12 + MONTH(app.APPLIED_ON))
                   - (YEAR(gst.REGISTERED_ON) * 12 + MONTH(gst.REGISTERED_ON))) / 12, 1),
-           COALESCE(gst.TURNOVER, 0), COALESCE(gst.LATE, 12),
+           -- GST_LATE_FILINGS_12M stays NULL when no GST returns are on file, so the decision step
+           -- refers the company instead of declining it (PD_SCORE fills the NULL from its baseline).
+           COALESCE(gst.TURNOVER, 0), gst.LATE,
            ABS(COALESCE(gst.TURNOVER, 0) - COALESCE(bank.CREDITS_12M, 0)) / NULLIF(gst.TURNOVER, 0) * 100,
            bank.AVG_BAL, bank.VOLATILITY, COALESCE(bank.BOUNCE_RATIO, 0), com.CMR_RANK,
            partners.MIN_SCORE, partners.AVG_SCORE, COALESCE(partners.OVERDUE, 0), COALESCE(aa.BAL, 0),
@@ -331,16 +348,16 @@ step(7, 'Compute features', function()
 end)
 
 -- 8. Make sure a risk model exists; train the first one on past loans if needed.
-local active = query([[SELECT MODEL_VERSION, MODEL_PATH FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE]])
+local active = query([[SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE]])
 step(8, 'Risk model', function()
   if #active == 0 then
     local v = 'v' .. (query([[SELECT COUNT(*) N FROM CREDORA.MODEL_REGISTRY]])[1].N + 1)
     query([[EXECUTE SCRIPT CREDORA.TRAIN_MODEL(:v)]], {v = v})
-    active = query([[SELECT MODEL_VERSION, MODEL_PATH FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE]])
+    active = query([[SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE]])
   end
   return 1
 end)
-local model_version, model_path = active[1].MODEL_VERSION, active[1].MODEL_PATH
+local model_version, model_path, model_sha256 = active[1].MODEL_VERSION, active[1].MODEL_PATH, active[1].MODEL_SHA256
 
 -- 9. Score every application with the ML UDF, in 4 parallel instances (one per core).
 step(9, 'Score probability of default (ML UDF)', function()
@@ -350,11 +367,11 @@ step(9, 'Score probability of default (ML UDF)', function()
            CASE WHEN pd < 0.01 THEN 'A1' WHEN pd < 0.02 THEN 'A2' WHEN pd < 0.035 THEN 'B1' WHEN pd < 0.05 THEN 'B2'
                 WHEN pd < 0.08 THEN 'C1' WHEN pd < 0.12 THEN 'C2' ELSE 'D' END,
            contributions
-    FROM (SELECT CREDORA.PD_SCORE(:mp, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT,
+    FROM (SELECT CREDORA.PD_SCORE(:mp, :mh, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT,
                                   AVG_BALANCE_12M, INFLOW_VOLATILITY, BOUNCE_RATIO, CMR_RANK, PARTNER_MIN_SCORE,
                                   PARTNER_AVG_SCORE, PARTNER_OVERDUE_AMT, PARTNER_OTHER_BANK_BAL, DSCR)
           FROM CREDORA.FEATURES WHERE RUN_ID = :r GROUP BY MOD(ASCII(SUBSTR(HASH_MD5(APP_ID), 1, 1)), 4))]],
-    {r = run_id, mv = model_version, mp = model_path}))
+    {r = run_id, mv = model_version, mp = model_path, mh = model_sha256}))
 end)
 
 -- 10. Anomaly flag: an Isolation Forest over this run's features, in one UDF instance that sees every

@@ -147,3 +147,25 @@ export const useControlRoom = () =>
     staleTime: 5_000,
     refetchInterval: 30_000,
   });
+
+/** One statement of the row-level security proof, run by Exasol as the named user on its own connection. */
+export interface RlsProofRow {
+  exa_user: string;
+  sql: string;
+  /** The count Exasol returned, or null when it refused or the user is not configured. */
+  rows: number | null;
+  /** Exasol's refusal text, "not configured" when the user has no password on this server, or null. */
+  error: string | null;
+  ms: number;
+}
+
+export const NOT_CONFIGURED = "not configured";
+
+/** GET /api/admin/rls-proof (admin and data scientist). */
+export const useRlsProof = (enabled = true) =>
+  useQuery({
+    queryKey: ["exasol", "rls-proof"],
+    queryFn: () => api<RlsProofRow[]>("/admin/rls-proof"),
+    enabled,
+    staleTime: 30_000,
+  });

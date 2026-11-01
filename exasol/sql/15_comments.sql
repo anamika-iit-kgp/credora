@@ -3,9 +3,11 @@
 -- EXA_ALL_* system tables and the Exasol MCP server's describe tools return them, so Ask Credora's
 -- AI and a person in DbVisualizer read the same definitions.
 --
--- Views: Exasol accepts comments on views and view columns only inside CREATE VIEW, so the views
--- (V_COMPANY_MASKED, V_LATEST_*, V_RM_*) are described where they are created. The semantic view
--- CREDORA_SEM.PORTFOLIO gets its comments from the semantic model (12_credora_model.sql).
+-- Views are the exception. Exasol accepts a comment on a view only inside its CREATE VIEW (the
+-- COMMENT IS clause after the query), never through COMMENT ON, so the views are described where
+-- they are created. V_COMPANY_MASKED in exasol/sql/07_security.sql, V_SESSION_SCOPE and V_RM_* in
+-- exasol/sql/13_rm_row_security.sql, V_LATEST_* in exasol/semantic/11_latest_run_views.sql. The
+-- semantic view CREDORA_SEM.PORTFOLIO gets its comments from the semantic model (12_credora_model.sql).
 --
 -- Runs after every file that creates or replaces these objects (a replaced script loses its
 -- comment), so the deploy tool applies it last. Re-running it is safe.
@@ -53,7 +55,7 @@ COMMENT ON TABLE CREDORA.APPLICATIONS IS 'One row per company per run, with the 
   CITY IS 'City of the registered office',
   STATE_NAME IS 'Indian state of the registered office',
   RM_ID IS 'Relationship manager who owns the customer in the customer master',
-  KYC_STATUS IS 'KYC status in the customer master, VALID, EXPIRED or PENDING',
+  KYC_STATUS IS 'KYC status in the customer master, VERIFIED, EXPIRED or PENDING. Anything but VERIFIED gives REFER',
   APPLIED_ON IS 'Date the credit need was recorded, and the as-of date of every feature',
   PRODUCT IS 'WC = working capital, TL = term loan',
   AMOUNT_REQUESTED IS 'Indicated need on file, INR',
@@ -70,7 +72,7 @@ COMMENT ON TABLE CREDORA.FEATURES IS 'The thirteen credit features per company p
   CIF_ID IS 'Customer id of the company',
   GST_YEARS IS 'Years since GST registration, 1 decimal',
   GST_TURNOVER_12M IS 'Turnover declared in the last 12 GST returns (GSTR-1), INR',
-  GST_LATE_FILINGS_12M IS 'GST returns filed late or missed among the last 12',
+  GST_LATE_FILINGS_12M IS 'GST returns filed late or missed among the last 12. NULL when no GST returns are on file, which gives REFER, not DECLINE',
   GST_BANK_GAP_PCT IS 'Gap between GST turnover and current-account credits over 12 months, % of GST turnover. A large gap hints at inflated turnover',
   AVG_BALANCE_12M IS 'Average current-account balance over 12 months, INR',
   INFLOW_VOLATILITY IS 'Standard deviation / mean of the 12 monthly current-account credit totals',
@@ -123,7 +125,7 @@ COMMENT ON TABLE CREDORA.DECISIONS IS 'The result. One row per company per run w
   AMOUNT_REQUESTED IS 'Indicated need on file, INR',
   TENURE_REQUESTED IS 'Indicated tenure on file, months',
   DECISION IS 'APPROVE = pre-approved offer, REFER = offer after credit committee review, DECLINE = no offer',
-  HARD_FAILS IS 'Policy rules that failed, separated by semicolons (for example GST filing, CIBIL, wilful default, or an Anomaly reason)',
+  HARD_FAILS IS 'Policy rules that failed, separated by semicolons (for example GST filing, CIBIL, wilful default), and the reasons for a referral (KYC, no GST returns on file, hurdle above the rate card, or an Anomaly reason)',
   GRADE IS 'Risk grade, A1 best',
   PD IS 'Probability of default, 0..1',
   OFFER_AMOUNT IS 'Pre-approved amount, INR',
@@ -150,7 +152,8 @@ COMMENT ON TABLE CREDORA.MODEL_REGISTRY IS 'Risk models trained inside Exasol by
   DEFAULT_RATE IS 'Share of those past loans that defaulted',
   FEATURE_IMPORTANCE IS 'JSON of permutation importance (trees) or signed coefficients per standard deviation (scorecard)',
   MODEL_PATH IS 'BucketFS path of the pickled model',
-  IS_ACTIVE IS 'The champion that decides. Changes only after the admin approves an activation request'
+  IS_ACTIVE IS 'The champion that decides. Changes only after the admin approves an activation request',
+  MODEL_SHA256 IS 'SHA-256 of the pickled model file. PD_SCORE checks the file against it before loading'
 );
 
 COMMENT ON TABLE CREDORA.MEMOS IS 'Credit memos written by Claude through the CREDIT_MEMO UDF (or the backend).' (
@@ -166,12 +169,12 @@ COMMENT ON TABLE CREDORA.PURGE_LOG IS 'Proof of deletion. What PURGE_EXPIRED del
   TABLE_NAME IS 'Staging table the rows came from',
   RUN_ID IS 'Analysis run that fetched them',
   ROWS_DELETED IS 'How many rows were deleted',
-  SHA256 IS 'SHA-256 of the deleted rows'' key fields, in a fixed order'
+  SHA256 IS 'SHA-256 fingerprint of the deleted rows'' key fields. The rows are sorted by key and cut into chunks of 1,000, each chunk is hashed, and this is the hash of the chunk hashes in order'
 );
 
 -- ---------------------------------------------------------------- the hand-off
 
-COMMENT ON TABLE CREDORA.RM_ASSIGNMENT IS 'Which relationship manager works which company, set by loan operations. The RM views filter on EXA_USER = CURRENT_USER, so Exasol returns each manager only her own companies.' (
+COMMENT ON TABLE CREDORA.RM_ASSIGNMENT IS 'Which relationship manager works which company, set by loan operations. The RM views filter on EXA_USER = CURRENT_USER with the _AI suffix of an AI session user stripped, so Exasol returns each manager, and her AI session user, only her own companies.' (
   CIF_ID IS 'Customer id of the company',
   RM_ID IS 'Relationship manager it is assigned to',
   EXA_USER IS 'Exasol user of that relationship manager (row-level security key)',
@@ -280,13 +283,14 @@ COMMENT ON SCRIPT CREDORA.RUN_ANALYSIS IS 'Lua. The whole analysis as one call, 
 COMMENT ON SCRIPT CREDORA.DECISION_LOGIC IS 'Lua. The decision SQL (hard fails, pricing, negotiation limit, RAROC) shared by the champion run and the challenger shadow run.';
 COMMENT ON SCRIPT CREDORA.SCORE_CHALLENGER IS 'Lua. Shadow-scores a run with the challenger scorecard through the same decision SQL, into CHALLENGER_SCORES. Decides nothing.';
 COMMENT ON SCRIPT CREDORA.TRAIN_MODEL IS 'Lua. Trains the champion (TRAIN_PD) and the challenger (TRAIN_SCORECARD) on past loans read through VS_LOS, on the same hold-out, and registers both in MODEL_REGISTRY.';
-COMMENT ON SCRIPT CREDORA.PURGE_EXPIRED IS 'Lua. Deletes staged 3rd party data whose PURGE_AT has passed, after writing row counts and a SHA-256 fingerprint to PURGE_LOG. Run every 15 minutes by the Exasol Scheduler (task credora_purge_expired).';
-COMMENT ON SCRIPT CREDORA.CIBIL_CONSUMER_FETCH IS 'Python SET UDF. Fetches CIBIL consumer reports for partners from the CIBIL relay over HTTPS (CONNECTION MOCK_CIBIL), in parallel.';
-COMMENT ON SCRIPT CREDORA.CIBIL_COMMERCIAL_FETCH IS 'Python SET UDF. Fetches CIBIL commercial reports for companies from the CIBIL relay over HTTPS (CONNECTION MOCK_CIBIL), in parallel.';
-COMMENT ON SCRIPT CREDORA.GST_FETCH IS 'Python SET UDF. Fetches GST registrations and monthly returns from the GSTN relay over HTTPS (CONNECTION MOCK_GSTN), in parallel.';
-COMMENT ON SCRIPT CREDORA.AA_FETCH IS 'Python SET UDF. Fetches consented other-bank accounts from the Account Aggregator relay over HTTPS (CONNECTION MOCK_AA), in parallel.';
+COMMENT ON SCRIPT CREDORA.PURGE_EXPIRED IS 'Lua. Deletes staged 3rd party data whose PURGE_AT has passed, one table per transaction, after writing row counts and a chunked SHA-256 fingerprint to PURGE_LOG. Skips while an analysis is in progress. Run every 15 minutes as CREDORA_SVC by the Exasol Scheduler container (task credora_purge_expired in SCHED.SCHED_TASKS).';
+COMMENT ON SCRIPT CREDORA.CIBIL_CONSUMER_FETCH IS 'Python SET UDF. Fetches CIBIL consumer reports for partners from the CIBIL relay over HTTPS (CONNECTION MOCK_CIBIL), in 16 batches, 4 at a time, with 3 attempts per call.';
+COMMENT ON SCRIPT CREDORA.CIBIL_COMMERCIAL_FETCH IS 'Python SET UDF. Fetches CIBIL commercial reports for companies from the CIBIL relay over HTTPS (CONNECTION MOCK_CIBIL), in 16 batches, 4 at a time, with 3 attempts per call.';
+COMMENT ON SCRIPT CREDORA.GST_FETCH IS 'Python SET UDF. Fetches GST registrations and monthly returns from the GSTN relay over HTTPS (CONNECTION MOCK_GSTN), in 16 batches, 4 at a time, with 3 attempts per call.';
+COMMENT ON SCRIPT CREDORA.AA_FETCH IS 'Python SET UDF. Fetches consented other-bank accounts from the Account Aggregator relay over HTTPS (CONNECTION MOCK_AA), in 16 batches, 4 at a time, with 3 attempts per call.';
 COMMENT ON SCRIPT CREDORA.TRAIN_PD IS 'Python SET UDF. Trains the champion, a monotonic gradient-boosted PD model, and saves it to BucketFS.';
 COMMENT ON SCRIPT CREDORA.TRAIN_SCORECARD IS 'Python SET UDF. Trains the challenger, a logistic regression scorecard on standardised features, on the same hold-out.';
-COMMENT ON SCRIPT CREDORA.PD_SCORE IS 'Python SET UDF. Scores companies with a model from BucketFS, giving probability of default, grade and feature contributions.';
+COMMENT ON SCRIPT CREDORA.PD_SCORE IS 'Python SET UDF. Scores companies with a model from BucketFS after checking the file''s SHA-256 against MODEL_REGISTRY, giving probability of default, grade and feature contributions.';
+COMMENT ON SCRIPT CREDORA.MODEL_FILE_SHA256 IS 'Python SCALAR UDF. SHA-256 of a model file in BucketFS, used once to fill MODEL_SHA256 for models trained before the check existed.';
 COMMENT ON SCRIPT CREDORA.ANOMALY_FLAG IS 'Python SET UDF. Isolation Forest over all companies of a run. Flags the most unusual share for review, never for decline.';
 COMMENT ON SCRIPT CREDORA.CREDIT_MEMO IS 'Python SCALAR UDF. Writes a credit memo for one company with Claude, through CONNECTION AI_LLM, and returns it as SQL output.';

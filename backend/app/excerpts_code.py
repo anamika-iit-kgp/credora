@@ -101,7 +101,9 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
      'SELECT :r, app.APP_ID, app.CIF_ID,\n'
      '       ROUND(((YEAR(app.APPLIED_ON) * 12 + MONTH(app.APPLIED_ON))\n'
      '              - (YEAR(gst.REGISTERED_ON) * 12 + MONTH(gst.REGISTERED_ON))) / 12, 1),\n'
-     '       COALESCE(gst.TURNOVER, 0), COALESCE(gst.LATE, 12),\n'
+     '       -- GST_LATE_FILINGS_12M stays NULL when no GST returns are on file, so the decision step\n'
+     '       -- refers the company instead of declining it (PD_SCORE fills the NULL from its baseline).\n'
+     '       COALESCE(gst.TURNOVER, 0), gst.LATE,\n'
      '       ABS(COALESCE(gst.TURNOVER, 0) - COALESCE(bank.CREDITS_12M, 0)) / NULLIF(gst.TURNOVER, 0) * 100,\n'
      '       bank.AVG_BAL, bank.VOLATILITY, COALESCE(bank.BOUNCE_RATIO, 0), com.CMR_RANK,\n'
      '       partners.MIN_SCORE, partners.AVG_SCORE, COALESCE(partners.OVERDUE, 0), COALESCE(aa.BAL, 0),\n'
@@ -117,16 +119,19 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
      'LEFT JOIN aa ON aa.APP_ID = app.APP_ID\n'
      'LEFT JOIN CREDORA_STAGE.CIBIL_COMMERCIAL com ON com.PAN = app.PAN AND com.RUN_ID = :r;'),
  8: ('lua',
-     'local active = query([[SELECT MODEL_VERSION, MODEL_PATH FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE]])\n'
+     'local active = query([[SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY WHERE '
+     'IS_ACTIVE]])\n'
      "step(8, 'Risk model', function()\n"
      '  if #active == 0 then\n'
      "    local v = 'v' .. (query([[SELECT COUNT(*) N FROM CREDORA.MODEL_REGISTRY]])[1].N + 1)\n"
      '    query([[EXECUTE SCRIPT CREDORA.TRAIN_MODEL(:v)]], {v = v})\n'
-     '    active = query([[SELECT MODEL_VERSION, MODEL_PATH FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE]])\n'
+     '    active = query([[SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY WHERE '
+     'IS_ACTIVE]])\n'
      '  end\n'
      '  return 1\n'
      'end)\n'
-     'local model_version, model_path = active[1].MODEL_VERSION, active[1].MODEL_PATH'),
+     'local model_version, model_path, model_sha256 = active[1].MODEL_VERSION, active[1].MODEL_PATH, '
+     'active[1].MODEL_SHA256'),
  9: ('sql',
      'INSERT INTO CREDORA.SCORES\n'
      'SELECT :r, app_id, :mv, pd,\n'
@@ -134,7 +139,8 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
      "'B2'\n"
      "            WHEN pd < 0.08 THEN 'C1' WHEN pd < 0.12 THEN 'C2' ELSE 'D' END,\n"
      '       contributions\n'
-     'FROM (SELECT CREDORA.PD_SCORE(:mp, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT,\n'
+     'FROM (SELECT CREDORA.PD_SCORE(:mp, :mh, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, '
+     'GST_BANK_GAP_PCT,\n'
      '                              AVG_BALANCE_12M, INFLOW_VOLATILITY, BOUNCE_RATIO, CMR_RANK, PARTNER_MIN_SCORE,\n'
      '                              PARTNER_AVG_SCORE, PARTNER_OVERDUE_AMT, PARTNER_OTHER_BANK_BAL, DSCR)\n'
      '      FROM CREDORA.FEATURES WHERE RUN_ID = :r GROUP BY MOD(ASCII(SUBSTR(HASH_MD5(APP_ID), 1, 1)), 4));'),
@@ -208,8 +214,8 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
       "         NULLIF(TRIM(BOTH ';' FROM\n"
       "           CASE WHEN WILFUL_DEFAULT THEN 'Wilful defaulter;' ELSE '' END ||\n"
       "           CASE WHEN CMR_RANK >= 9 THEN 'CIBIL CMR rank ' || CMR_RANK || ';' ELSE '' END ||\n"
-      "           CASE WHEN GST_LATE_FILINGS_12M >= 4 THEN GST_LATE_FILINGS_12M || ' late GST returns in 12 months;' "
-      "ELSE '' END ||\n"
+      '           CASE WHEN GST_LATE_FILINGS_12M IS NOT NULL AND GST_LATE_FILINGS_12M >= 4\n'
+      "                THEN GST_LATE_FILINGS_12M || ' late GST returns in 12 months;' ELSE '' END ||\n"
       "           CASE WHEN PARTNER_MIN_SCORE < 600 THEN 'Partner CIBIL ' || PARTNER_MIN_SCORE || ' below 600;' ELSE "
       "'' END ||\n"
       "           CASE WHEN BOUNCE_RATIO > 0.08 THEN 'Bounce ratio ' || ROUND(BOUNCE_RATIO * 100, 1) || '%;' ELSE '' "
@@ -217,13 +223,17 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
       '  FROM sized s)\n'
       'SELECT :r, APP_ID, CIF_ID, LEGAL_NAME, RM_ID, PRODUCT, AMOUNT_REQUESTED, TENURE_REQUESTED,\n'
       "       CASE WHEN FAILS IS NOT NULL THEN 'DECLINE'\n"
-      "            WHEN KYC_STATUS <> 'VERIFIED' OR GRADE IN ('C2', 'D') OR OFFER_AMT < AMOUNT_REQUESTED * 0.5\n"
+      "            WHEN KYC_STATUS <> 'VERIFIED' OR GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL  -- no GST "
+      'returns on file means a person looks first, never a decline\n'
+      "                 OR GRADE IN ('C2', 'D') OR OFFER_AMT < AMOUNT_REQUESTED * 0.5\n"
       '                 OR FLOOR_ROI_RAW > LIST_ROI\n'
       "                 OR OFFER_AMT <= 0 THEN 'REFER'\n"
       "            WHEN ANOMALY IS NOT NULL THEN 'REFER'  -- unusual figures: a person looks first; never a decline\n"
       "            ELSE 'APPROVE' END DECISION,\n"
       "       NULLIF(TRIM(BOTH ';' FROM COALESCE(FAILS, '') ||\n"
       "              CASE WHEN KYC_STATUS <> 'VERIFIED' THEN ';KYC ' || KYC_STATUS ELSE '' END ||\n"
+      "              CASE WHEN GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL THEN ';No GST returns on file' "
+      "ELSE '' END ||\n"
       "              CASE WHEN FLOOR_ROI_RAW > LIST_ROI THEN ';Hurdle needs ROI above rate card' ELSE '' END ||\n"
       "              CASE WHEN ANOMALY IS NOT NULL THEN ';Anomaly: ' || ANOMALY ELSE '' END), '') HARD_FAILS,\n"
       '       GRADE, PD,\n'
@@ -264,7 +274,7 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
       'local p = {r = run_id}\n'
       'local cleared = query([[DELETE FROM CREDORA.CHALLENGER_SCORES WHERE RUN_ID = :r]], p)\n'
       'local ch = query([[\n'
-      '  SELECT MODEL_VERSION, MODEL_PATH FROM CREDORA.MODEL_REGISTRY\n'
+      '  SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY\n'
       '  WHERE NOT IS_ACTIVE AND ALGORITHM <> (SELECT MAX(ALGORITHM) FROM CREDORA.MODEL_REGISTRY WHERE IS_ACTIVE)\n'
       '  ORDER BY TRAINED_AT DESC LIMIT 1]])\n'
       'if #ch == 0 then return cleared end  -- no challenger trained yet\n'
@@ -274,12 +284,12 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
       "         CASE WHEN pd < 0.01 THEN 'A1' WHEN pd < 0.02 THEN 'A2' WHEN pd < 0.035 THEN 'B1' WHEN pd < 0.05 THEN "
       "'B2'\n"
       "              WHEN pd < 0.08 THEN 'C1' WHEN pd < 0.12 THEN 'C2' ELSE 'D' END\n"
-      '  FROM (SELECT CREDORA.PD_SCORE(:mp, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, '
+      '  FROM (SELECT CREDORA.PD_SCORE(:mp, :mh, APP_ID, GST_YEARS, GST_TURNOVER_12M, GST_LATE_FILINGS_12M, '
       'GST_BANK_GAP_PCT,\n'
       '                                AVG_BALANCE_12M, INFLOW_VOLATILITY, BOUNCE_RATIO, CMR_RANK, PARTNER_MIN_SCORE,\n'
       '                                PARTNER_AVG_SCORE, PARTNER_OVERDUE_AMT, PARTNER_OTHER_BANK_BAL, DSCR)\n'
       '        FROM CREDORA.FEATURES WHERE RUN_ID = :r GROUP BY MOD(ASCII(SUBSTR(HASH_MD5(APP_ID), 1, 1)), 4))]],\n'
-      '  {r = run_id, mv = ch[1].MODEL_VERSION, mp = ch[1].MODEL_PATH})\n'
+      '  {r = run_id, mv = ch[1].MODEL_VERSION, mp = ch[1].MODEL_PATH, mh = ch[1].MODEL_SHA256})\n'
       "-- The decision it would have given: the decision step's own SQL, fed the challenger's PD and grade.\n"
       'query([[\n'
       '  MERGE INTO CREDORA.CHALLENGER_SCORES c\n'

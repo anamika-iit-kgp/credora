@@ -3,23 +3,19 @@ import { BookOpen, SquareTerminal } from "lucide-react";
 import { useExplain } from "./ExplainContext";
 import { Explain } from "./Explain";
 import { unreadCount, useConsoleFeed } from "./ExasolConsole";
+import { ExasolStrip } from "../components/ExasolStrip";
 
-/** The slim bar above every screen: the Explain mode switch and, with it on, the Exasol console. */
+/** The slim bar above every screen: the Exasol strip (always on), the Explain mode switch and, with it on, the Exasol console. */
 export function Topbar() {
   const { on, setOn, consoleOpen, setConsoleOpen, exasolUser } = useExplain();
   const feed = useConsoleFeed();
   const unread = consoleOpen ? 0 : unreadCount(feed);
   return (
     <div className={`topbar ${on ? "is-explain" : ""}`}>
-      <p className="topbar-who">
-        {on && exasolUser && (
-          <>
-            <span className="topbar-who-label">Signed in to Exasol as</span>
-            <code>{exasolUser}</code>
-            <Explain id="current-user" label="the Exasol user you read as" />
-          </>
-        )}
-      </p>
+      <div className="topbar-who">
+        <ExasolStrip />
+        {on && exasolUser && <Explain id="current-user" label="the Exasol user you read as" />}
+      </div>
       <div className="topbar-tools">
         {on && (
           <>

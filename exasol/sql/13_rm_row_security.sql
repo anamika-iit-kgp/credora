@@ -6,15 +6,21 @@
 -- writes all three tables as CREDORA_SVC; no role user can write them.
 --
 -- A relationship manager reads only the V_RM_* views below. Each view joins RM_ASSIGNMENT on
--- EXA_USER = CURRENT_USER and RUN_PUBLISH, so Exasol returns only the companies assigned to the
--- Exasol user that is logged in, from published runs, at full detail (unmasked PAN and GSTIN,
--- features and scores). Views run with their owner's rights, so R_RM needs no grant on the tables
--- underneath; it has none on DECISIONS, SCORES, FEATURES, APPLICATIONS or V_COMPANY_MASKED, and
--- reading them fails with "insufficient privileges".
+-- EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$$', '') and RUN_PUBLISH, so Exasol returns only the
+-- (the deploy tool fills dollar-brace placeholders in this file, so a literal dollar sign is written $$
+-- here and reaches Exasol as a single one)
+-- companies assigned to the Exasol user that is logged in, from published runs, at full detail
+-- (unmasked PAN and GSTIN, features and scores). Views run with their owner's rights, so R_RM needs
+-- no grant on the tables underneath. It has none on DECISIONS, SCORES, FEATURES, APPLICATIONS or
+-- V_COMPANY_MASKED, and reading them fails with "insufficient privileges".
 --
--- The demo has one relationship manager login: Exasol user CREDORA_RM acts for RM001. In production
+-- An AI session user named <person>_AI acts for its person. Ask Credora logs in as CREDORA_RM_AI
+-- for the relationship manager (consumer group CREDORA_AI, 16_resources.sql), and the row filter
+-- strips the _AI suffix from CURRENT_USER before matching RM_ASSIGNMENT.EXA_USER, so the AI sees
+-- exactly the book of CREDORA_RM and nothing of any other manager. The demo has two relationship
+-- manager users with role R_RM, CREDORA_RM for RM001 and CREDORA_RM002 for RM002. In production
 -- each relationship manager gets an own Exasol user with role R_RM, loan operations assigns to that
--- user, and these views work unchanged: CURRENT_USER picks the rows.
+-- user, and these views work unchanged, because the logged-in user picks the rows.
 --
 -- Runs after 07_security.sql (V_COMPANY_MASKED) and before exasol/semantic/11_latest_run_views.sql,
 -- whose V_LATEST_* views use RUN_PUBLISH and the same row filter (V_SESSION_SCOPE).
@@ -66,27 +72,32 @@ FROM (
 )
 WHERE NOT EXISTS (SELECT 1 FROM CREDORA.RUN_PUBLISH);
 
--- One row: is the logged-in Exasol user a relationship manager (role R_RM)? Read with the view
--- owner's rights, so the dictionary lookup works for every caller. Not granted to anyone; the
--- V_LATEST_* views use it to filter rows.
+-- One row, saying who the logged-in Exasol user acts for (its own name, or the person's name for an
+-- AI session user) and whether it is a relationship manager (role R_RM, looked up for the session's
+-- own user, since an AI session user holds its person's role). Read with the view owner's rights,
+-- so the dictionary lookup works for every caller. Not granted to anyone. The V_LATEST_* views use
+-- it to filter rows.
 CREATE OR REPLACE VIEW CREDORA.V_SESSION_SCOPE AS
-SELECT CURRENT_USER EXA_USER,
+SELECT REGEXP_REPLACE(CURRENT_USER, '_AI$$', '') EXA_USER,
        CASE WHEN EXISTS (SELECT 1 FROM EXA_DBA_ROLE_PRIVS p
                          WHERE p.GRANTEE = CURRENT_USER AND p.GRANTED_ROLE = 'R_RM') THEN TRUE ELSE FALSE END IS_RM
-FROM DUAL;
+FROM DUAL
+COMMENT IS 'One row. The logged-in Exasol user and whether it holds role R_RM. Read by the V_LATEST_* views to filter rows for a relationship manager, granted to no one.';
 
 -- The relationship manager's own book: assignments of the logged-in Exasol user.
 CREATE OR REPLACE VIEW CREDORA.V_RM_ASSIGNMENT AS
 SELECT a.CIF_ID, a.RM_ID, a.ASSIGNED_BY, a.ASSIGNED_AT
 FROM CREDORA.RM_ASSIGNMENT a
-WHERE a.EXA_USER = CURRENT_USER;
+WHERE a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$$', '')
+COMMENT IS 'The companies assigned to the logged-in relationship manager (RM_ASSIGNMENT rows of that Exasol user). Read by the relationship manager''s screens and AI.';
 
 -- Decisions of assigned companies in published runs (same columns as CREDORA.DECISIONS).
 CREATE OR REPLACE VIEW CREDORA.V_RM_DECISIONS AS
 SELECT d.*
 FROM CREDORA.DECISIONS d
-JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = d.CIF_ID AND a.EXA_USER = CURRENT_USER
-JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = d.RUN_ID;
+JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = d.CIF_ID AND a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$$', '')
+JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = d.RUN_ID
+COMMENT IS 'DECISIONS of the companies assigned to the logged-in relationship manager, from published runs only. Read by the relationship manager''s screens and AI.';
 
 -- Company details of assigned companies, unmasked: full PAN and GSTIN.
 CREATE OR REPLACE VIEW CREDORA.V_RM_COMPANY AS
@@ -95,30 +106,34 @@ SELECT c.RUN_ID, c.APP_ID, c.CIF_ID, c.LEGAL_NAME, c.CONSTITUTION, c.PAN, c.GSTI
        c.COLLATERAL_TYPE, c.COLLATERAL_VALUE, c.PARTNERS, f.GST_STAGE, f.GST_YEARS,
        a.RM_ID ASSIGNED_RM_ID, a.ASSIGNED_BY, a.ASSIGNED_AT
 FROM CREDORA.APPLICATIONS c
-JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = c.CIF_ID AND a.EXA_USER = CURRENT_USER
+JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = c.CIF_ID AND a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$$', '')
 JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = c.RUN_ID
-LEFT JOIN CREDORA.FEATURES f ON f.RUN_ID = c.RUN_ID AND f.APP_ID = c.APP_ID;
+LEFT JOIN CREDORA.FEATURES f ON f.RUN_ID = c.RUN_ID AND f.APP_ID = c.APP_ID
+COMMENT IS 'Company details of the assigned companies in published runs, with full PAN and GSTIN and the assignment. Read by the relationship manager''s screens and AI.';
 
 -- Risk model inputs of assigned companies (same columns as CREDORA.FEATURES).
 CREATE OR REPLACE VIEW CREDORA.V_RM_FEATURES AS
 SELECT f.*
 FROM CREDORA.FEATURES f
-JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = f.CIF_ID AND a.EXA_USER = CURRENT_USER
-JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = f.RUN_ID;
+JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = f.CIF_ID AND a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$$', '')
+JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = f.RUN_ID
+COMMENT IS 'FEATURES of the assigned companies in published runs. Read by the relationship manager''s screens and AI.';
 
 -- Risk scores of assigned companies (same columns as CREDORA.SCORES).
 CREATE OR REPLACE VIEW CREDORA.V_RM_SCORES AS
 SELECT s.*
 FROM CREDORA.SCORES s
 JOIN CREDORA.DECISIONS d ON d.RUN_ID = s.RUN_ID AND d.APP_ID = s.APP_ID
-JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = d.CIF_ID AND a.EXA_USER = CURRENT_USER
-JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = s.RUN_ID;
+JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = d.CIF_ID AND a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$$', '')
+JOIN CREDORA.RUN_PUBLISH p ON p.RUN_ID = s.RUN_ID
+COMMENT IS 'SCORES of the assigned companies in published runs. Read by the relationship manager''s screens and AI.';
 
 -- Loan status history of the assigned companies.
 CREATE OR REPLACE VIEW CREDORA.V_RM_LOAN_STATUS AS
 SELECT l.EVENT_ID, l.CIF_ID, l.RM_ID, l.STATUS, l.NOTE, l.LOGGED_BY, l.LOGGED_AT
 FROM CREDORA.LOAN_STATUS_LOG l
-JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = l.CIF_ID AND a.EXA_USER = CURRENT_USER;
+JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = l.CIF_ID AND a.EXA_USER = REGEXP_REPLACE(CURRENT_USER, '_AI$$', '')
+COMMENT IS 'Loan status history of the assigned companies (LOAN_STATUS_LOG). Read by the relationship manager''s screens and AI.';
 
 -- Relationship managers: the views above, the policy and the run log; nothing else in CREDORA.
 GRANT SELECT ON CREDORA.V_RM_LOAN_STATUS TO R_RM;

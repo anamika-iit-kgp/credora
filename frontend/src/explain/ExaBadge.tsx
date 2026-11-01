@@ -1,6 +1,9 @@
-import { Cpu, Globe, Landmark } from "lucide-react";
+import { Cpu, Globe, Landmark, type LucideIcon } from "lucide-react";
 import { useExplain } from "./ExplainContext";
 import { Explain } from "./Explain";
+
+type Kind = "exasol" | "bank" | "api";
+const ICON: Record<Kind, LucideIcon> = { exasol: Cpu, bank: Landmark, api: Globe };
 
 /**
  * "Where this number came from, in Exasol terms": a small chip on a result (Explain mode only).
@@ -12,20 +15,51 @@ export function ExaBadge({
   detail,
   term,
 }: {
-  kind?: "exasol" | "bank" | "api";
+  kind?: Kind;
   what: string;
   detail?: string;
   term?: string;
 }) {
   const { on } = useExplain();
   if (!on) return null;
-  const Icon = kind === "bank" ? Landmark : kind === "api" ? Globe : Cpu;
+  const Icon = ICON[kind];
   return (
     <span className={`xb xb-${kind}`}>
       <Icon aria-hidden="true" />
       <span className="xb-what">{what}</span>
       {detail && <span className="xb-detail">{detail}</span>}
       {term && <Explain id={term} label={what} />}
+    </span>
+  );
+}
+
+/** One thing Exasol did for a result, listed inside an ExaBadgeGroup. */
+export interface ExaFact {
+  detail: string;
+  term?: string;
+}
+
+// The chip may wrap onto a second line when it carries several facts, so a narrow screen never clips it.
+const GROUP_STYLE = { height: "auto", minHeight: 22, padding: "2px 4px 2px 7px", flexWrap: "wrap", rowGap: 2, whiteSpace: "normal" } as const;
+
+/**
+ * Several Exasol facts about one result as a single chip, so a screen does not repeat the same mark four times.
+ * Each fact keeps its own hint, so nothing a separate badge would have said is lost.
+ */
+export function ExaBadgeGroup({ kind = "exasol", what, facts }: { kind?: Kind; what: string; facts: ExaFact[] }) {
+  const { on } = useExplain();
+  if (!on || facts.length === 0) return null;
+  const Icon = ICON[kind];
+  return (
+    <span className={`xb xb-${kind}`} style={GROUP_STYLE}>
+      <Icon aria-hidden="true" />
+      <span className="xb-what">{what}</span>
+      {facts.map((f) => (
+        <span key={f.detail} className="xb-detail">
+          {f.detail}
+          {f.term && <Explain id={f.term} label={f.detail} />}
+        </span>
+      ))}
     </span>
   );
 }
@@ -40,6 +74,6 @@ export const Badges = {
   decision: () => <ExaBadge what="Decided in Exasol" detail="RUN_ANALYSIS step 11, DECISION_LOGIC" term="run-analysis" />,
   whatIf: () => <ExaBadge what="Computed in Exasol" detail="one SELECT, nothing written" term="what-if" />,
   quote: () => <ExaBadge what="Checked in Exasol" detail="quote query as your Exasol user" term="negotiation-limit" />,
-  mcp: () => <ExaBadge what="Answered from Exasol" detail="exasol-mcp-server as your role's user" term="exasol-mcp-server" />,
+  mcp: () => <ExaBadge what="Answered from Exasol" detail="exasol-mcp-server as your AI session user" term="exasol-mcp-server" />,
   registry: () => <ExaBadge what="MODEL_REGISTRY" detail="pickle in BucketFS" term="model-registry" />,
 };

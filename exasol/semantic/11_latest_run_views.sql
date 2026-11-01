@@ -13,7 +13,9 @@
 -- The views run with their owner's rights, so each role reads only the views it is granted below,
 -- in line with 07_security.sql. Rows are filtered in Exasol: a relationship manager (role R_RM, see
 -- CREDORA.V_SESSION_SCOPE) gets only the companies assigned to the logged-in Exasol user in
--- CREDORA.RM_ASSIGNMENT; every other role gets every company.
+-- CREDORA.RM_ASSIGNMENT, and every other role gets every company. V_SESSION_SCOPE.EXA_USER names
+-- the person behind an AI session user (CREDORA_RM_AI acts for CREDORA_RM, 13_rm_row_security.sql),
+-- so Ask Credora's sessions get the same rows as the person's screens.
 
 CREATE OR REPLACE VIEW CREDORA.V_LATEST_RUN AS
 SELECT RUN_ID, FINISHED_AT FROM (
@@ -24,7 +26,8 @@ SELECT RUN_ID, FINISHED_AT FROM (
   HAVING SUM(CASE WHEN STATUS = 'FAILED' THEN 1 ELSE 0 END) = 0
      AND (MAX(STEP_NO) >= 13
           OR MAX(CASE WHEN STEP_NO = 11 AND STEP_NAME = 'Rank with PREFERRING skyline' THEN 1 ELSE 0 END) = 1)
-) ORDER BY FINISHED_AT DESC, RUN_ID DESC LIMIT 1;
+) ORDER BY FINISHED_AT DESC, RUN_ID DESC LIMIT 1
+COMMENT IS 'One row. The newest published run that finished every step without a failure, with the time it finished. Read by the other V_LATEST_* views, the semantic model and the AI assistant.';
 
 CREATE OR REPLACE VIEW CREDORA.V_LATEST_COMPANY AS
 SELECT m.RUN_ID, m.APP_ID, m.CIF_ID, m.LEGAL_NAME, m.CONSTITUTION, m.INDUSTRY, m.CITY, m.STATE_NAME, m.RM_ID,
@@ -33,7 +36,8 @@ FROM CREDORA.V_COMPANY_MASKED m
 JOIN CREDORA.V_LATEST_RUN r ON r.RUN_ID = m.RUN_ID
 CROSS JOIN CREDORA.V_SESSION_SCOPE sc
 WHERE NOT sc.IS_RM
-   OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = m.CIF_ID AND a.EXA_USER = sc.EXA_USER);
+   OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = m.CIF_ID AND a.EXA_USER = sc.EXA_USER)
+COMMENT IS 'The companies analysed in the latest published run, masked as V_COMPANY_MASKED. A relationship manager gets only her assigned companies. Read by the semantic model (CREDORA_SEM.PORTFOLIO) and the AI assistant.';
 
 -- LGD_RATE is the policy loss-given-default (CONFIG LGD_PCT), so expected loss follows the policy knob.
 CREATE OR REPLACE VIEW CREDORA.V_LATEST_DECISION AS
@@ -45,7 +49,8 @@ FROM CREDORA.DECISIONS d
 JOIN CREDORA.V_LATEST_RUN r ON r.RUN_ID = d.RUN_ID
 CROSS JOIN CREDORA.V_SESSION_SCOPE sc
 WHERE NOT sc.IS_RM
-   OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = d.CIF_ID AND a.EXA_USER = sc.EXA_USER);
+   OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = d.CIF_ID AND a.EXA_USER = sc.EXA_USER)
+COMMENT IS 'DECISIONS of the latest published run plus LGD_RATE from the policy, one row per company. A relationship manager gets only her assigned companies. Read by the semantic model and the AI assistant.';
 
 CREATE OR REPLACE VIEW CREDORA.V_LATEST_SCORE AS
 SELECT s.RUN_ID, s.APP_ID, s.MODEL_VERSION, s.PD, s.GRADE
@@ -55,7 +60,8 @@ CROSS JOIN CREDORA.V_SESSION_SCOPE sc
 WHERE NOT sc.IS_RM
    OR EXISTS (SELECT 1 FROM CREDORA.DECISIONS d
               JOIN CREDORA.RM_ASSIGNMENT a ON a.CIF_ID = d.CIF_ID
-              WHERE a.EXA_USER = sc.EXA_USER AND d.RUN_ID = s.RUN_ID AND d.APP_ID = s.APP_ID);
+              WHERE a.EXA_USER = sc.EXA_USER AND d.RUN_ID = s.RUN_ID AND d.APP_ID = s.APP_ID)
+COMMENT IS 'PD, grade and model version of the latest published run, one row per company. A relationship manager gets only her assigned companies. Read by the semantic model and the AI assistant.';
 
 CREATE OR REPLACE VIEW CREDORA.V_LATEST_FEATURE AS
 SELECT f.RUN_ID, f.APP_ID, f.GST_TURNOVER_12M, f.GST_LATE_FILINGS_12M, f.GST_BANK_GAP_PCT,
@@ -65,7 +71,8 @@ FROM CREDORA.FEATURES f
 JOIN CREDORA.V_LATEST_RUN r ON r.RUN_ID = f.RUN_ID
 CROSS JOIN CREDORA.V_SESSION_SCOPE sc
 WHERE NOT sc.IS_RM
-   OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = f.CIF_ID AND a.EXA_USER = sc.EXA_USER);
+   OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = f.CIF_ID AND a.EXA_USER = sc.EXA_USER)
+COMMENT IS 'FEATURES of the latest published run, one row per company. A relationship manager gets only her assigned companies. Read by the semantic model and the AI assistant.';
 
 -- R_ADMIN, R_DATASCI and R_LOANOPS read all of schema CREDORA already (07_security.sql). A
 -- relationship manager sees full detail of assigned companies, so R_RM gets the features view too.

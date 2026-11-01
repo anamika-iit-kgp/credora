@@ -5,7 +5,10 @@ import { Empty, ErrorState, Loading, PageHeader, Panel, Segmented } from "../../
 import { dateTime, num } from "../../lib/format";
 import "../../styles/exasol-audit.css";
 
-const EXA_USERS = ["CREDORA_SVC", "CREDORA_ADMIN", "CREDORA_DATASCI", "CREDORA_LOANOPS", "CREDORA_RM", "CREDORA_MCP"];
+const EXA_USERS = [
+  "CREDORA_SVC", "CREDORA_ADMIN", "CREDORA_DATASCI", "CREDORA_LOANOPS", "CREDORA_RM", "CREDORA_RM002",
+  "CREDORA_ADMIN_AI", "CREDORA_DATASCI_AI", "CREDORA_LOANOPS_AI", "CREDORA_RM_AI", "CREDORA_MCP",
+];
 const APP_USERS = ["admin", "datasci", "loanops", "rm", "system", "scheduler"];
 
 /** SQL as audited, without the credora tag comment (shown in its own column). */
@@ -45,8 +48,8 @@ function ScheduleSection() {
       {q.data && q.data.installed && (
         <>
           <p className="xa-note">
-            Exasol runs these jobs itself, as <code>CREDORA_SVC</code> in consumer group <code>CREDORA_BATCH</code>. Consent-based 3rd party data, fetched on demand via API, is
-            deleted on time with SHA-256 proof, inside Exasol.{" "}
+            The Exasol Scheduler runs these jobs as <code>CREDORA_SVC</code> in consumer group <code>CREDORA_BATCH</code>, from tasks kept in Exasol. Consent-based 3rd party data, fetched on demand via API, is
+            deleted on time with SHA-256 proof, by the Exasol Scheduler.{" "}
             {q.data.purge.next_due && (
               <>
                 Next rows due at <strong>{dateTime(q.data.purge.next_due)}</strong> ({num(q.data.purge.rows_waiting)} staged rows waiting).{" "}

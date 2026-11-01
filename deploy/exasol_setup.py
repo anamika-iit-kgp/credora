@@ -54,8 +54,10 @@ PREPROC_LIB_MODULES = {  # module: (script, entry function, artifact sha256 in t
     "trailing_comma": ("PREPROC_RT.ERGONOMICS_TRAILING_COMMA_V2", "trailing_comma",
                        "44f3bd0fb721107530b7cbc81e7765b97196ceafbe64fd700583c6d6800a8354"),
 }
-# The roles whose sessions send SQL written by Ask Credora's AI (each role user runs its own MCP
-# server; R_MCP is the fallback user). R_SVC gets no rule: the app's own SQL is never rewritten.
+# The roles whose sessions send SQL written by Ask Credora's AI. Each AI session user
+# (CREDORA_<ROLE>_AI) holds its person's role, so a rule per role covers it, and R_MCP is the
+# read-only user of MCP clients outside the app. R_SVC gets no rule, because the app's own SQL is
+# never rewritten.
 AI_SQL_ROLES = ("R_ADMIN", "R_DATASCI", "R_LOANOPS", "R_RM", "R_MCP")
 
 DOWNLOADS = {
@@ -256,6 +258,16 @@ ROLE_USERS = {  # database user: (role, key of its password in the runtime secre
     "CREDORA_DATASCI": ("R_DATASCI", "EXA_DATASCI_PASSWORD"),
     "CREDORA_LOANOPS": ("R_LOANOPS", "EXA_LOANOPS_PASSWORD"),
     "CREDORA_RM": ("R_RM", "EXA_RM_PASSWORD"),
+    # A second relationship manager. Loan operations assigns companies to RM002 through the assign
+    # screen, and the V_RM_* views then show this user a different book from CREDORA_RM's.
+    "CREDORA_RM002": ("R_RM", "EXA_RM002_PASSWORD"),
+    # Ask Credora's AI session users. Each one holds the same role as its person and sits in
+    # consumer group CREDORA_AI (16_resources.sql), so the AI's reads are limited by Exasol itself.
+    "CREDORA_ADMIN_AI": ("R_ADMIN", "EXA_ADMIN_AI_PASSWORD"),
+    "CREDORA_DATASCI_AI": ("R_DATASCI", "EXA_DATASCI_AI_PASSWORD"),
+    "CREDORA_LOANOPS_AI": ("R_LOANOPS", "EXA_LOANOPS_AI_PASSWORD"),
+    "CREDORA_RM_AI": ("R_RM", "EXA_RM_AI_PASSWORD"),
+    # The read-only user for MCP clients outside the app (deployments/<env>/ACCESS.md).
     "CREDORA_MCP": ("R_MCP", "EXA_MCP_PASSWORD"),
 }
 
@@ -268,13 +280,23 @@ def create_roles(ex: Exasol) -> None:
 
 
 def create_users(ex: Exasol, secret: dict) -> None:
-    """One Exasol user per app role; passwords come from the deployment's runtime secret."""
+    """Every Exasol user of ROLE_USERS, with the password from the deployment's runtime secret.
+
+    A user that exists already keeps its grants and gets the secret's password set again, so a
+    user added to ROLE_USERS later is created on an existing deployment by the same run. A missing
+    key means the secret predates the user, and the infra command adds it.
+    """
+    missing = [key for _, key in ROLE_USERS.values() if not secret.get(key)]
+    if missing:
+        raise SystemExit(f"The runtime secret has no {', '.join(missing)}. Run the infra command first.")
     with ex.connect() as c:
         existing = {r[0] for r in c.execute("SELECT USER_NAME FROM EXA_DBA_USERS").fetchall()}
         for user, (role, key) in ROLE_USERS.items():
             verb = "ALTER" if user in existing else "CREATE"
             c.execute(f'{verb} USER {user} IDENTIFIED BY "{secret[key]}"')
             c.execute(f"GRANT {role} TO {user}")
+            if user not in existing:
+                print(f"  created user {user} ({role})")
 
 
 # --- SQL preprocessing: preprocessor-framework + exasol-semantic-views -----------------

@@ -4,7 +4,7 @@ Credora is built so it can be deployed to any AWS account and any domain without
 
 | Deployment | AWS account | Domain | Env file |
 |---|---|---|---|
-| Prod | 9053-6029-3364 | `credora.loan`, 3rd party data APIs `credora.link` | `.env.credora` |
+| Prod | Anamika's own account | `credora.loan`, 3rd party data APIs `credora.link` | `.env.credora` |
 
 ## The rules the code follows
 
@@ -42,6 +42,7 @@ The `make` targets wrap the deploy tool, which can also be run directly.
 | Command | Does |
 |---|---|
 | `python deploy/credora.py deploy --env <name>` | Everything, idempotent. Exasol via the launcher, AWS infrastructure, app host, data, Exasol objects, first analysis |
+| `python deploy/credora.py infra --env <name>` | The AWS resources and the runtime secret only (OpenTofu) |
 | `python deploy/credora.py ship --env <name>` | Rebuilds and restarts the app host only |
 | `python deploy/credora.py exasol --env <name>` | Re-applies the Exasol objects, meaning containers, adapters, connections, UDFs, Lua, roles and users, preprocessor framework, semantic model |
 | `python deploy/credora.py generate --env <name>` | Regenerates the synthetic data |
@@ -50,7 +51,7 @@ The `make` targets wrap the deploy tool, which can also be run directly.
 | `python deploy/credora.py allow-ip --env <name>` | Opens Exasol and SSH to this machine's IP |
 | `python deploy/credora.py destroy --env <name>` | Removes everything the deployment created |
 
-The role users that the web app and Ask Credora log in as (`CREDORA_ADMIN`, `CREDORA_DATASCI`, `CREDORA_LOANOPS`, `CREDORA_RM`, plus `CREDORA_SVC` and `CREDORA_MCP`) are created by `exasol` with passwords from that account's Secrets Manager, so access control moves with the deployment unchanged.
+The role users that the web app logs in as (`CREDORA_ADMIN`, `CREDORA_DATASCI`, `CREDORA_LOANOPS`, `CREDORA_RM` and the second manager `CREDORA_RM002`), the AI users that Ask Credora logs in as (`CREDORA_ADMIN_AI`, `CREDORA_DATASCI_AI`, `CREDORA_LOANOPS_AI`, `CREDORA_RM_AI`), plus `CREDORA_SVC` and `CREDORA_MCP`, are created by `exasol` with passwords from that account's Secrets Manager, so access control moves with the deployment unchanged.
 
 ## Everything about a deployment is in one folder
 
