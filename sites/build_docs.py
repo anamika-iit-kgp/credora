@@ -39,6 +39,7 @@ PAGES = [
     ("README.md", "index.html", "Overview"),
     ("docs/WHY_EXASOL.md", "why-exasol.html", "Why Exasol"),
     ("docs/DATA_MODEL.md", "data-model.html", "Data model"),
+    ("docs/PRICING.md", "pricing.html", "Pricing"),
     ("docs/API.md", "api.html", "APIs"),
     ("docs/PORTING.md", "porting.html", "Porting"),
     ("docs/GLOSSARY.md", "glossary.html", "Glossary"),

@@ -17,10 +17,22 @@ COMMENT ON SCHEMA CREDORA_STAGE IS 'Raw replies from the 3rd party APIs (CIBIL, 
 
 -- ---------------------------------------------------------------- policy and run control
 
-COMMENT ON TABLE CREDORA.CONFIG IS 'Policy knobs of the decision logic (rates, hurdle, caps, coverage, anomaly share). Changed only through an approved policy proposal.' (
+COMMENT ON TABLE CREDORA.CONFIG IS 'Policy knobs of the decision logic (rates, hurdle, caps, coverage, exposure cap, anomaly share). Changed only through an approved policy proposal.' (
   CONFIG_KEY IS 'Name of the policy knob, e.g. HURDLE_PCT',
   CONFIG_VALUE IS 'Current value of the knob (percent values are in %, not fractions)',
   DESCRIPTION IS 'What the knob means, in plain words'
+);
+
+COMMENT ON TABLE CREDORA.INDUSTRY_MARGIN IS 'Operating cash margin per industry, % of 12 month GST turnover. The decision logic takes it as the cash a company has for debt service (DSCR, offer size, negotiation limit). Illustrative figures, see docs/PRICING.md.' (
+  INDUSTRY IS 'Industry as in the customer master',
+  CASH_MARGIN_PCT IS 'Cash available for debt service, % of GST turnover',
+  NOTE IS 'Why the figure, in plain words'
+);
+
+COMMENT ON TABLE CREDORA.LGD_COLLATERAL IS 'Loss given default per collateral type, %. Blended with the unsecured policy LGD (CONFIG LGD_PCT) by the share of the credit need the collateral covers. In the spirit of the Basel II foundation IRB supervisory LGDs, see docs/PRICING.md.' (
+  COLLATERAL_TYPE IS 'Collateral type as recorded with the credit need on file',
+  LGD_PCT IS 'Loss given default on the covered part, %',
+  BASIS IS 'Where the figure comes from'
 );
 
 COMMENT ON TABLE CREDORA.RUN_LOG IS 'One row per step of each analysis run (RUN_ANALYSIS commits each step as it finishes), with what ran, how many rows and how long.' (
@@ -82,11 +94,12 @@ COMMENT ON TABLE CREDORA.FEATURES IS 'The thirteen credit features per company p
   PARTNER_AVG_SCORE IS 'Average CIBIL consumer score of the partners',
   PARTNER_OVERDUE_AMT IS 'Overdue amount on all partners'' credit accounts, INR',
   PARTNER_OTHER_BANK_BAL IS 'Partners'' balances at other banks, from the Account Aggregator, INR',
-  DSCR IS 'Debt service coverage ratio at the indicated need (cash available / debt service)',
+  DSCR IS 'Debt service coverage ratio at the indicated need (cash available / debt service). Cash available is the industry''s cash margin (INDUSTRY_MARGIN) on GST turnover',
   BANK_CREDITS_12M IS 'Current-account credits over 12 months, INR',
   WILFUL_DEFAULT IS 'CIBIL marks the company a wilful defaulter',
   SUIT_FILED IS 'A lender has filed a recovery suit against the company',
-  GST_STAGE IS 'Company stage from its GST history, New, Mid-level or Stable'
+  GST_STAGE IS 'Company stage from its GST history, New, Mid-level or Stable',
+  CIBIL_TOTAL_EXPOSURE IS 'The company''s credit exposure at all lenders on its CIBIL commercial report, INR. Input to the total exposure cap, not a model feature'
 );
 
 COMMENT ON TABLE CREDORA.SCORES IS 'Probability of default per company per run from the active champion model (PD_SCORE UDF), with the effect of each feature.' (
@@ -139,7 +152,11 @@ COMMENT ON TABLE CREDORA.DECISIONS IS 'The result. One row per company per run w
   RANK_NO IS 'Portfolio rank from the PREFERRING skyline, 1 = best',
   SKYLINE_LAYER IS 'Skyline layer, where 1 = not beaten on return, risk and size by any other company',
   TOP50 IS 'Among the 50 best-ranked offers handed to relationship managers',
-  DECIDED_AT IS 'When the decision was written'
+  DECIDED_AT IS 'When the decision was written',
+  CASH_MARGIN_PCT IS 'Cash margin used for the offer size, % of GST turnover (INDUSTRY_MARGIN, or CONFIG CASH_MARGIN_DEFAULT_PCT)',
+  LGD_PCT IS 'Loss given default used in the floor ROI and RAROC, %, after the collateral (LGD_COLLATERAL blended with the policy LGD by coverage)',
+  EXISTING_EXPOSURE IS 'The company''s credit exposure at all lenders on its CIBIL commercial report, INR (0 when no report)',
+  EXPOSURE_ROOM IS 'Room left under the total exposure cap, INR: CONFIG MAX_EXPOSURE_PCT of GST turnover less the existing exposure, never below 0. The offer and the negotiation limit stay within it'
 );
 
 COMMENT ON TABLE CREDORA.MODEL_REGISTRY IS 'Risk models trained inside Exasol by TRAIN_MODEL and saved in BucketFS. Each training adds the champion v<n> and the challenger v<n>-lr, measured on the same hold-out.' (
@@ -230,7 +247,7 @@ COMMENT ON TABLE CREDORA_STAGE.CIBIL_COMMERCIAL IS 'CIBIL commercial credit repo
   PAN IS 'Company PAN',
   NAME IS 'Company name',
   CMR_RANK IS 'CIBIL commercial rank, 1 best to 10 worst',
-  TOTAL_EXPOSURE IS 'Total credit exposure, INR',
+  TOTAL_EXPOSURE IS 'Total credit exposure at all lenders, INR. Copied to FEATURES.CIBIL_TOTAL_EXPOSURE for the exposure cap',
   OVERDUE IS 'Overdue amount, INR',
   SUIT_FILED IS 'A lender has filed a recovery suit',
   WILFUL_DEFAULT IS 'Marked a wilful defaulter',

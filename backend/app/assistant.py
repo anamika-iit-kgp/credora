@@ -107,7 +107,7 @@ referred_companies (REFER), declined_companies (DECLINE), approval_rate (approve
 pre_approved_amount (sum of APPROVE offer amounts, INR), offered_amount (APPROVE and REFER offers, \
 INR), offered_companies, negotiation_headroom (sum of negotiation limit minus offer amount, INR), \
 avg_offer_roi and avg_floor_roi (% p.a., over offers), avg_raroc_offer (%, over offers), avg_pd \
-(0..1, over all companies), expected_loss (sum of PD x LGD 45% x offer amount, INR), top50_amount \
+(0..1, over all companies), expected_loss (sum of PD x LGD after collateral x offer amount, INR), top50_amount \
 (offer amounts of the 50 best-ranked offers, INR).
 Dimensions: cif_id, legal_name, industry, city, state_name, rm_id, product ('WC', 'TL'), \
 constitution, gst_stage ('New', 'Mid-level', 'Stable'), gst_years, decision, grade, top50 \
@@ -130,7 +130,10 @@ default), GRADE (risk grade, A1 best), PD (probability of default, 0..1), OFFER_
 (% p.a.), OFFER_TENURE (months), FLOOR_ROI (lowest ROI allowed in negotiation), MAX_AMOUNT and \
 MAX_TENURE (negotiation limits), RAROC_OFFER (risk-adjusted return on capital at the offer, %), \
 RAROC_FLOOR (RAROC at the negotiation limit, %), RANK_NO (1 = best), SKYLINE_LAYER, TOP50 (boolean), \
-DECIDED_AT (timestamp). Declined companies have no offer (OFFER_* are NULL).
+DECIDED_AT (timestamp), and the pricing inputs the decision used: CASH_MARGIN_PCT (the industry's cash \
+margin on GST turnover, % from INDUSTRY_MARGIN), LGD_PCT (loss given default after collateral, %, from \
+LGD_COLLATERAL blended by coverage), EXISTING_EXPOSURE (the company's CIBIL exposure at all lenders, INR) \
+and EXPOSURE_ROOM (room left under the exposure cap, INR). Declined companies have no offer (OFFER_* are NULL).
 SCORES: RUN_ID, APP_ID, MODEL_VERSION, PD, GRADE, CONTRIBUTIONS (JSON: feature -> change in PD).
 Every CREDORA and CREDORA_STAGE table and column carries its plain-English meaning as an Exasol \
 comment (COMMENT ON): describe_exasol_tables_and_views returns them. The tables below are listed by \
@@ -138,7 +141,9 @@ column name; describe a table when you need a column's meaning or unit.
 FEATURES: the 13 model inputs per company. RUN_ID, APP_ID, CIF_ID, GST_YEARS, GST_TURNOVER_12M, \
 GST_LATE_FILINGS_12M, GST_BANK_GAP_PCT, AVG_BALANCE_12M, INFLOW_VOLATILITY, BOUNCE_RATIO, CMR_RANK, \
 PARTNER_MIN_SCORE, PARTNER_AVG_SCORE, PARTNER_OVERDUE_AMT, PARTNER_OTHER_BANK_BAL, DSCR, BANK_CREDITS_12M, \
-WILFUL_DEFAULT, SUIT_FILED, GST_STAGE.
+WILFUL_DEFAULT, SUIT_FILED, GST_STAGE, CIBIL_TOTAL_EXPOSURE.
+INDUSTRY_MARGIN (INDUSTRY, CASH_MARGIN_PCT, NOTE) and LGD_COLLATERAL (COLLATERAL_TYPE, LGD_PCT, BASIS): the \
+pricing reference tables the decision reads, see docs/PRICING.md.
 V_COMPANY_MASKED: company details per run with PAN and GSTIN masked. RUN_ID, APP_ID, CIF_ID, \
 LEGAL_NAME, CONSTITUTION, PAN_MASKED, GSTIN_MASKED, INDUSTRY, CITY, STATE_NAME, RM_ID, PRODUCT, \
 AMOUNT_REQUESTED, TENURE_REQUESTED, PURPOSE, PARTNERS, GST_STAGE, GST_YEARS.

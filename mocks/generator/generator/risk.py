@@ -15,6 +15,7 @@ PD_INTERCEPT = -3.05
 PD_SLOPE = 1.25
 NO_HISTORY_SCORE = 650      # stands in for a bureau score of -1 in partner features
 LOAN_RATE = 0.11            # pricing assumption used by the DSCR feature
+CASH_MARGIN_DEFAULT = 0.12  # cash margin on turnover when the industry is unknown (CONFIG CASH_MARGIN_DEFAULT_PCT)
 
 
 def sigmoid(x):
@@ -98,5 +99,8 @@ def annual_debt_service(product: str, amount: float, tenure: int) -> float:
     return 12 * amount * r / (1 - (1 + r) ** -tenure)
 
 
-def dscr(gst_turnover_12m: float, product: str, amount: float, tenure: int) -> float:
-    return gst_turnover_12m * 0.12 / annual_debt_service(product, amount, tenure)
+def dscr(gst_turnover_12m: float, product: str, amount: float, tenure: int,
+         cash_margin: float = CASH_MARGIN_DEFAULT) -> float:
+    """Cash available for debt service is the industry's cash margin on GST turnover (a fraction,
+    reference.CASH_MARGIN_PCT / 100), as RUN_ANALYSIS step 7 computes it from CREDORA.INDUSTRY_MARGIN."""
+    return gst_turnover_12m * cash_margin / annual_debt_service(product, amount, tenure)
