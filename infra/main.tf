@@ -274,6 +274,7 @@ resource "aws_secretsmanager_secret_version" "runtime" {
     ANTHROPIC_API_KEY    = var.anthropic_api_key
     AI_PROVIDER          = var.ai_provider
     AI_MODEL             = var.ai_model
+    BEDROCK_MODEL_ID     = var.bedrock_model_id
   })
 }
 

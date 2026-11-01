@@ -429,7 +429,7 @@ async def ask(question: str, role: str = "rm") -> dict:
         raise AssistantUnavailable(str(e.detail)) from e
 
     if not await _on_topic(client, question):
-        return {"answer": OFF_TOPIC_ANSWER, "steps": [], "model": settings.ai_model, "run_id": None,
+        return {"answer": OFF_TOPIC_ANSWER, "steps": [], "model": ai.model(), "run_id": None,
                 "off_topic": True}
 
     run_id = await asyncio.to_thread(_current_run_id)
@@ -446,7 +446,7 @@ async def ask(question: str, role: str = "rm") -> dict:
         except (OSError, asyncio.TimeoutError) as e:
             log.warning("Exasol MCP server failed: %s", e)
             raise AssistantUnavailable("The Exasol MCP server could not start. Try again shortly.") from e
-    return {"answer": answer, "steps": steps, "model": settings.ai_model, "run_id": run_id,
+    return {"answer": answer, "steps": steps, "model": ai.model(), "run_id": run_id,
             "exasol_user": exa_user}
 
 
@@ -454,7 +454,7 @@ async def _on_topic(client: Any, question: str) -> bool:
     """A one-word classification call before any tool use; unrelated questions never reach Exasol."""
     try:
         resp = await asyncio.to_thread(
-            client.messages.create, model=settings.ai_model, max_tokens=5, system=SCOPE_PROMPT,
+            client.messages.create, model=ai.model(), max_tokens=5, system=SCOPE_PROMPT,
             messages=[{"role": "user", "content": question}])
     except Exception as e:  # noqa: BLE001 - if the filter itself fails, the main prompt's scope rule decides
         log.warning("topic check failed: %s", e)
@@ -470,7 +470,7 @@ async def _loop(client: Any, session: Any, system: str, tools: list[dict], messa
         last = calls >= MAX_TOOL_CALLS
         resp = await asyncio.to_thread(
             client.messages.create,
-            model=settings.ai_model,
+            model=ai.model(),
             max_tokens=16000,
             system=system,
             tools=tools,

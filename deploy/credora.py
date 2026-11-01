@@ -231,7 +231,8 @@ class Deployment:
         }
         for key, var in (("ORACLE_INSTANCE", "oracle_instance"), ("APP_INSTANCE", "app_instance"),
                          ("AI_PROVIDER", "ai_provider"), ("ANTHROPIC_API_KEY", "anthropic_api_key"),
-                         ("AI_MODEL", "ai_model"), ("PUBLIC_DEMO", "public_demo")):
+                         ("AI_MODEL", "ai_model"), ("BEDROCK_MODEL_ID", "bedrock_model_id"),
+                         ("PUBLIC_DEMO", "public_demo")):
             if key in self.cfg:
                 tfvars[var] = self.cfg[key]
         logins = {r: self.cfg[f"APP_{r.upper()}_PASSWORD"] for r in ("admin", "datasci", "loanops", "rm")
