@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ACTION_EVENT } from "./session";
 import { ACTION_EXPLAIN } from "./actions";
+import { prefetchGlossary } from "./glossaryStore";
 
 /** One action explanation on screen (a toast). */
 export interface ActionToast {
@@ -101,7 +102,16 @@ export function ExplainProvider({ username, role, children }: { username: string
     [consoleKey],
   );
 
-  const openTerm = useCallback((id: string, anchor: HTMLElement | null) => setTerm({ id, anchor }), []);
+  // The term data is a separate download. It starts as soon as hints are on, so it is normally in before the first click;
+  // a click also asks for it, which retries a download that failed earlier.
+  useEffect(() => {
+    if (on) prefetchGlossary();
+  }, [on]);
+
+  const openTerm = useCallback((id: string, anchor: HTMLElement | null) => {
+    prefetchGlossary();
+    setTerm({ id, anchor });
+  }, []);
   const closeTerm = useCallback(() => setTerm(null), []);
   const dismissToast = useCallback((key: number) => setToasts((t) => t.filter((x) => x.key !== key)), []);
 

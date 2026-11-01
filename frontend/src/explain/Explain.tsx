@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { AppWindow, ArrowLeft, BookOpen, Cloud, Cpu, ExternalLink, Info, Landmark, Sparkles, X, type LucideIcon } from "lucide-react";
 import { CodeBlock } from "../components/CodeBlock";
-import { GLOSSARY, type Term } from "./glossary";
+import type { Term } from "./glossary";
+import { useGlossary } from "./glossaryStore";
 import { useExplain } from "./ExplainContext";
 
 export const KIND_META: Record<Term["kind"], { label: string; icon: LucideIcon }> = {
@@ -17,13 +18,15 @@ export const KIND_META: Record<Term["kind"], { label: string; icon: LucideIcon }
 /** The small information mark next to a number, label or action. Opens the term's popover. */
 export function Explain({ id, label }: { id: string; label?: string }) {
   const { on, openTerm } = useExplain();
-  const t = GLOSSARY[id];
-  if (!on || !t) return null;
+  const glossary = useGlossary();
+  const t = glossary?.[id];
+  // Until the term data arrives the mark is already in place, so nothing shifts when it does. An unknown id is dropped once the data is in.
+  if (!on || (glossary && !t)) return null;
   return (
     <button
       type="button"
       className="xp-i"
-      aria-label={`What is ${label ?? t.term}? Explain in Exasol terms`}
+      aria-label={`What is ${label ?? t?.term ?? "this term"}? Explain in Exasol terms`}
       aria-haspopup="dialog"
       onClick={(e) => {
         e.preventDefault();
@@ -39,7 +42,7 @@ export function Explain({ id, label }: { id: string; label?: string }) {
 /** A term as a chip (page banners, related terms): opens the same popover. */
 export function TermChip({ id }: { id: string }) {
   const { openTerm } = useExplain();
-  const t = GLOSSARY[id];
+  const t = useGlossary()?.[id];
   if (!t) return null;
   return (
     <button type="button" className={`xp-chip xp-chip-${t.kind}`} aria-haspopup="dialog" onClick={(e) => openTerm(id, e.currentTarget)}>
@@ -71,8 +74,13 @@ export function TermBody({
   headingLevel?: 2 | 3;
   onMore?: () => void;
 }) {
+  const glossary = useGlossary();
   const kind = KIND_META[t.kind];
   const H = headingLevel === 2 ? "h2" : "h3";
+  const related = (t.related ?? []).flatMap((r) => {
+    const rt = glossary?.[r];
+    return rt ? [{ id: r, term: rt }] : [];
+  });
   return (
     <div className="xp-term">
       <p className={`xp-kind xp-kind-${t.kind}`}>
@@ -134,25 +142,23 @@ export function TermBody({
           )}
         </p>
       )}
-      {t.related && t.related.some((r) => GLOSSARY[r]) && (
+      {related.length > 0 && (
         <div className="xp-related">
           <p className="xp-sub">Related</p>
           <ul>
-            {t.related
-              .filter((r) => GLOSSARY[r])
-              .map((r) => (
-                <li key={r}>
-                  {onRelated ? (
-                    <button type="button" className={`xp-chip xp-chip-${GLOSSARY[r].kind}`} onClick={() => onRelated(r)}>
-                      {GLOSSARY[r].term}
-                    </button>
-                  ) : (
-                    <Link className={`xp-chip xp-chip-${GLOSSARY[r].kind}`} to={`/glossary#${r}`}>
-                      {GLOSSARY[r].term}
-                    </Link>
-                  )}
-                </li>
-              ))}
+            {related.map((r) => (
+              <li key={r.id}>
+                {onRelated ? (
+                  <button type="button" className={`xp-chip xp-chip-${r.term.kind}`} onClick={() => onRelated(r.id)}>
+                    {r.term.term}
+                  </button>
+                ) : (
+                  <Link className={`xp-chip xp-chip-${r.term.kind}`} to={`/glossary#${r.id}`}>
+                    {r.term.term}
+                  </Link>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
       )}
@@ -167,6 +173,7 @@ const MARGIN = 10;
 /** The one term popover: anchored to its trigger, focus-trapped, closed with Esc or a click outside. */
 export function TermPopover() {
   const { term, closeTerm } = useExplain();
+  const glossary = useGlossary();
   const [stack, setStack] = useState<string[]>([]);
   const ref = useRef<HTMLDivElement>(null);
   const hid = useId();
@@ -178,7 +185,7 @@ export function TermPopover() {
 
   const anchor = term?.anchor ?? null;
   const id = stack[stack.length - 1];
-  const t = id ? GLOSSARY[id] : null;
+  const t = id && glossary ? glossary[id] : null;
 
   // Place below the trigger, or above it when there is no room; a bottom sheet on narrow screens.
   useLayoutEffect(() => {
@@ -271,7 +278,7 @@ export function TermPopover() {
           {stack.length > 1 ? (
             <button type="button" className="xp-pop-back" onClick={() => setStack((s) => s.slice(0, -1))}>
               <ArrowLeft aria-hidden="true" />
-              {GLOSSARY[stack[stack.length - 2]]?.term ?? "Back"}
+              {glossary?.[stack[stack.length - 2]]?.term ?? "Back"}
             </button>
           ) : (
             <span className="xp-pop-hint">Explain mode</span>
