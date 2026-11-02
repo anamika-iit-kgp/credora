@@ -321,7 +321,8 @@ def main() -> None:
         svc.execute(f"""INSERT INTO CREDORA.DECISIONS
                         SELECT '{DRAFT}', APP_ID, CIF_ID, LEGAL_NAME, RM_ID, PRODUCT, AMOUNT_REQUESTED, TENURE_REQUESTED,
                                DECISION, HARD_FAILS, GRADE, PD, OFFER_AMOUNT, OFFER_ROI, OFFER_TENURE, FLOOR_ROI, MAX_AMOUNT,
-                               MAX_TENURE, RAROC_OFFER, RAROC_FLOOR, RANK_NO, SKYLINE_LAYER, TOP50, DECIDED_AT
+                               MAX_TENURE, RAROC_OFFER, RAROC_FLOOR, RANK_NO, SKYLINE_LAYER, TOP50, DECIDED_AT,
+                               CASH_MARGIN_PCT, LGD_PCT, EXISTING_EXPOSURE, EXPOSURE_ROOM
                         FROM CREDORA.DECISIONS WHERE RUN_ID = '{RUN}'""")
     with as_user("CREDORA_RM") as rm:
         assert count(rm, "CREDORA.V_RM_DECISIONS") == 25, "a draft run is not shown"
