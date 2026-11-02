@@ -762,7 +762,16 @@ function report(c: Company, u?: User): Report {
     steps: buildSteps(c, s, ps.length, run.run_id),
     sources_used: ["bank.oracle", "bank.mysql", "bank.postgres", "api.cibil", "api.gstn", "api.aa", "exasol"],
     pricing: pricingOf(c),
+    key_facts: s.decision === "DECLINE" ? null : keyFactsOf(s.amount, s.roi, s.tenure, c.product),
   };
+}
+
+function keyFactsOf(amount: number, roi: number, tenure: number, product: string) {
+  const r = roi / 1200;
+  const monthly = product === "TL" ? (amount * r) / (1 - Math.pow(1 + r, -tenure)) : amount * r;
+  const interest = product === "TL" ? monthly * tenure - amount : monthly * tenure;
+  return { rate_pct: roi, tenure_months: tenure, monthly_payment: Math.round(monthly * 100) / 100, total_interest: Math.round(interest * 100) / 100,
+    total_repayment: Math.round((amount + interest) * 100) / 100, fee_pct: 0, apr_pct: roi, product };
 }
 
 /* ------------------------------ sources ------------------------------ */

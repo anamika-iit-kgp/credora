@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from .. import crm, exa, jobs, publish, runs
+from .. import finance, crm, exa, jobs, publish, runs
 from ..auth import User, require
 from ..excerpts import report_steps
 from ..features import feature_list, parse_contributions, reasons
@@ -213,6 +213,8 @@ def build_report(cif: str, user: User) -> dict:
         "sources_used": sources_used,
         "anomaly": anomaly,
         "pricing": pricing_view(d, f, m),
+        "key_facts": (finance.key_facts(float(d["OFFER_AMOUNT"]), float(d["OFFER_ROI"]), int(d["OFFER_TENURE"]), d["PRODUCT"])
+                      if has_offer else None),
     }
 
 

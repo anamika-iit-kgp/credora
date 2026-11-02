@@ -10,6 +10,7 @@ npm install
 
 npm run dev            # http://localhost:5173, /api proxied to the FastAPI backend on http://localhost:8000
 npm run dev:fixtures   # no backend needed: /api is answered in the browser with synthetic fixtures
+npm test               # unit tests for the fixture decisions, the loan status machine and the role gates
 npm run build          # type-checks, then writes static files to frontend/dist
 npm run preview        # serves dist locally
 ```

@@ -256,6 +256,17 @@ export interface ReportStep {
 }
 
 /** The pricing inputs the decision used, stored with it in CREDORA.DECISIONS (docs/PRICING.md). */
+export interface KeyFacts {
+  rate_pct: number;
+  tenure_months: number;
+  monthly_payment: number;
+  total_interest: number;
+  total_repayment: number;
+  fee_pct: number;
+  apr_pct: number;
+  product: string;
+}
+
 export interface Pricing {
   industry: string | null;
   /** cash margin on GST turnover, % (CREDORA.INDUSTRY_MARGIN) */
@@ -301,6 +312,7 @@ export interface Report {
   anomaly?: AnomalyResult | null;
   /** How the offer was priced; null for runs made before the inputs were stored. */
   pricing?: Pricing | null;
+  key_facts: KeyFacts | null;
 }
 
 export interface AnomalyResult {

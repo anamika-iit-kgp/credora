@@ -75,6 +75,17 @@ def emi_ref(amount: float, roi: float, tenure: int, product: str = "TL") -> floa
     return amount * r
 
 
+def key_facts(amount: float, roi: float, tenure: int, product: str = "TL") -> dict[str, Any]:
+    """What the offer costs the company, in the shape of a key facts statement. A term loan amortises
+    in equal monthly instalments, working capital pays interest monthly on the limit. Credora charges no
+    processing fee, so the annualised cost equals the rate."""
+    monthly = emi_ref(amount, roi, tenure, product)
+    total_interest = monthly * tenure - amount if product == "TL" else monthly * tenure
+    return {"rate_pct": round(roi, 2), "tenure_months": int(tenure), "monthly_payment": round(monthly, 2),
+            "total_interest": round(total_interest, 2), "total_repayment": round(amount + total_interest, 2),
+            "fee_pct": 0.0, "apr_pct": round(roi, 2), "product": product}
+
+
 def raroc_ref(roi: float, pd: float, funds: float, opex: float, lgd: float, capital: float) -> float:
     """Mirrors RAROC_OFFER in RUN_ANALYSIS step 11 (all inputs in %, pd 0..1). lgd is the effective
     loss given default after collateral, see lgd_ref."""

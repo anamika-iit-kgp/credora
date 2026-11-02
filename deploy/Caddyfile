@@ -26,6 +26,10 @@
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
+		# The hash is the theme script inline in frontend/index.html. Recompute it when that script changes
+		# (deploy/credora.py computes it from the built page at ship time).
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-GNUqH3BNIxF6ildS9Y1SPQsYk7BcYJOz6RUJ3BG/AuI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 	}
 }
 

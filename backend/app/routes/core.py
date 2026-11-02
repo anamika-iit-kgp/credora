@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections import defaultdict, deque
+import threading
+import time
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from .. import assistant, crm, exa, jobs, runs, sources
@@ -31,11 +34,60 @@ def rm_name(rm_id: str) -> str | None:
         return None
 
 
+# Sign-in attempts are counted per client address and per username. After LOGIN_MAX failures inside
+# LOGIN_WINDOW_S seconds the next attempt gets 429 until the window has passed. A success clears the
+# username's count. Kept in memory, which is enough for one backend container behind Caddy.
+LOGIN_MAX = 10
+LOGIN_WINDOW_S = 300
+_login_failures: dict[str, deque[float]] = defaultdict(deque)
+_login_lock = threading.Lock()
+
+
+def _client_key(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    return (fwd.split(",")[0].strip() if fwd else None) or (request.client.host if request.client else "unknown")
+
+
+def _login_blocked(*keys: str) -> bool:
+    now = time.monotonic()
+    with _login_lock:
+        for k in keys:
+            q = _login_failures[k]
+            while q and now - q[0] > LOGIN_WINDOW_S:
+                q.popleft()
+            if len(q) >= LOGIN_MAX:
+                return True
+    return False
+
+
+def _login_failed(*keys: str) -> None:
+    now = time.monotonic()
+    with _login_lock:
+        for k in keys:
+            _login_failures[k].append(now)
+
+
+def _login_succeeded(*keys: str) -> None:
+    with _login_lock:
+        for k in keys:
+            _login_failures.pop(k, None)
+
+
+def reset_login_limiter() -> None:
+    with _login_lock:
+        _login_failures.clear()
+
+
 @router.post("/auth/login")
-def login(body: LoginBody):
+def login(body: LoginBody, request: Request):
     username = body.username.strip().lower()
+    keys = (f"ip:{_client_key(request)}", f"user:{username}")
+    if _login_blocked(*keys):
+        raise HTTPException(429, "Too many sign-in attempts. Try again in a few minutes.")
     if username not in settings.app_passwords or not check_password(username, body.password):
+        _login_failed(*keys)
         raise HTTPException(401, "Wrong username or password.")
+    _login_succeeded(*keys)
     display = None
     if username == "rm":
         name = rm_name(settings.rm_id)
