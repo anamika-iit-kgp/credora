@@ -370,9 +370,9 @@ class Deployment:
 
     # --- Data and Exasol objects ------------------------------------------------------
 
-    def generate(self, seed: int | None = 2026) -> None:
+    def generate(self, seed: int | None = 2026, as_of: str | None = None) -> None:
         say("Generate mock data (1,000 companies)")
-        body = json.dumps({"seed": seed})
+        body = json.dumps({"seed": seed, **({"as_of": as_of} if as_of else {})})
         job = json.loads(self.ssh(f"curl -s -X POST localhost:8100/generate -H 'content-type: application/json' -d '{body}'"))
         while True:
             st = json.loads(self.ssh(f"curl -s localhost:8100/jobs/{job['job_id']}"))

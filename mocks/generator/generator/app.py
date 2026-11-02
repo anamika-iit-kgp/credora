@@ -3,6 +3,7 @@
 import logging
 import threading
 
+from datetime import date
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
@@ -23,6 +24,8 @@ class GenerateRequest(BaseModel):
     # replace: clear everything and create `companies` companies; append: keep everything and add them
     mode: Literal["replace", "append"] = "replace"
     companies: int = Field(DEFAULT_COMPANIES, ge=100, le=5000)
+    # as_of: the calendar day the data is drawn up to. The same seed and as_of give the same data again.
+    as_of: date | None = None
 
 
 @app.get("/health")
@@ -37,7 +40,7 @@ def generate(body: GenerateRequest | None = None) -> dict:
         if running:
             raise HTTPException(status_code=409, detail=f"generation {running[0].job_id} is still running")
         body = body or GenerateRequest()
-        job = Job(body.seed, body.mode, body.companies)
+        job = Job(body.seed, body.mode, body.companies, body.as_of)
         _jobs[job.job_id] = job
     threading.Thread(target=job.run, name=f"generate-{job.job_id}", daemon=True).start()
     return {"job_id": job.job_id, "seed": job.seed, "mode": job.mode, "companies": job.companies}
