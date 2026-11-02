@@ -6,7 +6,7 @@ One change per pull request. Say what it does and why.
 
 - [ ] `python -m pytest -q` in `backend/`
 - [ ] `python -m pytest -q` in `tests/udf/`
-- [ ] `npm run build` in `frontend/`
+- [ ] `npm test` and `npm run build` in `frontend/`
 - [ ] Tried it on a deployment or in fixture mode (say which)
 
 ## Docs
