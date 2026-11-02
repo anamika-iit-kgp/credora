@@ -3,7 +3,7 @@ import { Briefcase, ChevronsDownUp, Code, Handshake, LoaderCircle, Network, Play
 import { Link, useParams } from "react-router-dom";
 import { useAiStatus, useCreditMemo, useGenerateMemo, useReport } from "../../api/hooks";
 import type { ApiError } from "../../api/client";
-import type { CreditMemo, Feature, Pricing, Reason, Report, ReportStep } from "../../api/types";
+import type { CreditMemo, Feature, Pricing, KeyFacts, Reason, Report, ReportStep } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
 import { CodeBlock } from "../../components/CodeBlock";
 import { SourceTag } from "../../components/SourceTag";
@@ -376,12 +376,35 @@ function Terms({ r }: { r: Report }) {
         left under the total exposure cap.
       </p>
       {r.pricing && <PricedWith p={r.pricing} />}
+      {r.key_facts && <KeyFactsBlock k={r.key_facts} />}
     </div>
   );
 }
 
 /** The pricing inputs Exasol stored with the decision: the industry's cash margin, the LGD after collateral and the
  *  CIBIL exposure against the cap (CREDORA.DECISIONS, docs/PRICING.md). */
+/** Key facts of the offer, the way a key facts statement reads. Monthly payment, total interest and
+ *  the annualised cost. Credora charges no fee, so the annualised cost equals the rate. */
+function KeyFactsBlock({ k }: { k: KeyFacts }) {
+  const monthlyLabel = k.product === "TL" ? "Monthly instalment" : "Monthly interest";
+  return (
+    <div className="top-gap">
+      <p className="small muted">Key facts</p>
+      <KV
+        cols={2}
+        items={[
+          ["Rate", <span className="num">{pct(k.rate_pct, 2)} a year</span>],
+          ["Tenure", <span className="num">{k.tenure_months} months</span>],
+          [monthlyLabel, <span className="num">{rupees(k.monthly_payment)}</span>],
+          ["Total interest", <span className="num">{rupeesShort(k.total_interest)}</span>],
+          ["Total repayment", <span className="num">{rupeesShort(k.total_repayment)}</span>],
+          ["Annualised cost", <span className="num">{pct(k.apr_pct, 2)}, no processing fee</span>],
+        ]}
+      />
+    </div>
+  );
+}
+
 function PricedWith({ p }: { p: Pricing }) {
   const margin = p.cash_margin_pct != null ? `${pct(p.cash_margin_pct, 0)} of GST turnover` : "–";
   const lgd = p.lgd_pct != null ? pct(p.lgd_pct, 0) : "–";

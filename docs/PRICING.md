@@ -114,3 +114,7 @@ Unchanged by the pricing inputs. Any hard fail declines (wilful default, CMR ran
 ## 8. Changing the figures
 
 The two reference tables are policy. `CREDORA_SVC` may write them, the deploy user creates them, every other role reads them. To change a figure on a live deployment update the row in Exasol and run the analysis again. The seed files leave an existing row alone. `CONFIG MAX_EXPOSURE_PCT` and `CONFIG CASH_MARGIN_DEFAULT_PCT` are ordinary policy knobs.
+
+## Key facts on the offer
+
+The report prints the offer the way a key facts statement reads. The rate a year, the tenure, the monthly instalment (a term loan amortises in equal instalments, working capital pays interest monthly on the limit), the total interest, the total repayment and the annualised cost. Credora charges no processing fee, so the annualised cost equals the rate. The backend computes it in `finance.key_facts` from `DECISIONS.OFFER_AMOUNT`, `OFFER_ROI`, `OFFER_TENURE` and `PRODUCT`, and `GET /api/companies/{cif}/report` returns it as `key_facts`.

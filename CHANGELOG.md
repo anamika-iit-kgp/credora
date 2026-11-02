@@ -2,6 +2,13 @@
 
 All notable changes to Credora. Dates are in IST.
 
+## 2.0.2, 2 November 2026
+
+- Sign-in is rate limited. After 10 failed attempts from one address or for one username inside 5 minutes the next attempt gets 429 for the rest of the window, and a success clears the username's count.
+- Every site sends a Content-Security-Policy. The app allows only its own files plus its one inline theme script, by hash computed from the built page at ship time, and no third party. The docs, deck and video sites keep their inline scripts and styles and nothing external. A Permissions-Policy turns off camera, microphone and geolocation.
+- The report shows the offer's key facts (rate, tenure, monthly instalment or monthly interest, total interest, total repayment, annualised cost) the way a key facts statement reads. Credora charges no fee, so the annualised cost equals the rate. `GET /api/companies/{cif}/report` returns `key_facts`.
+- Frontend unit tests with vitest, run in CI, over the fixtures decision logic, the loan status state machine and the role gating.
+
 ## 2.0.1, 2 November 2026
 
 - The champion and challenger were retrained on the book drawn on 2 November (`v4`, AUC 0.728, and `v4-lr`, AUC 0.798, both on the same 25% hold-out) and `v4` was activated through the four-eyes flow. The calibration check now reproduces the registry AUC for both. The published run is `R20261102-1037` (531 APPROVE, 184 REFER, 285 DECLINE, offers ₹1,065.4 crore, Top 50 ₹189.3 crore at 11.0% and a RAROC of 22.7%, 17.8 s) and every figure in README, the deck and the docs comes from it.

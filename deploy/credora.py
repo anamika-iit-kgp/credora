@@ -21,7 +21,10 @@ launcher, ssh/scp, Node.js (builds the frontend). Python deps: deploy/requiremen
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import json
+import re
 import os
 import pathlib
 import shutil
@@ -311,15 +314,28 @@ class Deployment:
             "\thandle_path /mock/cibil/* {\n\t\treverse_proxy cibil:8101\n\t}\n"
             "\thandle_path /mock/gstn/* {\n\t\treverse_proxy gstn:8102\n\t}\n"
             "\thandle_path /mock/aa/* {\n\t\treverse_proxy aa:8103\n\t}\n")
+        # Content-Security-Policy. The app allows its own files plus the one inline theme script, by hash,
+        # computed from the built page so a change to that script cannot lock the page out. The sites keep
+        # inline scripts and styles (they are static pages) but nothing from a third party.
+        app_csp = ("default-src 'self'; script-src 'self' {h}; style-src 'self' 'unsafe-inline'; "
+                   "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
+                   "base-uri 'self'; form-action 'self'; object-src 'none'").format(h=self.inline_script_hash())
+        site_csp = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                    "img-src 'self' data: blob:; font-src 'self' data:; media-src 'self'; connect-src 'self'; "
+                    "frame-src 'self'; object-src 'self'; frame-ancestors 'none'; base-uri 'self'")
+        secure = ("\theader {\n\t\tStrict-Transport-Security \"max-age=31536000\"\n\t\tX-Content-Type-Options nosniff\n"
+                  "\t\tReferrer-Policy strict-origin-when-cross-origin\n"
+                  "\t\tPermissions-Policy \"camera=(), microphone=(), geolocation=()\"\n")
+        app_headers = secure + f"\t\tContent-Security-Policy \"{app_csp}\"\n\t}}\n"
+        site_headers = secure + f"\t\tContent-Security-Policy \"{site_csp}\"\n\t}}\n"
         blocks = [
             f"{d} {{\n\tencode zstd gzip\n\thandle /api/* {{\n\t\treverse_proxy backend:8000\n\t}}\n{mocks}"
             f"\thandle {{\n{static('/srv')}\t}}\n"
-            "\theader {\n\t\tStrict-Transport-Security \"max-age=31536000\"\n\t\tX-Content-Type-Options nosniff\n"
-            "\t\tReferrer-Policy strict-origin-when-cross-origin\n\t}\n}\n",
+            f"{app_headers}}}\n",
             f"www.{d} {{\n\tredir https://{d}{{uri}} permanent\n}}\n",
-            f"docs.{d} {{\n\tencode zstd gzip\n{views}\thandle {{\n{static('/sites/docs/dist')}\t}}\n}}\n",
-            f"video.{d} {{\n{views}{media}\thandle {{\n{static('/sites/video')}\t}}\n}}\n",
-            f"ppt.{d} {{\n{views}{media}\thandle {{\n{static('/sites/ppt')}\t}}\n}}\n",
+            f"docs.{d} {{\n\tencode zstd gzip\n{views}\thandle {{\n{static('/sites/docs/dist')}\t}}\n{site_headers}}}\n",
+            f"video.{d} {{\n{views}{media}\thandle {{\n{static('/sites/video')}\t}}\n{site_headers}}}\n",
+            f"ppt.{d} {{\n{views}{media}\thandle {{\n{static('/sites/ppt')}\t}}\n{site_headers}}}\n",
         ]
         if x:
             blocks += [
@@ -369,6 +385,17 @@ class Deployment:
                        "bash deploy/remote/start.sh 2>&1 | tail -12 && docker compose restart caddy >/dev/null 2>&1"))
 
     # --- Data and Exasol objects ------------------------------------------------------
+
+    def inline_script_hash(self) -> str:
+        """CSP source for the one inline script of the app page (the theme setter), from the built page when
+        it exists, else from the source page. No script gives 'none', so the policy stays strict."""
+        for p in (ROOT / "frontend" / "dist" / "index.html", ROOT / "frontend" / "index.html"):
+            if p.exists():
+                m = re.search(r"<script>(.*?)</script>", p.read_text(encoding="utf-8"), re.S)
+                if m:
+                    digest = hashlib.sha256(m.group(1).encode("utf-8")).digest()
+                    return "'sha256-" + base64.b64encode(digest).decode() + "'"
+        return "'none'"
 
     def generate(self, seed: int | None = 2026, as_of: str | None = None) -> None:
         say("Generate mock data (1,000 companies)")
