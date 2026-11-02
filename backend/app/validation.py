@@ -108,8 +108,8 @@ def compute_calibration(version: str) -> None:
 
 
 def compute_psi(run_id: str) -> None:
-    """EXECUTE SCRIPT CREDORA.MODEL_PSI(run_id) as CREDORA_SVC. Replaces the run's rows."""
-    exa.query(exa.SVC, "EXECUTE SCRIPT CREDORA.MODEL_PSI({r})", {"r": run_id})
+    """EXECUTE SCRIPT CREDORA.COMPUTE_PSI(run_id) as CREDORA_SVC. Replaces the run's rows."""
+    exa.query(exa.SVC, "EXECUTE SCRIPT CREDORA.COMPUTE_PSI({r})", {"r": run_id})
     console.event(f"CREDORA.MODEL_PSI holds run {run_id}. Each of the 13 features of CREDORA.FEATURES was binned "
                   "against the tenths of VS_LOS.past_loan_training", exa_user=exa.SVC,
                   objects=["CREDORA.MODEL_PSI", "CREDORA.FEATURES", "VS_LOS"])

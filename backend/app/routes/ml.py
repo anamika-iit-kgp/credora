@@ -139,7 +139,7 @@ class PsiBody(BaseModel):
 
 @router.post("/ml/psi")
 def compute_psi(body: PsiBody | None = None, user: User = Depends(require("datasci", "admin"))):
-    """Runs CREDORA.MODEL_PSI(run_id) as CREDORA_SVC (default the latest published run) and returns
+    """Runs CREDORA.COMPUTE_PSI(run_id) as CREDORA_SVC (default the latest published run) and returns
     the fresh evidence."""
     run_id = _psi_run(user, (body.run_id if body else None) or None)
     if not run_id:

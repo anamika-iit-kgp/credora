@@ -7,7 +7,7 @@
 --                      past loans the models learnt from (VS_LOS.past_loan_training) with the live
 --                      FEATURES of the run, in ten bins fixed on the past loans. Written by MODEL_PSI.
 --
--- Both scripts run as CREDORA_SVC. The web app runs CALIBRATE_MODEL after every training and MODEL_PSI
+-- Both scripts run as CREDORA_SVC. The web app runs CALIBRATE_MODEL after every training and COMPUTE_PSI
 -- after every analysis run, and the Models screen runs either on demand. The admin and the data
 -- scientist read the tables. How to read the figures, and the known gap between the past loans and
 -- the live features, are in docs/MODEL_VALIDATION.md.
@@ -67,13 +67,13 @@ CREATE OR REPLACE LUA SCRIPT CREDORA.CALIBRATE_MODEL(model_version) RETURNS ROWC
   return res
 /
 
--- CREDORA.MODEL_PSI(run_id) replaces the PSI rows of one run. For each of the 13 model features it
+-- CREDORA.COMPUTE_PSI(run_id) replaces the PSI rows of one run. For each of the 13 model features it
 -- takes ten bins from the past loans (the upper edge of bin k is the largest value in the k-th tenth,
 -- the last bin is open), counts the past loans and the run's companies per bin, and sums
 -- (live share - train share) * ln(live share / train share) over the bins. An empty share counts as
 -- 0.0001, and a bin empty on both sides adds nothing. NULL live values (for example no GST returns on
 -- file) are left out of the shares and counted in NULL_LIVE. BINS keeps the ten shares as JSON.
-CREATE OR REPLACE LUA SCRIPT CREDORA.MODEL_PSI(run_id) RETURNS ROWCOUNT AS
+CREATE OR REPLACE LUA SCRIPT CREDORA.COMPUTE_PSI(run_id) RETURNS ROWCOUNT AS
   local features = {'gst_years', 'gst_turnover_12m', 'gst_late_filings_12m', 'gst_bank_gap_pct', 'avg_balance_12m',
                     'inflow_volatility', 'bounce_ratio', 'cmr_rank', 'partner_min_score', 'partner_avg_score',
                     'partner_overdue_amt', 'partner_other_bank_bal', 'dscr'}

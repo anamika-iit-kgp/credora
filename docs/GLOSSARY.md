@@ -2257,7 +2257,7 @@ brier = float(np.mean((p - y_te) ** 2))
 
 A number that says how far the companies a model scores today have drifted from the loans it learnt from, per feature. Both populations are cut into the same ten bins, fixed on the training data, and the PSI sums (live share minus train share) times the log of their ratio over the bins. Below 0.1 the feature is stable, from 0.1 to 0.25 there is some shift, above 0.25 the shift is significant.
 
-**In Exasol.** CREDORA.MODEL_PSI, a Lua script, takes for each of the 13 model features the tenths of VS_LOS.past_loan_training as bin edges, counts the past loans and the run's CREDORA.FEATURES into them and writes the PSI, the counts, the means and the ten pairs of shares to CREDORA.MODEL_PSI, one row per run and feature. The web app runs it after every analysis run and on demand. Some shift is expected by design, because the past loans are synthetic feature snapshots drawn by formula while the live features are computed from ledgers and returns (docs/MODEL_VALIDATION.md).
+**In Exasol.** CREDORA.COMPUTE_PSI, a Lua script, takes for each of the 13 model features the tenths of VS_LOS.past_loan_training as bin edges, counts the past loans and the run's CREDORA.FEATURES into them and writes the PSI, the counts, the means and the ten pairs of shares to CREDORA.MODEL_PSI, one row per run and feature. The web app runs it after every analysis run and on demand. Some shift is expected by design, because the past loans are synthetic feature snapshots drawn by formula while the live features are computed from ledgers and returns (docs/MODEL_VALIDATION.md).
 
 **Objects.** `CREDORA.MODEL_PSI`, `CREDORA.FEATURES`, `VS_LOS`
 

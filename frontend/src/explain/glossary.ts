@@ -1549,8 +1549,8 @@ SELECT 'OPERATING_SPREAD_PCT', 0.75, 'Operating spread added to every loan, % p.
     term: "Population Stability Index (PSI)",
     kind: "banking",
     plain: "One number per feature that says how far the live companies have drifted from the data the model was trained on. Below 0.1 is stable, 0.1 to 0.25 some shift, above 0.25 a significant shift.",
-    inExasol: "CREDORA.MODEL_PSI compares every run's CREDORA.FEATURES with VS_LOS past_loan_training in ten bins fixed on the training data and stores one row per feature in CREDORA.MODEL_PSI. Shown on the Risk models screen for the published run.",
-    objects: ["CREDORA.MODEL_PSI", "CREDORA.FEATURES", "VS_LOS"],
+    inExasol: "CREDORA.COMPUTE_PSI compares every run's CREDORA.FEATURES with VS_LOS past_loan_training in ten bins fixed on the training data and stores one row per feature in CREDORA.MODEL_PSI. Shown on the Risk models screen for the published run.",
+    objects: ["CREDORA.COMPUTE_PSI", "CREDORA.MODEL_PSI", "CREDORA.FEATURES", "VS_LOS"],
     related: ["calibration", "model-risk-management"],
   },
   "lgd": {

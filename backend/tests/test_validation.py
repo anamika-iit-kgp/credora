@@ -140,7 +140,7 @@ def test_psi_without_any_run(fake_exasol, monkeypatch):
 def test_compute_psi_runs_the_script_for_the_asked_run(fake_exasol):
     r = c.post("/api/ml/psi", json={"run_id": "R1"}, headers=h("admin"))
     assert r.status_code == 200 and r.json()["computed"]
-    assert [(u, p) for u, s, p in fake_exasol if "EXECUTE SCRIPT CREDORA.MODEL_PSI" in s] == [("CREDORA_SVC", {"r": "R1"})]
+    assert [(u, p) for u, s, p in fake_exasol if "EXECUTE SCRIPT CREDORA.COMPUTE_PSI" in s] == [("CREDORA_SVC", {"r": "R1"})]
     r = c.post("/api/ml/psi", headers=h("datasci"))  # no body: the current run
     assert r.status_code == 200 and r.json()["run_id"] == "R1"
 
