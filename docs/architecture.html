@@ -447,7 +447,7 @@ ol.seq .actor{font-weight:600}
 <!-- DECISION -->
 <section id="decide">
   <h2>How one company is decided</h2>
-  <p class="meta">Policy values live in <code>CREDORA.CONFIG</code>, so the data scientist can change them in a what-if. EBLR 8.25%, operating spread 0.75%, cost of funds 6.50%, opex 1.00%, LGD 45%, capital 12%, hurdle RAROC 15%.</p>
+  <p class="meta">Policy values live in <code>CREDORA.CONFIG</code>, so the data scientist can change them in a what-if. EBLR 8.25%, operating spread 0.75%, cost of funds 6.50%, opex 1.00%, unsecured LGD 45%, capital 12%, hurdle RAROC 15%, exposure cap 60% of GST turnover. The cash margin per industry and the LGD per collateral type come from <code>CREDORA.INDUSTRY_MARGIN</code> and <code>CREDORA.LGD_COLLATERAL</code> (docs/PRICING.md).</p>
   <div class="tablebox"><table>
     <thead><tr><th>Step</th><th>What happens</th><th>In Exasol</th></tr></thead>
     <tbody>
@@ -455,10 +455,10 @@ ol.seq .actor{font-weight:600}
       <tr><td>2 · Features</td><td>13 features. GST years, turnover, late filings, GST-vs-bank gap, average balance, inflow volatility, bounce ratio, CMR rank, partners' minimum and average score, overdue, other-bank balance, DSCR</td><td>Window functions over <code>CA_MONTHLY</code> (aggregated in Oracle) and the API data → <code>FEATURES</code></td></tr>
       <tr><td>3 · Risk</td><td>Probability of default, grade, per-feature attribution</td><td><code>PD_SCORE</code> → <code>SCORES</code></td></tr>
       <tr><td>4 · Hard fails</td><td>Wilful defaulter, CMR rank 9 or worse, 4+ late GST returns in 12 months, any partner CIBIL below 600, bounce ratio above 8%</td><td>SQL</td></tr>
-      <tr><td>5 · ROI</td><td>EBLR + risk spread by grade (1.00% for A1 to 7.00% for D) + operating spread, minus 0.25% if collateral covers the loan, never below the floor</td><td>SQL</td></tr>
-      <tr><td>6 · Amount</td><td>A term loan gets what 12% of GST turnover can repay at DSCR 1.25. Working capital gets the smaller of 20% of GST turnover and the same cash-flow cap. Never above the indicated need.</td><td>SQL</td></tr>
+      <tr><td>5 · ROI</td><td>EBLR + risk spread by grade (1.00% for A1 to 7.00% for D) + operating spread, minus 0.25% if collateral covers the loan, never below the floor. The floor and RAROC use the LGD of the collateral type (35% receivables or property, 40% plant and machinery) on the covered share and 45% on the rest</td><td>SQL</td></tr>
+      <tr><td>6 · Amount</td><td>A term loan gets what the industry's cash margin on GST turnover (5% to 22%) can repay at DSCR 1.25. Working capital gets the smaller of 20% of GST turnover and the same cash-flow cap. Both stay within the room under the exposure cap, the CIBIL exposure at all lenders plus the offer within 60% of GST turnover. Never above the indicated need.</td><td>SQL</td></tr>
       <tr><td>7 · Tenure</td><td>A term loan gets the indicated tenure, up to 84 months (60 for grades C1, C2, D). Working capital gets 12 months.</td><td>SQL</td></tr>
-      <tr><td>8 · Negotiation limit</td><td>Floor ROI where RAROC still meets the hurdle (and at least EBLR + 0.50%). Maximum amount at DSCR 1.10, up to 115% of the indicated need. Maximum tenure +24 months, up to 84</td><td>SQL</td></tr>
+      <tr><td>8 · Negotiation limit</td><td>Floor ROI where RAROC still meets the hurdle (and at least EBLR + 0.50%). Maximum amount at DSCR 1.10, up to 115% of the indicated need and within the exposure cap. Maximum tenure +24 months, up to 84</td><td>SQL</td></tr>
       <tr><td>9 · Decision</td><td>Decline on any hard fail. Refer if KYC is not verified, grade is C2 or D, the offer is below half the indicated need, or the anomaly model flagged the company (an "Anomaly" reason). Otherwise Approve. RAROC = (ROI − funds − opex − PD × LGD) / capital.</td><td>SQL → <code>DECISIONS</code></td></tr>
       <tr><td>10 · Rank</td><td>Skyline layers of approved companies, rank among 1,000, top 50</td><td><code>PREFERRING</code></td></tr>
     </tbody>

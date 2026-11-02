@@ -261,9 +261,9 @@ The definitions below are for one company analysed, that is one `los.application
 | `partner_avg_score` | `AVG(partner score)`, 1 decimal |
 | `partner_overdue_amt` | `SUM(consumer_account.overdue)` over all accounts of all partners (any status) |
 | `partner_other_bank_bal` | `SUM(fi_account.current_balance)` over AA accounts whose `owner_pan` is a partner PAN (company-owned AA accounts are excluded) |
-| `dscr` | `gst_turnover_12m * 0.12 / debt_service`. For TL, `debt_service` = 12 × EMI of `amount_requested` at 11% p.a. over `tenure_requested` months, EMI = P·r / (1 − (1+r)^−n), r = 0.11/12. For WC, `debt_service` = `amount_requested * 0.11` (interest only) |
+| `dscr` | `gst_turnover_12m * cash_margin / debt_service`, where `cash_margin` is the industry's operating cash margin (`CREDORA.INDUSTRY_MARGIN`, 5% to 22%, see [PRICING.md](PRICING.md)), or `CONFIG CASH_MARGIN_DEFAULT_PCT` (12%) for an industry not in the table. For TL, `debt_service` = 12 × EMI of `amount_requested` at 11% p.a. over `tenure_requested` months, EMI = P·r / (1 − (1+r)^−n), r = 0.11/12. For WC, `debt_service` = `amount_requested * 0.11` (interest only) |
 
-For past loans `product` and `amount` are stored, but the tenure behind their `dscr` is not. The default rate in `past_loan` is about 8%.
+For past loans `product` and `amount` are stored, but the tenure and the industry behind their `dscr` are not. The generator draws an industry per past loan and applies the same cash margins (`mocks/generator/generator/reference.py` `CASH_MARGIN_PCT`, kept equal to the Exasol seed by a test). The default rate in `past_loan` is about 8%.
 
 ## 9. Exasol schemas and who may read them
 
@@ -277,6 +277,7 @@ The analysis writes to two Exasol schemas, with DDL in `exasol/sql/01_schemas.sq
 | `CREDORA.ANOMALY` | Isolation Forest check per run and company, with `SCORE` (higher = more unusual), `IS_ANOMALY` (about 3%, CONFIG `ANOMALY_CONTAMINATION_PCT`) and `TOP_REASONS` (the figures that stand out) | read | read | no. An RM sees a flag only as the `Anomaly: ...` reason in `DECISIONS.HARD_FAILS` |
 | `CREDORA` (`DECISIONS`, `SCORES`) | Decisions and offers, PD and attributions | read | read | no, only through `V_RM_DECISIONS`, `V_RM_SCORES` |
 | `CREDORA` (`CONFIG`, `RUN_LOG`) | Policy knobs, run steps | read | read | read |
+| `CREDORA.INDUSTRY_MARGIN`, `CREDORA.LGD_COLLATERAL` | Pricing reference tables, the cash margin per industry and the LGD per collateral type (section 10) | read | read | read |
 | `CREDORA.V_COMPANY_MASKED` | Company details with PAN and GSTIN masked | read | read | no |
 | `CREDORA.RM_ASSIGNMENT` | Who works which company, with `CIF_ID`, `RM_ID`, `EXA_USER` (the manager's Exasol user, `CREDORA_RM` for the demo's `RM001`), `ASSIGNED_BY` and `ASSIGNED_AT`. It has one row per company. Loan operations' assignments write it as `CREDORA_SVC` | read | read | no, only her own rows through `V_RM_ASSIGNMENT` |
 | `CREDORA.LOAN_STATUS_LOG` | Loan status history per assigned company, with `EVENT_ID`, `CIF_ID`, `RM_ID`, `STATUS` (ASSIGNED, CONTACTED, NEGOTIATING, LOAN_TAKEN, IN_PROGRESS, DISBURSED, NOT_INTERESTED), `NOTE`, `LOGGED_BY` and `LOGGED_AT`. The newest row is the current status. It is written as `CREDORA_SVC` | read | read | no, only her companies through `V_RM_LOAN_STATUS` |
@@ -291,8 +292,41 @@ The analysis writes to two Exasol schemas, with DDL in `exasol/sql/01_schemas.sq
 
 The `CREDORA` and `CREDORA_STAGE` tables are written only by `CREDORA_SVC`, which runs the analysis, training, purge, the publish step, assignments and loan status. Ask Credora logs in as the person's own AI user (`CREDORA_ADMIN_AI`, `CREDORA_DATASCI_AI`, `CREDORA_LOANOPS_AI` or `CREDORA_RM_AI`, with the same role as the person), so the AI reads exactly what that person reads. `CREDORA_MCP` stays a read-only user for results only. Exasol itself limits the relationship manager to her assigned companies. `R_RM` holds no grant on the result tables, only on the `V_RM_*` views, which join `RM_ASSIGNMENT` on the logged-in Exasol user, with an AI user `<person>_AI` matched to its person (`exasol/sql/13_rm_row_security.sql`). The backend checks the same again as defence in depth. The demo seed `exasol/sql/14_seed_rm_book.sql` gives `RM001` 25 companies (`python deploy/credora.py rm-book --env <name>`, idempotent).
 
-**Comments in the database.** Every table and column of `CREDORA` and `CREDORA_STAGE` (17 tables, 196 columns), both schemas, the scheduler's tables and every Credora script and UDF carry the meanings in this document and in `docs/GLOSSARY.md` as Exasol comments (`exasol/sql/15_comments.sql`, applied last by the deploy tool). Read them with `SELECT COLUMN_NAME, COLUMN_COMMENT FROM EXA_ALL_COLUMNS WHERE COLUMN_SCHEMA = 'CREDORA'`. The Exasol MCP server's `describe_exasol_tables_and_views` returns them to Ask Credora. Exasol accepts comments on views only inside `CREATE VIEW`.
+**Comments in the database.** Every table and column of `CREDORA` and `CREDORA_STAGE` (21 tables, 208 columns), both schemas, the scheduler's tables and every Credora script and UDF carry the meanings in this document and in `docs/GLOSSARY.md` as Exasol comments (`exasol/sql/15_comments.sql`, applied last by the deploy tool). Read them with `SELECT COLUMN_NAME, COLUMN_COMMENT FROM EXA_ALL_COLUMNS WHERE COLUMN_SCHEMA = 'CREDORA'`. The Exasol MCP server's `describe_exasol_tables_and_views` returns them to Ask Credora. Exasol accepts comments on views only inside `CREATE VIEW`.
 
 **Consumer groups.** `CREDORA_SVC` runs in `CREDORA_BATCH` (high priority), the role users `CREDORA_ADMIN`, `CREDORA_DATASCI`, `CREDORA_LOANOPS`, `CREDORA_RM` and `CREDORA_RM002` in `CREDORA_APP` (medium, 300 s per statement), and the AI session users `CREDORA_ADMIN_AI`, `CREDORA_DATASCI_AI`, `CREDORA_LOANOPS_AI` and `CREDORA_RM_AI` with `CREDORA_MCP` in `CREDORA_AI` (low, 60 s, 2 GiB of temporary memory per session). Only the user `CREDORA_ADMIN` holds `SELECT ANY DICTIONARY`, so the admin's AI user cannot read the audit log or the system tables. The settings are in `exasol/sql/16_resources.sql`. Every statement in `EXA_DBA_AUDIT_SQL` names its group.
 
 **Time stamps.** `PURGE_AT`, `FETCHED_AT`, `LOGGED_AT`, `DECIDED_AT` and the other Credora time stamps are `TIMESTAMP` values in the database time zone (`DBTIMEZONE`, `EUROPE/BERLIN`, the launcher's default), compared with `SYSTIMESTAMP`. The backend converts them to UTC. `SCHED.SCHED_HISTORY` is in UTC, as the scheduler writes it.
+
+## 10. Pricing reference tables and the pricing inputs
+
+Added with the pricing rule of [PRICING.md](PRICING.md). Both tables are created and seeded by `exasol/sql/18_pricing_reference.sql`, which the deploy tool applies right after `01_schemas.sql`. A row that already exists keeps its value.
+
+```sql
+CREDORA.INDUSTRY_MARGIN (
+  INDUSTRY         VARCHAR(40) PRIMARY KEY,   -- as in cif.company.industry
+  CASH_MARGIN_PCT  DECIMAL(5,2) NOT NULL,     -- operating cash margin, % of 12 month GST turnover
+  NOTE             VARCHAR(200)
+)
+
+CREDORA.LGD_COLLATERAL (
+  COLLATERAL_TYPE  VARCHAR(30) PRIMARY KEY,   -- as in los.application.collateral_type
+  LGD_PCT          DECIMAL(5,2) NOT NULL,     -- loss given default on the covered part, %
+  BASIS            VARCHAR(200)
+)
+```
+
+`CREDORA.CONFIG` gains `CASH_MARGIN_DEFAULT_PCT` (12) for an industry missing from the table and `MAX_EXPOSURE_PCT` (60), the cap on the company's exposure at all lenders plus the offer, as a share of GST turnover.
+
+`CREDORA.FEATURES` gains `CIBIL_TOTAL_EXPOSURE DECIMAL(18,2)`, the company's exposure at all lenders from its CIBIL commercial report (`CREDORA_STAGE.CIBIL_COMMERCIAL.TOTAL_EXPOSURE`). It is an input to the exposure cap, not a model feature, and it is the last column because step 7 inserts by position.
+
+`CREDORA.DECISIONS` gains the pricing inputs the decision used, so the report and the offer screens can show what the price rests on.
+
+| Column | Meaning |
+|---|---|
+| `CASH_MARGIN_PCT DECIMAL(5,2)` | Cash margin used for the offer size, % of GST turnover |
+| `LGD_PCT DECIMAL(5,2)` | Loss given default used in the floor ROI and RAROC, %, after the collateral |
+| `EXISTING_EXPOSURE DECIMAL(18,2)` | The company's exposure at all lenders, INR, 0 when it has no commercial report |
+| `EXPOSURE_ROOM DECIMAL(18,2)` | Room left under the exposure cap, INR, never below 0. The offer and the negotiation limit stay within it |
+
+`CREDORA.V_LATEST_DECISION` carries the four columns and its `LGD_RATE` is now the decision's `LGD_PCT` (the policy figure for runs made before the columns existed). Deployments made before this change get the columns in place from `CREDORA.PRICING_MIGRATE` in `01_schemas.sql`, and rows of earlier runs keep NULL in them.

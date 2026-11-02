@@ -255,6 +255,23 @@ export interface ReportStep {
   ms: number | null;
 }
 
+/** The pricing inputs the decision used, stored with it in CREDORA.DECISIONS (docs/PRICING.md). */
+export interface Pricing {
+  industry: string | null;
+  /** cash margin on GST turnover, % (CREDORA.INDUSTRY_MARGIN) */
+  cash_margin_pct: number | null;
+  /** cash available for debt service a year, INR */
+  cash_12m: number | null;
+  collateral_type: string | null;
+  collateral_value: number | null;
+  /** loss given default after the collateral, % (CREDORA.LGD_COLLATERAL blended by coverage) */
+  lgd_pct: number | null;
+  /** the company's exposure at all lenders on its CIBIL commercial report, INR */
+  existing_exposure: number | null;
+  /** room left under the total exposure cap, INR */
+  exposure_room: number | null;
+}
+
 export interface Report {
   cif_id: string;
   legal_name: string;
@@ -282,6 +299,8 @@ export interface Report {
   hard_fails?: string[];
   /** Isolation Forest result from CREDORA.ANOMALY; null for relationship managers (no grant) and older runs. */
   anomaly?: AnomalyResult | null;
+  /** How the offer was priced; null for runs made before the inputs were stored. */
+  pricing?: Pricing | null;
 }
 
 export interface AnomalyResult {
@@ -448,6 +467,8 @@ export interface Quote {
   within_limit: boolean;
   raroc: number;
   emi: number;
+  /** loss given default the RAROC used, %: the decision's figure after collateral, else the policy LGD */
+  lgd_pct?: number | null;
   reasons: string[];
 }
 

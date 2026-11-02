@@ -46,6 +46,7 @@ EXASOL_PORTS = (22, 2581, 8443, 8563, 20002, 20003)  # what the launcher's secur
 TOFU_IMAGE = "ghcr.io/opentofu/opentofu:1.10.6"
 EXASOL_SQL = [  # order matters: virtual schemas need data, grants need virtual schemas
     "exasol/sql/01_schemas.sql",
+    "exasol/sql/18_pricing_reference.sql",
     "exasol/sql/02_connections.sql",
     "exasol/udf/04_api_udfs.sql",
     "exasol/udf/05_ml_udfs.sql",

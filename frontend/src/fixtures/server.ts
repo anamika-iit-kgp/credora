@@ -29,7 +29,7 @@ import type {
   User,
   WhatIfResult,
 } from "../api/types";
-import type { PolicyLeverChange, PolicyProposal, WhatIfRun } from "../api/types";
+import type { PolicyLeverChange, PolicyProposal, Pricing, WhatIfRun } from "../api/types";
 import type { ActivationRequest, LoanStatus, LoanStatusEvent, LoanStatusRow } from "../api/types";
 import { num, rupeesShort } from "../lib/format";
 import { buildFeatures, buildReasons, buildSteps } from "./report";
@@ -696,6 +696,32 @@ function node(u: User, id: string): NodeRecords {
 
 /* ------------------------------ report ------------------------------ */
 
+// Fixture copy of CREDORA.INDUSTRY_MARGIN and CREDORA.LGD_COLLATERAL (docs/PRICING.md), illustrative figures.
+const CASH_MARGIN_PCT: Record<string, number> = {
+  "Plastics and polymers": 11, Textiles: 9, "Food processing": 8, "Steel and metals": 10, Pharmaceuticals: 18,
+  "Auto components": 12, Logistics: 9, Packaging: 12, Electricals: 10, Chemicals: 15, "Building materials": 10,
+  "Paper and printing": 12, Engineering: 12, "Agri trading": 6,
+};
+const LGD_COLLATERAL_PCT: Record<string, number> = { None: 45, Receivables: 35, Property: 35, "Plant & machinery": 40 };
+const LGD_UNSECURED_PCT = 45;
+const MAX_EXPOSURE_PCT = 60;
+
+function pricingOf(c: Company): Pricing {
+  const margin = CASH_MARGIN_PCT[c.industry] ?? 12;
+  const cover = Math.min(c.collateral_value / c.amount_requested, 1);
+  const lgdType = LGD_COLLATERAL_PCT[c.collateral_type] ?? LGD_UNSECURED_PCT;
+  return {
+    industry: c.industry,
+    cash_margin_pct: margin,
+    cash_12m: Math.round((c.turnover_12m * margin) / 100),
+    collateral_type: c.collateral_type,
+    collateral_value: c.collateral_value,
+    lgd_pct: Math.round((LGD_UNSECURED_PCT + (lgdType - LGD_UNSECURED_PCT) * cover) * 100) / 100,
+    existing_exposure: c.cmr_exposure,
+    exposure_room: Math.max((c.turnover_12m * MAX_EXPOSURE_PCT) / 100 - c.cmr_exposure, 0),
+  };
+}
+
 function report(c: Company, u?: User): Report {
   if (!S.analysed) throw new HttpError(404, "No analysis has run on this data set yet. Run analysis to create Exasol reports.");
   const { scored: sc, ranks } = scored();
@@ -729,6 +755,7 @@ function report(c: Company, u?: User): Report {
     features: buildFeatures(c, world, s),
     steps: buildSteps(c, s, ps.length, run.run_id),
     sources_used: ["bank.oracle", "bank.mysql", "bank.postgres", "api.cibil", "api.gstn", "api.aa", "exasol"],
+    pricing: pricingOf(c),
   };
 }
 
@@ -1673,7 +1700,14 @@ function quote(o: Offer, amount: number, roi: number, tenure: number) {
   const raroc = Math.round(rarocOf(roi, (o.pd ?? 0.02) * (1 + Math.max(0, tenure - (o.offer_tenure ?? tenure)) / 240), pol.eblr_pct) * 10) / 10;
   if (raroc < pol.hurdle_pct) reasons.push(`RAROC ${raroc.toFixed(1)}% is below the ${pol.hurdle_pct}% hurdle.`);
   if (!reasons.length) reasons.push(`Within limit. RAROC ${raroc.toFixed(1)}% meets the ${pol.hurdle_pct}% hurdle.`);
-  return { within_limit: reasons.length === 1 && reasons[0].startsWith("Within"), raroc, emi: Math.round(emi(amount, roi, tenure)), reasons };
+  const company = world.all().find((c) => c.cif_id === o.cif_id);
+  return {
+    within_limit: reasons.length === 1 && reasons[0].startsWith("Within"),
+    raroc,
+    emi: Math.round(emi(amount, roi, tenure)),
+    lgd_pct: company ? pricingOf(company).lgd_pct : null,
+    reasons,
+  };
 }
 
 on("POST", "/api/offers/{id}/quote", ({ u, m, body }) => {

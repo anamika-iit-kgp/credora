@@ -119,7 +119,7 @@ REPLACE FACTS (
   FACT pd ON ENTITY decision AS de.PD RETURNS DECIMAL(18,6) ADDITIVE
     DISPLAY ''PD'' COMMENT ''Probability of default, 0..1'' PRIVATE,
   FACT expected_loss_amount ON ENTITY decision AS CAST(de.PD * de.LGD_RATE * de.OFFER_AMOUNT AS DECIMAL(18,2)) RETURNS DECIMAL(18,2) ADDITIVE
-    DISPLAY ''Expected loss'' COMMENT ''PD x LGD (policy CONFIG LGD_PCT, 45%) x offer amount, INR'' PUBLIC CERTIFIED,
+    DISPLAY ''Expected loss'' COMMENT ''PD x LGD after collateral (DECISIONS.LGD_PCT) x offer amount, INR'' PUBLIC CERTIFIED,
   FACT anomaly_count ON ENTITY decision AS CASE WHEN REPLACE(de.HARD_FAILS, ''Anomaly:'', '''') <> de.HARD_FAILS THEN 1 ELSE 0 END RETURNS DECIMAL(18,0) ADDITIVE
     DISPLAY ''Anomaly flags'' COMMENT ''One per company the anomaly model flagged (reason text in the decision)'' PRIVATE
 )
