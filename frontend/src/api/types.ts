@@ -311,6 +311,74 @@ export interface Model {
   feature_importance: FeatureImportance[];
 }
 
+/** Calibration of one model on the training's own hold-out (CREDORA.MODEL_CALIBRATION), one row per decile of predicted PD. */
+export interface CalibrationDecile {
+  /** 1 = lowest predicted PD, 10 = highest */
+  decile: number;
+  n: number;
+  defaults: number;
+  mean_pd: number | null;
+  observed_rate: number | null;
+  pd_min: number | null;
+  pd_max: number | null;
+}
+
+export interface Calibration {
+  version: string;
+  /** false until CREDORA.CALIBRATE_MODEL has run for the version */
+  computed: boolean;
+  computed_at: string | null;
+  n_holdout: number;
+  brier: number | null;
+  /** Brier score of always predicting the training default rate */
+  brier_base: number | null;
+  auc: number | null;
+  registry_auc: number | null;
+  /** the reproduced hold-out AUC equals MODEL_REGISTRY.AUC, so the past loans are still the training's */
+  reproduces_training: boolean;
+  /** largest |mean_pd - observed_rate| over the deciles */
+  max_gap: number | null;
+  deciles: CalibrationDecile[];
+}
+
+/** below 0.1 stable, 0.1 to 0.25 some shift, above 0.25 significant */
+export type PsiBand = "stable" | "shift" | "significant" | "unknown";
+
+export interface PsiBin {
+  bin: number;
+  /** upper edge from the past loans, null for the open last bin */
+  hi: number | null;
+  train: number;
+  live: number;
+}
+
+export interface PsiFeature {
+  feature: string;
+  psi: number | null;
+  band: PsiBand;
+  n_train: number;
+  n_live: number;
+  /** companies of the run without a value, left out of the shares */
+  null_live: number;
+  train_mean: number | null;
+  live_mean: number | null;
+  bins: PsiBin[];
+}
+
+/** Population stability index of one run's features against the past loans (CREDORA.MODEL_PSI). */
+export interface Psi {
+  run_id: string | null;
+  computed: boolean;
+  computed_at: string | null;
+  max_psi: number | null;
+  max_feature: string | null;
+  band: PsiBand;
+  counts: Record<"stable" | "shift" | "significant", number>;
+  thresholds: { some_shift: number; significant: number };
+  /** largest shift first */
+  features: PsiFeature[];
+}
+
 export interface ModelCard {
   version: string;
   algorithm: string;

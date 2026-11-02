@@ -10,7 +10,7 @@ All data in Credora is synthetic.
 - [Banking](#banking) (44 terms)
 - [AI](#ai) (6 terms)
 - [AWS](#aws) (4 terms)
-- [The Credora app](#the-credora-app) (12 terms)
+- [The Credora app](#the-credora-app) (14 terms)
 
 ## Exasol
 
@@ -2231,3 +2231,34 @@ Try different policy numbers and see at once how many companies would be approve
 
 **See also.** [CREDORA.CONFIG (policy knobs)](#policy-config), [Policy proposal](#policy-proposal)
 
+
+<a id="calibration"></a>
+### Calibration (deciles and Brier score)
+
+Whether a model's probability of default means what it says. A calibrated model that predicts 3% for a group of companies sees about 3% of them default. Credora checks this on a hold-out, loans the model did not learn from, in ten deciles of predicted PD, and sums it up as the Brier score (the mean squared gap between predicted PD and the 0/1 outcome, lower is better).
+
+**In Exasol.** CREDORA.CALIBRATE_MODEL runs the Python UDF PD_CALIBRATE over every past loan in VS_LOS. The UDF repeats the trainers' split (loans sorted by loan_id, stratified 25% hold-out, seed 7), fits a fresh copy of the registered model's recipe on the other 75% and scores the hold-out. It writes per decile the count, mean predicted PD and observed default rate, plus the Brier score, the no-skill Brier of the base rate and the AUC, to CREDORA.MODEL_CALIBRATION. The AUC reproduces MODEL_REGISTRY.AUC while the past loans are still the training's. The web app runs it after every training and on demand from the Risk models screen. The reading guide is docs/MODEL_VALIDATION.md.
+
+**Objects.** `CREDORA.MODEL_CALIBRATION`, `CREDORA.CALIBRATE_MODEL`, `CREDORA.PD_CALIBRATE`, `CREDORA.MODEL_REGISTRY`
+
+From [`exasol/udf/05_ml_udfs.sql`](../exasol/udf/05_ml_udfs.sql).
+
+```python
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, stratify=y, random_state=7)
+m = clone(b["model"]).fit(X_tr, y_tr)
+p = m.predict_proba(X_te)[:, 1]
+brier = float(np.mean((p - y_te) ** 2))
+```
+
+**See also.** [Model risk management](#model-risk-management), [Population Stability Index (PSI)](#psi), [Risk model](#risk-model)
+
+<a id="psi"></a>
+### Population Stability Index (PSI)
+
+A number that says how far the companies a model scores today have drifted from the loans it learnt from, per feature. Both populations are cut into the same ten bins, fixed on the training data, and the PSI sums (live share minus train share) times the log of their ratio over the bins. Below 0.1 the feature is stable, from 0.1 to 0.25 there is some shift, above 0.25 the shift is significant.
+
+**In Exasol.** CREDORA.MODEL_PSI, a Lua script, takes for each of the 13 model features the tenths of VS_LOS.past_loan_training as bin edges, counts the past loans and the run's CREDORA.FEATURES into them and writes the PSI, the counts, the means and the ten pairs of shares to CREDORA.MODEL_PSI, one row per run and feature. The web app runs it after every analysis run and on demand. Some shift is expected by design, because the past loans are synthetic feature snapshots drawn by formula while the live features are computed from ledgers and returns (docs/MODEL_VALIDATION.md).
+
+**Objects.** `CREDORA.MODEL_PSI`, `CREDORA.FEATURES`, `VS_LOS`
+
+**See also.** [Calibration (deciles and Brier score)](#calibration), [Model risk management](#model-risk-management), [Risk model](#risk-model)
