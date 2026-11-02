@@ -55,7 +55,7 @@ The Risk models screen does the same through `POST /api/ml/models/{version}/cali
 
 ### What is computed
 
-For each of the 13 model features, `MODEL_PSI` compares two populations. The training population is every row of `VS_LOS.past_loan_training`, the 5,000 past loans both models learnt from. The live population is `CREDORA.FEATURES` of one run, the companies analysed in it. Ten bins are fixed on the training population. The upper edge of bin k is the largest value in the k-th tenth of the past loans, and the last bin is open. Both populations are counted into those bins, and
+For each of the 13 model features, `COMPUTE_PSI` compares two populations. The training population is every row of `VS_LOS.past_loan_training`, the 5,000 past loans both models learnt from. The live population is `CREDORA.FEATURES` of one run, the companies analysed in it. Ten bins are fixed on the training population. The upper edge of bin k is the largest value in the k-th tenth of the past loans, and the last bin is open. Both populations are counted into those bins, and
 
 ```
 PSI = sum over bins of (live share - train share) * ln(live share / train share)

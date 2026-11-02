@@ -296,8 +296,8 @@ def control_room(user: User = Depends(current_user), fresh: bool = Query(False))
 
 # ---------------------------------------------------------------- row-level security proof
 
-RLS_VIEW_SQL = "SELECT COUNT(*) N FROM CREDORA.V_RM_DECISIONS"
-RLS_TABLE_SQL = "SELECT COUNT(*) N FROM CREDORA.DECISIONS"
+RLS_VIEW_SQL = "SELECT COUNT(DISTINCT CIF_ID) N FROM CREDORA.V_RM_DECISIONS"
+RLS_TABLE_SQL = "SELECT COUNT(DISTINCT CIF_ID) N FROM CREDORA.DECISIONS"
 # (Exasol user, statement) in the order shown. The demo relationship manager, her AI session user
 # (the row filter strips the _AI suffix, so the count is the same), a second manager (a different
 # book), and the table under the view, which role R_RM holds no grant on, so Exasol refuses it.
