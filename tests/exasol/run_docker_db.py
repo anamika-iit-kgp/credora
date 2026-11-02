@@ -41,12 +41,14 @@ DOCKER_DB_PASSWORD = "exasol"  # the sys password exasol/docker-db ships with
 # does something between them. Each file goes through sql_runner.run_file as on a deployment.
 BEFORE_DATA = [  # credora.py EXASOL_SQL, with the placeholders of 02_connections.sql filled
     "exasol/sql/01_schemas.sql",
+    "exasol/sql/18_pricing_reference.sql",
     "exasol/sql/02_connections.sql",
     "exasol/udf/04_api_udfs.sql",
     "exasol/udf/05_ml_udfs.sql",
     "exasol/udf/09_ai_udf.sql",
     "exasol/lua/06_run_analysis.sql",
     "exasol/lua/08_purge.sql",
+    "exasol/sql/19_model_validation.sql",
 ]
 AFTER_DATA = ["exasol/sql/07_security.sql", "exasol/sql/13_rm_row_security.sql"]  # credora.py EXASOL_SQL_AFTER_DATA
 AFTER_USERS = ["exasol/sql/16_resources.sql", "exasol/sql/17_scheduler.sql"]

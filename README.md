@@ -1,6 +1,6 @@
 # <img src="sites/_assets/credora-gem.svg" alt="" width="34" height="34"> Credora
 
-[![CI](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml/badge.svg)](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml)
+[![CI](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml/badge.svg)](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml) [![Exasol SQL on docker-db](https://github.com/anamika-iit-kgp/credora/actions/workflows/exasol.yml/badge.svg)](https://github.com/anamika-iit-kgp/credora/actions/workflows/exasol.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Exasol Personal Local Starterkit 0.2.3](https://img.shields.io/badge/Exasol%20Personal%20Local%20Starterkit-0.2.3-1ba0e2.svg)](https://github.com/exasol-labs/exasol-personal-local-starterkit)
 [![Exasol Personal 2.3.0](https://img.shields.io/badge/Exasol%20Personal-2.3.0-1ba0e2.svg)](https://github.com/exasol/exasol-personal)
@@ -231,6 +231,8 @@ These need AWS.
 
 The tests also run in [GitHub Actions](.github/workflows/ci.yml) on every push, and [CONTRIBUTING.md](CONTRIBUTING.md) lists the commands.
 
+The Exasol SQL itself is tested too, on a throwaway `exasol/docker-db` of the live version in [.github/workflows/exasol.yml](.github/workflows/exasol.yml). It applies every SQL, Lua and UDF file in deploy order, loads a run of 50 synthetic companies, decides and ranks it with the real decision SQL, and checks as each Exasol user what it may read, including the row filter and the purge. The fixtures and checks are described in [tests/exasol/README.md](tests/exasol/README.md).
+
 ### Known limitations
 
 - All data is synthetic, from the generator, and the models learn synthetic labels. The AUC says more about the generator than about real credit risk.
@@ -330,6 +332,9 @@ docs/       architecture, diagrams, glossary, data model, APIs, porting
 | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Bank schemas, mock API data and feature definitions |
 | [docs/API.md](docs/API.md) | The mock API contracts and the web app's API |
 | [docs/PORTING.md](docs/PORTING.md) | Deploying to another AWS account or domain |
+| [docs/PRICING.md](docs/PRICING.md) | How an offer is priced, the industry cash margins, LGD by collateral and the exposure cap |
+| [docs/MODEL_VALIDATION.md](docs/MODEL_VALIDATION.md) | Calibration on the hold-out and feature stability (PSI) per run |
+| [tests/exasol/README.md](tests/exasol/README.md) | The Exasol SQL job on docker-db, what it applies and checks |
 
 ## Built with Exasol open source, thank you
 
