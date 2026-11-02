@@ -16,6 +16,13 @@
 -- ANOMALY_FLAG     an Isolation Forest (unsupervised) over one run's features: flags companies whose
 --                  GST, bank and partner figures look unlike everyone else's (possible circular
 --                  trading or inflated turnover) and says which figures stand out.
+-- PD_CALIBRATE     calibration evidence for one registered model on the training's own hold-out. Fed
+--                  every past loan, it repeats the trainers' split (loans sorted by loan_id, stratified
+--                  25% hold-out, seed 7), fits a fresh copy of the registered model's recipe on the
+--                  other 75% and scores the hold-out. It emits one row per decile of predicted PD with
+--                  the count, the mean predicted PD and the observed default rate, and the Brier score
+--                  and AUC of the whole hold-out on every row. CALIBRATE_MODEL
+--                  (exasol/sql/18_model_validation.sql) stores the rows in MODEL_CALIBRATION.
 --
 -- Both trainers sort the past loans by loan_id before the stratified 75/25 split, so the champion
 -- and the challenger are measured on exactly the same hold-out loans.
@@ -277,6 +284,71 @@ def run(ctx):
             found = [(0, low if (low and pctl[i, j] < 0.5) else high)]
         text = ", ".join(r for _, r in found[:2])
         ctx.emit(app, float(score[i]), bool(flag[i]), text[:1].upper() + text[1:])
+/
+
+-- The hold-out AUC this UDF reproduces equals MODEL_REGISTRY.AUC as long as the past loans have not
+-- changed since the training, because the split, the recipe and the seed are the trainers' own.
+CREATE OR REPLACE PYTHON3 SET SCRIPT CREDORA.PD_CALIBRATE(
+  model_path VARCHAR(200), model_sha256 VARCHAR(64), loan_id VARCHAR(10),
+  gst_years DOUBLE, gst_turnover_12m DOUBLE, gst_late_filings_12m DOUBLE, gst_bank_gap_pct DOUBLE,
+  avg_balance_12m DOUBLE, inflow_volatility DOUBLE, bounce_ratio DOUBLE, cmr_rank DOUBLE,
+  partner_min_score DOUBLE, partner_avg_score DOUBLE, partner_overdue_amt DOUBLE, partner_other_bank_bal DOUBLE,
+  dscr DOUBLE, defaulted BOOLEAN)
+EMITS (decile DOUBLE, n DOUBLE, defaults DOUBLE, mean_pd DOUBLE, observed_rate DOUBLE, pd_min DOUBLE, pd_max DOUBLE,
+       n_holdout DOUBLE, brier DOUBLE, brier_base DOUBLE, auc DOUBLE) AS
+import os
+os.environ["OMP_NUM_THREADS"] = "4"
+import hashlib
+import pickle
+import time
+
+import numpy as np
+from sklearn.base import clone
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+
+def load(path, expected_sha256):
+    for _ in range(60):  # a freshly trained model can take a few seconds to sync to every node
+        if os.path.exists(path):
+            break
+        time.sleep(1)
+    with open(path, "rb") as f:
+        data = f.read()
+    # Same check as PD_SCORE. A file that no longer hashes to the registry row is never unpickled.
+    if expected_sha256 is not None:
+        found = hashlib.sha256(data).hexdigest()
+        if found != expected_sha256.lower():
+            raise RuntimeError(f"Model file {path} does not match MODEL_REGISTRY.MODEL_SHA256 "
+                               f"(expected {expected_sha256}, found {found})")
+    return pickle.loads(data)
+
+def run(ctx):
+    df = ctx.get_dataframe(num_rows="all")
+    df.columns = [c.lower() for c in df.columns]
+    df = df.sort_values("loan_id", kind="mergesort").reset_index(drop=True)  # the trainers' order
+    expected = df["model_sha256"].iloc[0]
+    b = load(df["model_path"].iloc[0], expected if isinstance(expected, str) and expected else None)
+    X = df[b["features"]].astype(float).to_numpy()
+    y = df["defaulted"].astype(int).to_numpy()
+    # The trainers' split, so the hold-out is the very 25% of loans their AUC was measured on.
+    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, stratify=y, random_state=7)
+    # A fresh, unfitted copy of the registered model's recipe (same algorithm and hyperparameters),
+    # fitted on the other 75% only, so the hold-out stays unseen. The registered file itself was
+    # refitted on every past loan after its hold-out measurement, so scoring it here would be in-sample.
+    m = clone(b["model"]).fit(X_tr, y_tr)
+    p = m.predict_proba(X_te)[:, 1]
+    n = len(y_te)
+    auc = float(roc_auc_score(y_te, p))
+    brier = float(np.mean((p - y_te) ** 2))
+    brier_base = float(np.mean((y_tr.mean() - y_te) ** 2))  # always predicting the training default rate
+    # Ten equal-count groups by predicted PD, lowest PD first.
+    order = np.argsort(p, kind="mergesort")
+    decile = np.empty(n, dtype=int)
+    decile[order] = np.arange(n) * 10 // n + 1
+    for d in range(1, 11):
+        sel = decile == d
+        ctx.emit(float(d), float(sel.sum()), float(y_te[sel].sum()), float(p[sel].mean()), float(y_te[sel].mean()),
+                 float(p[sel].min()), float(p[sel].max()), float(n), brier, brier_base, auc)
 /
 
 -- SHA-256 of one model file at its local BucketFS path. NULL when the file is not on this node, so

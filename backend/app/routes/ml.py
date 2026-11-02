@@ -1,11 +1,11 @@
-"""Risk models (train in Exasol, list, activate) and the policy what-if."""
+"""Risk models (train in Exasol, list, activate), their validation evidence and the policy what-if."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from .. import challenger, crm, exa, jobs, policy, runs
+from .. import challenger, crm, exa, jobs, policy, runs, validation
 from ..auth import User, require
 from .core import db
 
@@ -82,6 +82,71 @@ def compare(user: User = Depends(require("datasci", "admin"))):
                 WHERE c.RUN_ID = {r} AND c.DECISION <> d.DECISION
                 ORDER BY ABS(c.PD - s.PD) DESC LIMIT 8""", p)
     return challenger.build_comparison(models_, run_id, summary, transitions, changed)
+
+
+# ---------------------------------------------------------------- validation evidence
+
+def _calibration(user: User, version: str) -> dict:
+    rows = exa.query(db(user), "SELECT DECILE, N, DEFAULTS, MEAN_PD, OBSERVED_RATE, PD_MIN, PD_MAX, N_HOLDOUT, BRIER, "
+                               "BRIER_BASE, AUC, REGISTRY_AUC, COMPUTED_AT FROM CREDORA.MODEL_CALIBRATION "
+                               "WHERE MODEL_VERSION = {v} ORDER BY DECILE", {"v": version})
+    return validation.calibration_view(version, rows)
+
+
+@router.get("/ml/models/{version}/calibration")
+def calibration(version: str, user: User = Depends(require("datasci", "admin"))):
+    """Calibration deciles, Brier score and AUC of one model on the training's own hold-out, from
+    CREDORA.MODEL_CALIBRATION. `computed` is false until CALIBRATE_MODEL has run for the version."""
+    return _calibration(user, version)
+
+
+@router.post("/ml/models/{version}/calibration")
+def calibrate(version: str, user: User = Depends(require("datasci", "admin"))):
+    """Runs CREDORA.CALIBRATE_MODEL(version) as CREDORA_SVC and returns the fresh evidence."""
+    if not exa.query(db(user), "SELECT MODEL_VERSION FROM CREDORA.MODEL_REGISTRY WHERE MODEL_VERSION = {v}",
+                     {"v": version}):
+        raise HTTPException(404, f"No model {version} in CREDORA.MODEL_REGISTRY.")
+    validation.compute_calibration(version)
+    crm.audit(user, "MODEL_CALIBRATE", version, "CREDORA.CALIBRATE_MODEL on VS_LOS.past_loan_training")
+    return _calibration(user, version)
+
+
+def _psi_run(user: User, run_id: str | None) -> str | None:
+    if run_id:
+        return run_id
+    run = runs.current_run(db(user))
+    return run["run_id"] if run else None
+
+
+def _psi(user: User, run_id: str | None) -> dict:
+    if not run_id:
+        return validation.psi_view(None, [])
+    rows = exa.query(db(user), "SELECT FEATURE, PSI, N_TRAIN, N_LIVE, NULL_LIVE, TRAIN_MEAN, LIVE_MEAN, BINS, COMPUTED_AT "
+                               "FROM CREDORA.MODEL_PSI WHERE RUN_ID = {r}", {"r": run_id})
+    return validation.psi_view(run_id, rows)
+
+
+@router.get("/ml/psi")
+def psi(run_id: str = "", user: User = Depends(require("datasci", "admin"))):
+    """Population stability index per feature for one run (default the latest published run), from
+    CREDORA.MODEL_PSI. `computed` is false until MODEL_PSI has run for it."""
+    return _psi(user, _psi_run(user, run_id or None))
+
+
+class PsiBody(BaseModel):
+    run_id: str | None = None
+
+
+@router.post("/ml/psi")
+def compute_psi(body: PsiBody | None = None, user: User = Depends(require("datasci", "admin"))):
+    """Runs CREDORA.MODEL_PSI(run_id) as CREDORA_SVC (default the latest published run) and returns
+    the fresh evidence."""
+    run_id = _psi_run(user, (body.run_id if body else None) or None)
+    if not run_id:
+        raise HTTPException(404, "No analysis run to compare with the past loans yet.")
+    validation.compute_psi(run_id)
+    crm.audit(user, "MODEL_PSI", run_id, "CREDORA.MODEL_PSI, FEATURES of the run against VS_LOS.past_loan_training")
+    return _psi(user, run_id)
 
 
 # Activating a model is a maker-checker step: the data scientist requests it and the admin approves

@@ -173,6 +173,36 @@ COMMENT ON TABLE CREDORA.MODEL_REGISTRY IS 'Risk models trained inside Exasol by
   MODEL_SHA256 IS 'SHA-256 of the pickled model file. PD_SCORE checks the file against it before loading'
 );
 
+COMMENT ON TABLE CREDORA.MODEL_CALIBRATION IS 'Model-validation evidence. Calibration of one registered model on the training''s own hold-out (25% of the past loans, the trainers'' split), one row per decile of predicted PD. Written by CALIBRATE_MODEL after each training and on demand from the Models screen. How to read it is in docs/MODEL_VALIDATION.md.' (
+  MODEL_VERSION IS 'The model (MODEL_REGISTRY)',
+  DECILE IS 'Tenth of the hold-out by predicted PD, 1 = lowest PD, 10 = highest',
+  N IS 'Hold-out loans in the decile',
+  DEFAULTS IS 'Of them, how many defaulted',
+  MEAN_PD IS 'Mean predicted probability of default in the decile',
+  OBSERVED_RATE IS 'Share of the decile that defaulted. Close to MEAN_PD means the model is calibrated there',
+  PD_MIN IS 'Lowest predicted PD in the decile',
+  PD_MAX IS 'Highest predicted PD in the decile',
+  N_HOLDOUT IS 'Hold-out loans in all (same on every row of the model)',
+  BRIER IS 'Brier score on the hold-out, the mean squared gap between predicted PD and the 0/1 outcome. Lower is better',
+  BRIER_BASE IS 'Brier score of always predicting the training default rate, the no-skill reference',
+  AUC IS 'AUC on the hold-out as reproduced by PD_CALIBRATE',
+  REGISTRY_AUC IS 'AUC the trainer recorded in MODEL_REGISTRY. Equal to AUC while the past loans are the ones the model was trained on',
+  COMPUTED_AT IS 'When CALIBRATE_MODEL wrote the row (database time zone)'
+);
+
+COMMENT ON TABLE CREDORA.MODEL_PSI IS 'Model-validation evidence. Population stability index per analysis run and model feature, the past loans the models learnt from (VS_LOS.past_loan_training) against the live FEATURES of the run, in ten bins fixed on the past loans. Below 0.1 is stable, 0.1 to 0.25 some shift, above 0.25 a significant shift. Written by MODEL_PSI after each run and on demand. The known gap between the two populations is explained in docs/MODEL_VALIDATION.md.' (
+  RUN_ID IS 'Analysis run',
+  FEATURE IS 'Model feature, as named in docs/DATA_MODEL.md section 8',
+  PSI IS 'Population stability index of the feature for this run',
+  N_TRAIN IS 'Past loans with a value for the feature',
+  N_LIVE IS 'Companies of the run with a value for the feature',
+  NULL_LIVE IS 'Companies of the run without a value (left out of the shares)',
+  TRAIN_MEAN IS 'Mean of the feature over the past loans',
+  LIVE_MEAN IS 'Mean of the feature over the run',
+  BINS IS 'JSON list of the ten bins with their upper edge (null for the open last bin) and the train and live shares',
+  COMPUTED_AT IS 'When MODEL_PSI wrote the row (database time zone)'
+);
+
 COMMENT ON TABLE CREDORA.MEMOS IS 'Credit memos written by Claude through the CREDIT_MEMO UDF (or the backend).' (
   RUN_ID IS 'Analysis run the memo describes',
   CIF_ID IS 'Customer id of the company',
@@ -310,4 +340,7 @@ COMMENT ON SCRIPT CREDORA.TRAIN_SCORECARD IS 'Python SET UDF. Trains the challen
 COMMENT ON SCRIPT CREDORA.PD_SCORE IS 'Python SET UDF. Scores companies with a model from BucketFS after checking the file''s SHA-256 against MODEL_REGISTRY, giving probability of default, grade and feature contributions.';
 COMMENT ON SCRIPT CREDORA.MODEL_FILE_SHA256 IS 'Python SCALAR UDF. SHA-256 of a model file in BucketFS, used once to fill MODEL_SHA256 for models trained before the check existed.';
 COMMENT ON SCRIPT CREDORA.ANOMALY_FLAG IS 'Python SET UDF. Isolation Forest over all companies of a run. Flags the most unusual share for review, never for decline.';
+COMMENT ON SCRIPT CREDORA.PD_CALIBRATE IS 'Python SET UDF. Calibration of one registered model on the training''s own hold-out. Repeats the trainers'' split over every past loan, fits a fresh copy of the model''s recipe on the other 75% and emits per decile of predicted PD the count, mean PD and observed default rate, with the Brier score and AUC.';
+COMMENT ON SCRIPT CREDORA.CALIBRATE_MODEL IS 'Lua. Replaces MODEL_CALIBRATION for one model version from PD_CALIBRATE over VS_LOS.past_loan_training. Run after each training and on demand from the Models screen.';
+COMMENT ON SCRIPT CREDORA.MODEL_PSI IS 'Lua. Replaces MODEL_PSI for one run. For each of the 13 model features it bins the past loans into tenths and sums the population stability index of the run''s FEATURES against them.';
 COMMENT ON SCRIPT CREDORA.CREDIT_MEMO IS 'Python SCALAR UDF. Writes a credit memo for one company with Claude, through CONNECTION AI_LLM, and returns it as SQL output.';

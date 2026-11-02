@@ -1,4 +1,4 @@
-"""CREDORA.ANOMALY_FLAG, CREDORA.PD_SCORE, the two trainers and CREDORA.MODEL_FILE_SHA256
+"""CREDORA.ANOMALY_FLAG, CREDORA.PD_SCORE, the two trainers, CREDORA.PD_CALIBRATE and CREDORA.MODEL_FILE_SHA256
 (exasol/udf/05_ml_udfs.sql), run unchanged in exasol/udf-mock-python's mock Exasol environment."""
 
 from __future__ import annotations
@@ -180,3 +180,43 @@ def test_model_file_sha256_hashes_the_file_and_is_null_for_a_missing_one(model_f
                                   [Column("sha256", str, "VARCHAR(64)")], input_type="SCALAR", output_type="RETURNS"))
     out = UDFMockExecutor().run([Group([(model_file,), (str(tmp_path / "gone.pkl"),), (None,)])], env)[0].rows
     assert out == [(file_sha256(model_file),), (None,), (None,)]
+
+
+# --- PD_CALIBRATE: calibration deciles, Brier and AUC on the trainers' own hold-out ----------------
+
+CAL_IN = [Column("model_path", str, "VARCHAR(200)"), Column("model_sha256", str, "VARCHAR(64)"),
+          Column("loan_id", str, "VARCHAR(10)")] + [Column(f, float, "DOUBLE") for f in FEATS] +          [Column("defaulted", bool, "BOOLEAN")]
+CAL_OUT = [Column(c, float, "DOUBLE") for c in ("decile", "n", "defaults", "mean_pd", "observed_rate", "pd_min", "pd_max",
+                                               "n_holdout", "brier", "brier_base", "auc")]
+
+
+def run_calibrate(model_path, sha, loans):
+    env = MockExaEnvironment(meta(ML, "CREDORA.PD_CALIBRATE", CAL_IN, CAL_OUT))
+    rows = [(model_path, sha, loan_id, *feats, defaulted) for _, loan_id, *feats, defaulted in loans]
+    return UDFMockExecutor().run([Group(rows)], env)[0].rows
+
+
+def test_calibrate_reproduces_the_trainers_holdout_auc_and_emits_ten_deciles(bucketfs, tmp_path):
+    # Train the scorecard as TRAIN_MODEL does, keep the pickle it uploaded, then calibrate that file.
+    env = MockExaEnvironment(meta(ML, "CREDORA.TRAIN_SCORECARD", TRAIN_IN, TRAIN_OUT),
+                             connections={"BUCKETFS_MODELS": Connection("http://bucketfs/default/models", "w", "pw")})
+    loans = past_loans()
+    (trained,) = UDFMockExecutor().run([Group(loans)], env)[0].rows
+    path = tmp_path / "pd_v9.pkl"
+    path.write_bytes(bucketfs["http://bucketfs/default/models/pd_v9.pkl"])
+
+    out = run_calibrate(str(path), trained[8], list(reversed(loans)))  # input order must not matter
+    assert [r[0] for r in out] == list(range(1, 11))
+    assert sum(r[1] for r in out) == 100 and all(r[7] == 100 for r in out)  # the 25% hold-out of 400 loans
+    assert out[0][10] == pytest.approx(trained[2]), "the same hold-out and recipe as the trainer measured"
+    assert all(r[8] == out[0][8] and r[9] == out[0][9] and r[10] == out[0][10] for r in out)
+    mean_pd = [r[3] for r in out]
+    assert mean_pd == sorted(mean_pd) and all(r[5] <= r[3] <= r[6] for r in out)
+    assert out[-1][4] > out[0][4], "more defaults in the top PD decile than in the bottom one"
+    assert sum(r[2] for r in out) == sum(r[1] * r[4] for r in out)
+    assert 0 < out[0][8] < out[0][9] < 0.25, "the model beats always predicting the training default rate"
+
+
+def test_calibrate_refuses_a_model_file_whose_hash_differs(model_file):
+    with pytest.raises(RuntimeError, match=r"does not match MODEL_REGISTRY\.MODEL_SHA256"):
+        run_calibrate(model_file, "0" * 64, past_loans(n=80))

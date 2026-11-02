@@ -5,6 +5,8 @@ import type {
   AskAnswer,
   AskStep,
   AuditEntry,
+  Calibration,
+  CalibrationDecile,
   CompanyRow,
   CreditMemo,
   DecisionMix,
@@ -18,6 +20,10 @@ import type {
   OfferEvent,
   OfferStage,
   Overview,
+  Psi,
+  PsiBand,
+  PsiBin,
+  PsiFeature,
   PurgeEntry,
   Report,
   Role,
@@ -1120,6 +1126,11 @@ on("POST", "/api/ml/train", ({ u }) => {
         detail: `${next} and ${next}-lr registered inactive. ${activeModel().version} stays active until the admin approves an activation request.`,
       },
       { name: "Shadow-score the latest run with the challenger (CREDORA.SCORE_CHALLENGER)", ms: 1600, detail: "1,000 companies scored in the shadow" },
+      {
+        name: "Calibrate both on the hold-out (CREDORA.CALIBRATE_MODEL)",
+        ms: 2400,
+        detail: `${next} Brier 0.0612 (base 0.0694), AUC 0.824 on 1,250 hold-out loans · ${next}-lr Brier 0.0608 (base 0.0694), AUC 0.829 on 1,250 hold-out loans`,
+      },
     ],
     () => {
       const bump = (m: Model): Model => {
@@ -1150,6 +1161,103 @@ on("GET", "/api/ml/models", ({ u }) => {
     .slice()
     .reverse()
     .map((m) => ({ ...m, role: m.active ? "champion" : m === ch ? "challenger" : null, kind: isScorecard(m) ? "coefficient" : "importance" }));
+});
+
+/* ------------------------------ validation evidence ------------------------------ */
+
+/** Calibration of one fixture model on a 1,250-loan hold-out, deterministic per version. */
+function calibrationFor(version: string): Calibration {
+  const m = S.models.find((x) => x.version === version);
+  if (!m) throw new HttpError(404, `No model ${version} in CREDORA.MODEL_REGISTRY.`);
+  const rng = mulberry32(version.length * 7919 + Math.round(m.auc * 1000));
+  const curve = [0.004, 0.009, 0.015, 0.023, 0.034, 0.048, 0.066, 0.092, 0.135, 0.24];
+  const deciles: CalibrationDecile[] = curve.map((p, i) => {
+    const observed = Math.max(0, Math.round(125 * (p + (rng() - 0.5) * 0.02)));
+    return { decile: i + 1, n: 125, defaults: observed, mean_pd: p, observed_rate: observed / 125, pd_min: p * 0.8, pd_max: p * 1.25 };
+  });
+  return {
+    version,
+    computed: true,
+    computed_at: minsAgo(40),
+    n_holdout: 1250,
+    brier: 0.0612,
+    brier_base: 0.0694,
+    auc: m.auc,
+    registry_auc: m.auc,
+    reproduces_training: true,
+    max_gap: Math.max(...deciles.map((d) => Math.abs((d.mean_pd ?? 0) - (d.observed_rate ?? 0)))),
+    deciles,
+  };
+}
+
+const PSI_FIXTURE: [string, number][] = [
+  ["avg_balance_12m", 0.412],
+  ["inflow_volatility", 0.187],
+  ["gst_bank_gap_pct", 0.146],
+  ["partner_other_bank_bal", 0.118],
+  ["dscr", 0.071],
+  ["gst_turnover_12m", 0.052],
+  ["partner_overdue_amt", 0.044],
+  ["bounce_ratio", 0.031],
+  ["gst_late_filings_12m", 0.027],
+  ["partner_avg_score", 0.019],
+  ["partner_min_score", 0.016],
+  ["gst_years", 0.012],
+  ["cmr_rank", 0.008],
+];
+
+function psiFor(runId: string | null): Psi {
+  const empty: Psi = {
+    run_id: runId,
+    computed: false,
+    computed_at: null,
+    max_psi: null,
+    max_feature: null,
+    band: "unknown",
+    counts: { stable: 0, shift: 0, significant: 0 },
+    thresholds: { some_shift: 0.1, significant: 0.25 },
+    features: [],
+  };
+  if (!runId || !S.analysed) return empty;
+  const band = (p: number): PsiBand => (p < 0.1 ? "stable" : p <= 0.25 ? "shift" : "significant");
+  const features: PsiFeature[] = PSI_FIXTURE.map(([feature, psi], i) => {
+    const rng = mulberry32(i + 11);
+    const bins: PsiBin[] = Array.from({ length: 10 }, (_, b) => {
+      const live = Math.max(0.005, 0.1 + (rng() - 0.5) * psi * 0.6);
+      return { bin: b + 1, hi: b === 9 ? null : (b + 1) * 10, train: 0.1, live };
+    });
+    const sum = bins.reduce((a, x) => a + x.live, 0);
+    for (const x of bins) x.live = x.live / sum;
+    return { feature, psi, band: band(psi), n_train: 5000, n_live: world.all().length, null_live: feature === "gst_late_filings_12m" ? 4 : 0, train_mean: 4.2 * (i + 1), live_mean: 4.2 * (i + 1) * (1 + psi), bins };
+  });
+  const counts = { stable: 0, shift: 0, significant: 0 };
+  for (const f of features) if (f.band !== "unknown") counts[f.band]++;
+  return { ...empty, computed: true, computed_at: minsAgo(25), max_psi: features[0].psi, max_feature: features[0].feature, band: features[0].band, counts, features };
+}
+
+on("GET", "/api/ml/models/{version}/calibration", ({ u, m }) => {
+  need(u, ["admin", "datasci"]);
+  return calibrationFor(decodeURIComponent(m[1]));
+});
+
+on("POST", "/api/ml/models/{version}/calibration", ({ u, m }) => {
+  need(u, ["admin", "datasci"]);
+  const v = decodeURIComponent(m[1]);
+  audit(u, "MODEL_CALIBRATE", v, "CREDORA.CALIBRATE_MODEL on VS_LOS.past_loan_training");
+  return calibrationFor(v);
+});
+
+on("GET", "/api/ml/psi", ({ u, q }) => {
+  need(u, ["admin", "datasci"]);
+  return psiFor(q.get("run_id") || officialRun()?.run_id || null);
+});
+
+on("POST", "/api/ml/psi", ({ u, body }) => {
+  need(u, ["admin", "datasci"]);
+  const rid = (typeof body.run_id === "string" && body.run_id) || officialRun()?.run_id || null;
+  if (!rid) throw new HttpError(404, "No analysis run to compare with the past loans yet.");
+  audit(u, "MODEL_PSI", rid, "CREDORA.MODEL_PSI, FEATURES of the run against VS_LOS.past_loan_training");
+  return psiFor(rid);
 });
 
 on("GET", "/api/ml/compare", ({ u }) => {

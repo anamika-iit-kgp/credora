@@ -42,6 +42,7 @@ PAGES = [
     ("docs/PRICING.md", "pricing.html", "Pricing"),
     ("docs/API.md", "api.html", "APIs"),
     ("docs/PORTING.md", "porting.html", "Porting"),
+    ("docs/MODEL_VALIDATION.md", "model-validation.html", "Model validation"),
     ("docs/GLOSSARY.md", "glossary.html", "Glossary"),
 ]
 COPIED = [("docs/architecture.html", "architecture.html", "Architecture diagrams")]

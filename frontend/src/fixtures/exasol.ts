@@ -336,6 +336,17 @@ FROM CREDORA.RM_ASSIGNMENT a LEFT JOIN CREDORA.DECISIONS d ON d.CIF_ID = a.CIF_I
     }
   } else if (method === "GET" && path === "/api/rms") {
     sql(u, session, "Relationship managers", `SELECT "rm_id", "name", "branch" FROM VS_CIF."rm" ORDER BY "rm_id"`, 29, 12);
+  } else if (method === "GET" && (hit = m(/^\/api\/ml\/models\/([^/]+)\/calibration$/))) {
+    sql(u, session, "Risk models", `SELECT DECILE, N, DEFAULTS, MEAN_PD, OBSERVED_RATE, PD_MIN, PD_MAX, N_HOLDOUT, BRIER, BRIER_BASE, AUC, REGISTRY_AUC, COMPUTED_AT FROM CREDORA.MODEL_CALIBRATION WHERE MODEL_VERSION = '${decodeURIComponent(hit[1])}' ORDER BY DECILE`, 5, 10);
+  } else if (method === "POST" && (hit = m(/^\/api\/ml\/models\/([^/]+)\/calibration$/))) {
+    const v = decodeURIComponent(hit[1]);
+    push(u, session, "Risk models", { kind: "sql", exa_user: SVC, sql: `EXECUTE SCRIPT CREDORA.CALIBRATE_MODEL('${v}')`, ms: 2380, rows: 10 });
+    push(u, session, "Risk models", { kind: "event", exa_user: SVC, text: `CREDORA.MODEL_CALIBRATION holds ${v}. PD_CALIBRATE repeated the trainers' hold-out split over VS_LOS.past_loan_training and scored it with a fresh copy of the model's recipe`, objects: ["CREDORA.CALIBRATE_MODEL", "CREDORA.PD_CALIBRATE", "CREDORA.MODEL_CALIBRATION"] });
+  } else if (method === "GET" && path === "/api/ml/psi") {
+    sql(u, session, "Risk models", `SELECT FEATURE, PSI, N_TRAIN, N_LIVE, NULL_LIVE, TRAIN_MEAN, LIVE_MEAN, BINS, COMPUTED_AT FROM CREDORA.MODEL_PSI WHERE RUN_ID = '${RUN}'`, 4, 13);
+  } else if (method === "POST" && path === "/api/ml/psi") {
+    push(u, session, "Risk models", { kind: "sql", exa_user: SVC, sql: `EXECUTE SCRIPT CREDORA.MODEL_PSI('${RUN}')`, ms: 1640, rows: 13 });
+    push(u, session, "Risk models", { kind: "event", exa_user: SVC, text: `CREDORA.MODEL_PSI holds run ${RUN}. Each of the 13 features of CREDORA.FEATURES was binned against the tenths of VS_LOS.past_loan_training`, objects: ["CREDORA.MODEL_PSI", "CREDORA.FEATURES", "VS_LOS"] });
   } else if (method === "GET" && path === "/api/ml/compare") {
     sql(
       u,

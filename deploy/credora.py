@@ -53,6 +53,7 @@ EXASOL_SQL = [  # order matters: virtual schemas need data, grants need virtual 
     "exasol/udf/09_ai_udf.sql",
     "exasol/lua/06_run_analysis.sql",
     "exasol/lua/08_purge.sql",
+    "exasol/sql/18_model_validation.sql",
 ]
 EXASOL_SQL_AFTER_DATA = ["exasol/sql/03_virtual_schemas.sql", "exasol/sql/07_security.sql",
                          "exasol/sql/13_rm_row_security.sql"]
