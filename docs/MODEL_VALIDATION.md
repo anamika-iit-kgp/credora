@@ -7,7 +7,7 @@ Credora decides pre-approved offers with a probability-of-default model that is 
 | Calibration on the hold-out | `CREDORA.MODEL_CALIBRATION`, one row per model version and decile | `CREDORA.CALIBRATE_MODEL(version)`, a Lua script that runs the Python UDF `CREDORA.PD_CALIBRATE` over `VS_LOS.past_loan_training` | after every training (step 6 of the training job), and on demand from the Risk models screen or `POST /api/ml/models/{version}/calibration` |
 | Population stability | `CREDORA.MODEL_PSI`, one row per run and model feature | `CREDORA.MODEL_PSI(run_id)`, a Lua script over `CREDORA.FEATURES` and `VS_LOS.past_loan_training` | after every analysis run, and on demand from the Risk models screen or `POST /api/ml/psi` |
 
-The objects are created by `exasol/sql/18_model_validation.sql` (tables, both Lua scripts, grants) and `exasol/udf/05_ml_udfs.sql` (the UDF). Both scripts run as `CREDORA_SVC`. The schema grant in `exasol/sql/07_security.sql` lets `R_ADMIN`, `R_DATASCI` and `R_LOANOPS` read the tables, and `18_model_validation.sql` repeats the grant on each table so the intent stays visible.
+The objects are created by `exasol/sql/19_model_validation.sql` (tables, both Lua scripts, grants) and `exasol/udf/05_ml_udfs.sql` (the UDF). Both scripts run as `CREDORA_SVC`. The schema grant in `exasol/sql/07_security.sql` lets `R_ADMIN`, `R_DATASCI` and `R_LOANOPS` read the tables, and `19_model_validation.sql` repeats the grant on each table so the intent stays visible.
 
 ## 1. Calibration on the hold-out
 
