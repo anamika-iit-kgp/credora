@@ -2,6 +2,12 @@
 
 All notable changes to Credora. Dates are in IST.
 
+## 2.0.1, 2 November 2026
+
+- The champion and challenger were retrained on the book drawn on 2 November (`v4`, AUC 0.728, and `v4-lr`, AUC 0.798, both on the same 25% hold-out) and `v4` was activated through the four-eyes flow. The calibration check now reproduces the registry AUC for both. The published run is `R20261102-1037` (531 APPROVE, 184 REFER, 285 DECLINE, offers ₹1,065.4 crore, Top 50 ₹189.3 crore at 11.0% and a RAROC of 22.7%, 17.8 s) and every figure in README, the deck and the docs comes from it.
+- The row-level security proof counts distinct companies, so `CREDORA_RM` and `CREDORA_RM_AI` show 25 and `CREDORA_RM002` shows its own 5. `14_seed_rm_book.sql` seeds RM002 with the next 5 approved companies of the Top 50.
+- PSI rows exist for the 10,000 and 50,000 company runs as well. The deck's speaker notes and `docs/MODEL_VALIDATION.md` carry the published figures and the script name `COMPUTE_PSI`.
+
 ## 2.0.0, 2 November 2026
 
 - Scale-up evidence. The same `RUN_ANALYSIS` was measured at 1,000, 10,000 and 50,000 companies on the live single node (17.4 s, 67.7 s and 319.5 s, peak temporary RAM 425 MiB, 625 MiB and 1,332 MiB). The per-step table with rows, seconds, CPU and temp RAM from `EXA_DBA_AUDIT_SQL` is in `docs/WHY_EXASOL.md` and on a deck slide. The inside-Exasol steps scale close to linearly and the 3rd party API fetches set the wall clock. The generator gained an optional `as_of` date so a data set can be drawn again later (`seed` and `as_of` together give the same data).

@@ -45,8 +45,8 @@ The whole-hold-out figures are repeated on every decile row of a version, so one
 `CALIBRATE_MODEL` works for any version in `MODEL_REGISTRY` without training a new one. For the live deployment, once, as `CREDORA_SVC` or the deploy user
 
 ```sql
-EXECUTE SCRIPT CREDORA.CALIBRATE_MODEL('v3');
-EXECUTE SCRIPT CREDORA.CALIBRATE_MODEL('v3-lr');
+EXECUTE SCRIPT CREDORA.CALIBRATE_MODEL('v4');
+EXECUTE SCRIPT CREDORA.CALIBRATE_MODEL('v4-lr');
 ```
 
 The Risk models screen does the same through `POST /api/ml/models/{version}/calibration` (data scientist or admin), and every later training writes the rows for its two new versions on its own.
@@ -55,7 +55,7 @@ The Risk models screen does the same through `POST /api/ml/models/{version}/cali
 
 ### What is computed
 
-For each of the 13 model features, `MODEL_PSI` compares two populations. The training population is every row of `VS_LOS.past_loan_training`, the 5,000 past loans both models learnt from. The live population is `CREDORA.FEATURES` of one run, the companies analysed in it. Ten bins are fixed on the training population. The upper edge of bin k is the largest value in the k-th tenth of the past loans, and the last bin is open. Both populations are counted into those bins, and
+For each of the 13 model features, `COMPUTE_PSI` compares two populations. The training population is every row of `VS_LOS.past_loan_training`, the 5,000 past loans both models learnt from. The live population is `CREDORA.FEATURES` of one run, the companies analysed in it. Ten bins are fixed on the training population. The upper edge of bin k is the largest value in the k-th tenth of the past loans, and the last bin is open. Both populations are counted into those bins, and
 
 ```
 PSI = sum over bins of (live share - train share) * ln(live share / train share)
@@ -89,7 +89,7 @@ So a feature can move between the two populations even when the companies are al
 `MODEL_PSI` works for any run that has rows in `CREDORA.FEATURES`, published or draft. Once, as `CREDORA_SVC` or the deploy user
 
 ```sql
-EXECUTE SCRIPT CREDORA.COMPUTE_PSI('R20261102-1010');
+EXECUTE SCRIPT CREDORA.COMPUTE_PSI('R20261102-1037');
 ```
 
 The Risk models screen shows the latest published run and recomputes it through `POST /api/ml/psi` (data scientist or admin). `GET /api/ml/psi?run_id=` reads any run.

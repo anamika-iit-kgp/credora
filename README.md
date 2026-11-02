@@ -61,7 +61,7 @@ Credora does all of this inside Exasol Personal, where the data already meets, s
 
 ## What changes for the bank
 
-On the published run `R20261102-1010`, Credora analysed 1,000 companies and decided 534 APPROVE, 181 REFER and 285 DECLINE. The pre-approved offers to the 534 approved companies total ₹1,077.7 crore, against a credit need on file of ₹1,171.7 crore, with negotiation room up to ₹1,290.0 crore. The Top 50 alone carry ₹228.8 crore of offers at an average rate of 10.95% and a RAROC of 22.5%. A run takes 18.2 s, so the bank can decide its whole corporate book again after every policy change or data refresh. The relationship manager negotiates inside the limit Exasol set for each company. A deal within the limit needs no credit committee round trip, and only a deal beyond it is escalated to loan operations.
+On the published run `R20261102-1037`, Credora analysed 1,000 companies and decided 531 APPROVE, 184 REFER and 285 DECLINE. The pre-approved offers to the 531 approved companies total ₹1,065.4 crore, against a credit need on file of ₹1,156.6 crore, with negotiation room up to ₹1,273.4 crore. The Top 50 alone carry ₹189.3 crore of offers at an average rate of 11.0% and a RAROC of 22.7%. A run takes 17.8 s, so the bank can decide its whole corporate book again after every policy change or data refresh. The relationship manager negotiates inside the limit Exasol set for each company. A deal within the limit needs no credit committee round trip, and only a deal beyond it is escalated to loan operations.
 
 ## Exasol features used
 
@@ -145,7 +145,7 @@ Every feature below can be tried on https://credora.loan and found in the code.
 
 ![The Sources screen's pushdown proof, the EXPLAIN VIRTUAL output showing the GROUP BY sent to Oracle](docs/img/shot-pushdown.png)
 
-About the AUC. The champion scores AUC 0.756 (Gini 0.512) and the challenger scorecard 0.769 (Gini 0.538), both on the same hold-out of the 5,000 past loans, which have a 7.5% default rate. The numbers sit near the ceiling the synthetic data allows. The generator ([risk.py](mocks/generator/generator/risk.py)) draws each default from Bernoulli(sigmoid(-3.05 + 1.25 z)), where z is the company's hidden risk, so even a model that knew z exactly would score about 0.78. The scorecard beats the trees because that relationship is logistic and linear in z, and 5,000 loans favour the simpler model.
+About the AUC. The champion scores AUC 0.728 (Gini 0.456) and the challenger scorecard 0.798 (Gini 0.596), both on the same hold-out of the 5,000 past loans, which have a 7.5% default rate. The numbers sit near the ceiling the synthetic data allows. The generator ([risk.py](mocks/generator/generator/risk.py)) draws each default from Bernoulli(sigmoid(-3.05 + 1.25 z)), where z is the company's hidden risk, so even a model that knew z exactly would score about 0.78. The scorecard beats the trees because that relationship is logistic and linear in z, and 5,000 loans favour the simpler model.
 
 ## Setup and reproduction
 
@@ -361,7 +361,7 @@ Every project below runs in the live deployment or in CI. Thank you to the Exaso
 
 ## About, contributing and contact
 
-Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 2.0.0, see [CHANGELOG.md](CHANGELOG.md).
+Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 2.0.1, see [CHANGELOG.md](CHANGELOG.md).
 
 Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Security reports go through [SECURITY.md](SECURITY.md), and the [code of conduct](CODE_OF_CONDUCT.md) is short. To build on Credora, adapt it for your bank, or buy or license it, raise an [issue](https://github.com/anamika-iit-kgp/credora/issues) and I will get in touch.
 

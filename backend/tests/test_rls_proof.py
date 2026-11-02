@@ -52,8 +52,8 @@ def test_rls_proof_runs_each_user_on_its_own_connection(monkeypatch):
     items = r.json()
     assert [i["exa_user"] for i in items] == ["CREDORA_RM", "CREDORA_RM_AI", "CREDORA_RM002", "CREDORA_RM"]
     assert all(set(i) == {"exa_user", "sql", "rows", "error", "ms"} for i in items)
-    view = "SELECT COUNT(*) N FROM CREDORA.V_RM_DECISIONS"
-    assert [i["sql"] for i in items] == [view, view, view, "SELECT COUNT(*) N FROM CREDORA.DECISIONS"]
+    view = "SELECT COUNT(DISTINCT CIF_ID) N FROM CREDORA.V_RM_DECISIONS"
+    assert [i["sql"] for i in items] == [view, view, view, "SELECT COUNT(DISTINCT CIF_ID) N FROM CREDORA.DECISIONS"]
     assert [i["rows"] for i in items] == [25, 25, 4, None]
     assert [i["error"] for i in items[:3]] == [None, None, None]
     assert items[3]["error"] == "insufficient privileges for selecting from table DECISIONS"
@@ -64,7 +64,7 @@ def test_rls_proof_runs_each_user_on_its_own_connection(monkeypatch):
 def test_rls_proof_skips_a_user_without_a_password(monkeypatch):
     opened = _fake_exasol(monkeypatch, {"CREDORA_RM": "a", "CREDORA_RM_AI": "b"})
     items = TestClient(app).get("/api/admin/rls-proof", headers=_auth("datasci")).json()
-    assert items[2] == {"exa_user": "CREDORA_RM002", "sql": "SELECT COUNT(*) N FROM CREDORA.V_RM_DECISIONS",
+    assert items[2] == {"exa_user": "CREDORA_RM002", "sql": "SELECT COUNT(DISTINCT CIF_ID) N FROM CREDORA.V_RM_DECISIONS",
                         "rows": None, "error": "not configured", "ms": 0.0}
     assert "CREDORA_RM002" not in opened and FakeConn.closed == 3
 
