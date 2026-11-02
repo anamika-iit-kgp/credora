@@ -61,7 +61,7 @@ Credora does all of this inside Exasol Personal, where the data already meets, s
 
 ## What changes for the bank
 
-On the published run `R20261031-1923`, Credora analysed 1,000 companies and decided 530 APPROVE, 202 REFER and 268 DECLINE. The pre-approved offers to the 530 approved companies total ₹1,168.9 crore, against a credit need on file of ₹1,252.3 crore, with negotiation room up to ₹1,414.2 crore. The Top 50 alone carry ₹258.7 crore of offers at an average rate of 10.82% and a RAROC of 21.2%. A run takes 17.5 s, so the bank can decide its whole corporate book again after every policy change or data refresh. The relationship manager negotiates inside the limit Exasol set for each company. A deal within the limit needs no credit committee round trip, and only a deal beyond it is escalated to loan operations.
+On the published run `R20261102-1010`, Credora analysed 1,000 companies and decided 534 APPROVE, 181 REFER and 285 DECLINE. The pre-approved offers to the 534 approved companies total ₹1,077.7 crore, against a credit need on file of ₹1,171.7 crore, with negotiation room up to ₹1,290.0 crore. The Top 50 alone carry ₹228.8 crore of offers at an average rate of 10.95% and a RAROC of 22.5%. A run takes 18.2 s, so the bank can decide its whole corporate book again after every policy change or data refresh. The relationship manager negotiates inside the limit Exasol set for each company. A deal within the limit needs no credit committee round trip, and only a deal beyond it is escalated to loan operations.
 
 ## Exasol features used
 

@@ -94,7 +94,7 @@ The offer is the smallest of four amounts, rounded down to the lakh and never ab
 EXPOSURE_ROOM = GREATEST(GST_TURNOVER_12M x MAX_EXPOSURE_PCT / 100 - CIBIL_TOTAL_EXPOSURE, 0)
 ```
 
-The total exposure rule reads as follows. The company's exposure at all lenders, as its CIBIL commercial report states it, plus the offer stays within `MAX_EXPOSURE_PCT` of 12 month GST turnover (60 percent). A company with no commercial report counts as having no existing exposure. The negotiation limit (`MAX_AMOUNT`, at most 1.15 times the credit need and at `NEGOTIATION_DSCR` 1.10) respects the same room, so a relationship manager cannot negotiate past the cap. When the room, and not cash flow, is what pushes the offer below half the credit need, the referral reason reads `Existing exposure near the cap`.
+The total exposure rule reads as follows. The company's exposure at all lenders, as its CIBIL commercial report states it, plus the offer stays within `MAX_EXPOSURE_PCT` of 12 month GST turnover (100 percent). A company with no commercial report counts as having no existing exposure. The negotiation limit (`MAX_AMOUNT`, at most 1.15 times the credit need and at `NEGOTIATION_DSCR` 1.10) respects the same room, so a relationship manager cannot negotiate past the cap. When the room, and not cash flow, is what pushes the offer below half the credit need, the referral reason reads `Existing exposure near the cap`.
 
 Both the existing exposure and the room are stored with the decision (`DECISIONS.EXISTING_EXPOSURE`, `DECISIONS.EXPOSURE_ROOM`), as are the cash margin (`DECISIONS.CASH_MARGIN_PCT`) and the LGD (`DECISIONS.LGD_PCT`), so the report and the offer screens can show what the price rests on.
 

@@ -1531,7 +1531,7 @@ SELECT 'OPERATING_SPREAD_PCT', 0.75, 'Operating spread added to every loan, % p.
     term: "Exposure cap",
     kind: "banking",
     plain: "The rule that what a company already owes all lenders, plus the new offer, must stay within a share of its yearly turnover.",
-    inExasol: "The CIBIL commercial report's total exposure (FEATURES.CIBIL_TOTAL_EXPOSURE) plus the offer stays within CONFIG MAX_EXPOSURE_PCT (60%) of 12-month GST turnover. The room left is DECISIONS.EXPOSURE_ROOM and caps both the offer and the negotiation limit. When it is the binding cap the referral reason says so.",
+    inExasol: "The CIBIL commercial report's total exposure (FEATURES.CIBIL_TOTAL_EXPOSURE) plus the offer stays within CONFIG MAX_EXPOSURE_PCT (100%) of 12-month GST turnover. The room left is DECISIONS.EXPOSURE_ROOM and caps both the offer and the negotiation limit. When it is the binding cap the referral reason says so.",
     objects: ["CREDORA.FEATURES", "CREDORA.DECISIONS", "CREDORA.CONFIG"],
     related: ["cash-margin", "dscr"],
   },

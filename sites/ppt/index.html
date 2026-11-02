@@ -157,7 +157,7 @@
       </g>
     </svg>
   </div>
-  <aside class="sn">Sapphire Bank's credit team can't make pre-approved offers to the corporate customers it already serves, because the evidence sits in six separate systems and is gathered by hand, one company at a time. If this worked, every corporate customer would be decided in one run, and the relationship manager would call with an offer and a negotiation limit already set. Sapphire Bank has a large book of corporate current-account customers, and it already holds most of what it needs to lend to them. Transactions sit in Oracle core banking, partners and KYC in the MySQL customer master, the credit need on file and five thousand past loans in PostgreSQL. The rest is 3rd party data from CIBIL, GST returns and the Account Aggregator. Today a credit officer visits these one company at a time. Press next. Credora reads all six at once, inside one Exasol call, in seventeen and a half seconds for all thousand companies.</aside>
+  <aside class="sn">Sapphire Bank's credit team can't make pre-approved offers to the corporate customers it already serves, because the evidence sits in six separate systems and is gathered by hand, one company at a time. If this worked, every corporate customer would be decided in one run, and the relationship manager would call with an offer and a negotiation limit already set. Sapphire Bank has a large book of corporate current-account customers, and it already holds most of what it needs to lend to them. Transactions sit in Oracle core banking, partners and KYC in the MySQL customer master, the credit need on file and five thousand past loans in PostgreSQL. The rest is 3rd party data from CIBIL, GST returns and the Account Aggregator. Today a credit officer visits these one company at a time. Press next. Credora reads all six at once, inside one Exasol call, in eighteen seconds for all thousand companies.</aside>
 </section>
 
 <!-- ============================================================ 3 · the idea and the terms -->
@@ -237,19 +237,19 @@
 <section class="slide" id="s4" aria-label="What changes for the bank">
   <div class="hd">
     <h2 data-a="rise">What changes for the bank.</h2>
-    <p data-a="rise" data-d="80">The published run R20261031-1923 on 1,000 companies. Every figure below is read from Exasol, from that run.</p>
+    <p data-a="rise" data-d="80">The published run R20261102-1010 on 1,000 companies. Every figure below is read from Exasol, from that run.</p>
   </div>
   <div class="bd">
     <div class="impact">
-      <div class="fig exa" data-a="rise" data-d="150"><div class="v">₹1,168.9<small>crore</small></div><p>of pre-approved offers to <span data-count="530">530</span> approved companies, against a credit need on file of ₹1,252.3 crore</p></div>
-      <div class="fig" data-a="rise" data-d="210"><div class="v">₹1,414.2<small>crore</small></div><p>is the top of the negotiation room, the limits Exasol set per company for the relationship managers</p></div>
-      <div class="fig" data-a="rise" data-d="270"><div class="v"><span data-count="530">530</span><small>· 202 · 268</small></div><p>APPROVE, REFER and DECLINE, decided in one call, each with its reasons</p></div>
-      <div class="fig" data-a="rise" data-d="330"><div class="v">₹258.7<small>crore</small></div><p>in the Top 50, at an average rate of <span data-count="10.82">10.82</span>% and a RAROC of <span data-count="21.2">21.2</span>%</p></div>
+      <div class="fig exa" data-a="rise" data-d="150"><div class="v">₹1,077.7<small>crore</small></div><p>of pre-approved offers to <span data-count="534">534</span> approved companies, against a credit need on file of ₹1,171.7 crore</p></div>
+      <div class="fig" data-a="rise" data-d="210"><div class="v">₹1,290.0<small>crore</small></div><p>is the top of the negotiation room, the limits Exasol set per company for the relationship managers</p></div>
+      <div class="fig" data-a="rise" data-d="270"><div class="v"><span data-count="534">534</span><small>· 181 · 285</small></div><p>APPROVE, REFER and DECLINE, decided in one call, each with its reasons</p></div>
+      <div class="fig" data-a="rise" data-d="330"><div class="v">₹228.8<small>crore</small></div><p>in the Top 50, at an average rate of <span data-count="10.95">10.95</span>% and a RAROC of <span data-count="22.5">22.5</span>%</p></div>
       <div class="fig exa" data-a="rise" data-d="390"><div class="v"><span data-k="RUN_SECONDS" data-count></span><small>s</small></div><p>per run, so the whole book is decided again after every policy change or data refresh</p></div>
       <div class="fig" data-a="rise" data-d="450"><div class="v">0<small>round trips</small></div><p>to a credit committee for a deal inside the limit. The relationship manager negotiates within it, and only a deal beyond it goes to loan operations</p></div>
     </div>
   </div>
-  <aside class="sn">What does the bank get? On the published run, Exasol decided a thousand companies. Five hundred and thirty are approved, two hundred and two referred to a person, two hundred and sixty-eight declined. The pre-approved offers to the approved companies total eleven hundred and sixty-nine crore rupees, against a credit need on file of twelve hundred and fifty-two crore, with negotiation room up to fourteen hundred and fourteen crore. The top fifty alone carry two hundred and fifty-nine crore at an average rate of ten point eight two percent and a RAROC of twenty-one point two percent. A run takes seventeen and a half seconds, so the bank can decide the whole book again after every policy change. And the relationship manager negotiates inside the limit Exasol set, so a deal within it needs no credit committee round trip.</aside>
+  <aside class="sn">What does the bank get? On the published run, Exasol decided a thousand companies. Five hundred and thirty-four are approved, one hundred and eighty-one referred to a person, two hundred and eighty-five declined. The pre-approved offers to the approved companies total eleven hundred and sixty-nine crore rupees, against a credit need on file of twelve hundred and fifty-two crore, with negotiation room up to fourteen hundred and fourteen crore. The top fifty alone carry two hundred and fifty-nine crore at an average rate of ten point eight two percent and a RAROC of twenty-one point two percent. A run takes eighteen seconds, so the bank can decide the whole book again after every policy change. And the relationship manager negotiates inside the limit Exasol set, so a deal within it needs no credit committee round trip.</aside>
 </section>
 
 <!-- ============================================================ 5 · big picture -->
@@ -872,7 +872,7 @@
       </div>
     </div>
   </div>
-  <aside class="sn">Some numbers, all measured on the live deployment. Eight hundred and fifty thousand current-account transactions in Oracle, four hundred thousand other-bank transactions behind the Account Aggregator, seventy-one thousand GST returns, five thousand past loans to learn from. One RUN_ANALYSIS call over all of it takes 17.5 seconds on a single node. The champion model reaches an AUC of 0.756, the challenger 0.769. The anomaly flag picked out 30 companies. And the whole synthetic world regenerates in about seventy-five seconds.</aside>
+  <aside class="sn">Some numbers, all measured on the live deployment. Eight hundred and fifty thousand current-account transactions in Oracle, four hundred thousand other-bank transactions behind the Account Aggregator, seventy-one thousand GST returns, five thousand past loans to learn from. One RUN_ANALYSIS call over all of it takes 18.2 seconds on a single node. The champion model reaches an AUC of 0.756, the challenger 0.769. The anomaly flag picked out 30 companies. And the whole synthetic world regenerates in about seventy-five seconds.</aside>
 </section>
 
 <!-- ============================================================ 17b · scale-up -->

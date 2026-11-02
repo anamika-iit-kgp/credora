@@ -11,22 +11,22 @@
      dashed amber outline on screen so it cannot be missed, and plain in print.
      ====================================================================================== */
   var DATA = {
-    RUN_TOTAL: "17.5 s",            // RUN_ANALYSIS, 13 steps, 1,000 companies, one r6i.xlarge node
-    RUN_SECONDS: "17.5",
+    RUN_TOTAL: "18.2 s",            // RUN_ANALYSIS, 13 steps, 1,000 companies, one r6i.xlarge node
+    RUN_SECONDS: "18.2",
     AUC_CHAMPION: "0.756",          // gradient-boosted trees, monotonic (TRAIN_PD), hold-out
     GINI_CHAMPION: "0.512",
     AUC_CHALLENGER: "0.769",        // logistic regression scorecard (TRAIN_SCORECARD), same hold-out
     GINI_CHALLENGER: "0.538",
-    CHALLENGER_GRADES: "713",       // grades the challenger would change on the last run, of 1,000
-    CHALLENGER_DECISIONS: "62",     // decisions it would change (42 refer to approve, 20 approve to refer)
+    CHALLENGER_GRADES: "691",       // grades the challenger would change on the last run, of 1,000
+    CHALLENGER_DECISIONS: "58",     // decisions it would change (37 refer to approve, 21 approve to refer)
     ANOMALY_FLAGGED: "30",          // Isolation Forest flags, of 1,000 (CONFIG ANOMALY_CONTAMINATION_PCT = 3)
-    ANOMALY_REFERRED: "4",          // APPROVE that became REFER because of the flag
+    ANOMALY_REFERRED: "3",          // APPROVE that became REFER because of the flag
     CERTIFIED_METRICS: "16",        // CREDORA_SEM.PORTFOLIO
     RM_BOOK: "25",                  // demo seed: companies assigned to RM001 (exasol/sql/14_seed_rm_book.sql)
     T_RISK_MODEL: "<0.1 s", // step 8 "Risk model": 2 ms in run R20261031-2109
-    // Published run R20261031-1923: 530 APPROVE, 202 REFER, 268 DECLINE. Offers 1,168.9 crore against
-    // a credit need on file of 1,252.3 crore, negotiation room up to 1,414.2 crore. Top 50: 258.7 crore,
-    // 10.82% average rate, 21.2% RAROC. These are written on slide 4 directly.
+    // Published run R20261102-1010: 534 APPROVE, 181 REFER, 285 DECLINE. Offers 1,077.7 crore against
+    // a credit need on file of 1,171.7 crore, negotiation room up to 1,290.0 crore. Top 50: 228.8 crore,
+    // 10.95% average rate, 22.5% RAROC. These are written on slide 4 directly.
   };
 
   /* RUN_ANALYSIS steps: [no, name, kind, seconds (number, or a DATA key), rows out]

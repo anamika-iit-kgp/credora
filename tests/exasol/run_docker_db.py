@@ -293,7 +293,7 @@ def main() -> None:
         assert cifs(rm, "CREDORA.V_LATEST_DECISION") == rm1
         assert cifs(rm, "CREDORA.V_LATEST_COMPANY") == rm1
         assert count(rm, "CREDORA.V_LATEST_FEATURE") == 25
-        assert count(rm, "CREDORA.CONFIG") == 12 and count(rm, "CREDORA.RUN_LOG") == 13
+        assert count(rm, "CREDORA.CONFIG") == 14 and count(rm, "CREDORA.RUN_LOG") == 13
         for obj in RM_REFUSED:
             assert refused(rm, f"SELECT COUNT(*) FROM {obj}"), f"CREDORA_RM must not read {obj}"
         print(f"   CREDORA_RM sees its {len(rm1)} companies and is refused {len(RM_REFUSED)} direct reads")

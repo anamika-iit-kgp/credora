@@ -89,7 +89,7 @@ So a feature can move between the two populations even when the companies are al
 `MODEL_PSI` works for any run that has rows in `CREDORA.FEATURES`, published or draft. Once, as `CREDORA_SVC` or the deploy user
 
 ```sql
-EXECUTE SCRIPT CREDORA.COMPUTE_PSI('R20261031-1923');
+EXECUTE SCRIPT CREDORA.COMPUTE_PSI('R20261102-1010');
 ```
 
 The Risk models screen shows the latest published run and recomputes it through `POST /api/ml/psi` (data scientist or admin). `GET /api/ml/psi?run_id=` reads any run.

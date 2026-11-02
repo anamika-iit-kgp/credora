@@ -130,7 +130,7 @@ CREATE OR REPLACE LUA SCRIPT CREDORA.COMPUTE_PSI(run_id) RETURNS ROWCOUNT AS
        b = '[' .. table.concat(parts, ',') .. ']'})
     written = written + 1
   end
-  return written
+  exit({rows_affected = written})
 /
 
 -- The admin and the data scientist read the evidence (the schema grant in 07_security.sql covers

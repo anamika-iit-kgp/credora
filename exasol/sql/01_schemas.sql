@@ -26,7 +26,7 @@ MERGE INTO CREDORA.CONFIG c USING (
   SELECT 'FLOOR_MARGIN_PCT', 0.50, 'Floor ROI is never below EBLR plus this, % p.a.' FROM DUAL UNION ALL
   SELECT 'ANOMALY_CONTAMINATION_PCT', 3.00, 'Share of companies the anomaly model flags for review, %' FROM DUAL UNION ALL
   SELECT 'CASH_MARGIN_DEFAULT_PCT', 12.00, 'Cash margin on GST turnover for an industry missing from INDUSTRY_MARGIN, %' FROM DUAL UNION ALL
-  SELECT 'MAX_EXPOSURE_PCT', 60.00, 'Total bank exposure after the offer (CIBIL exposure plus the offer), cap as % of GST turnover' FROM DUAL
+  SELECT 'MAX_EXPOSURE_PCT', 100.00, 'Total bank exposure after the offer (CIBIL exposure plus the offer), cap as % of GST turnover' FROM DUAL
 ) s ON c.CONFIG_KEY = s.k
 WHEN NOT MATCHED THEN INSERT VALUES (s.k, s.v, s.d);
 
