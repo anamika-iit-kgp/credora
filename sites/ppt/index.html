@@ -237,19 +237,19 @@
 <section class="slide" id="s4" aria-label="What changes for the bank">
   <div class="hd">
     <h2 data-a="rise">What changes for the bank.</h2>
-    <p data-a="rise" data-d="80">The published run R20261102-1010 on 1,000 companies. Every figure below is read from Exasol, from that run.</p>
+    <p data-a="rise" data-d="80">The published run R20261102-1037 on 1,000 companies. Every figure below is read from Exasol, from that run.</p>
   </div>
   <div class="bd">
     <div class="impact">
-      <div class="fig exa" data-a="rise" data-d="150"><div class="v">₹1,077.7<small>crore</small></div><p>of pre-approved offers to <span data-count="534">534</span> approved companies, against a credit need on file of ₹1,171.7 crore</p></div>
-      <div class="fig" data-a="rise" data-d="210"><div class="v">₹1,290.0<small>crore</small></div><p>is the top of the negotiation room, the limits Exasol set per company for the relationship managers</p></div>
-      <div class="fig" data-a="rise" data-d="270"><div class="v"><span data-count="534">534</span><small>· 181 · 285</small></div><p>APPROVE, REFER and DECLINE, decided in one call, each with its reasons</p></div>
-      <div class="fig" data-a="rise" data-d="330"><div class="v">₹228.8<small>crore</small></div><p>in the Top 50, at an average rate of <span data-count="10.95">10.95</span>% and a RAROC of <span data-count="22.5">22.5</span>%</p></div>
+      <div class="fig exa" data-a="rise" data-d="150"><div class="v">₹1,065.4<small>crore</small></div><p>of pre-approved offers to <span data-count="531">531</span> approved companies, against a credit need on file of ₹1,156.6 crore</p></div>
+      <div class="fig" data-a="rise" data-d="210"><div class="v">₹1,273.4<small>crore</small></div><p>is the top of the negotiation room, the limits Exasol set per company for the relationship managers</p></div>
+      <div class="fig" data-a="rise" data-d="270"><div class="v"><span data-count="531">531</span><small>· 184 · 285</small></div><p>APPROVE, REFER and DECLINE, decided in one call, each with its reasons</p></div>
+      <div class="fig" data-a="rise" data-d="330"><div class="v">₹189.3<small>crore</small></div><p>in the Top 50, at an average rate of <span data-count="11.0">11.0</span>% and a RAROC of <span data-count="22.7">22.7</span>%</p></div>
       <div class="fig exa" data-a="rise" data-d="390"><div class="v"><span data-k="RUN_SECONDS" data-count></span><small>s</small></div><p>per run, so the whole book is decided again after every policy change or data refresh</p></div>
       <div class="fig" data-a="rise" data-d="450"><div class="v">0<small>round trips</small></div><p>to a credit committee for a deal inside the limit. The relationship manager negotiates within it, and only a deal beyond it goes to loan operations</p></div>
     </div>
   </div>
-  <aside class="sn">What does the bank get? On the published run, Exasol decided a thousand companies. Five hundred and thirty-four are approved, one hundred and eighty-one referred to a person, two hundred and eighty-five declined. The pre-approved offers to the approved companies total one thousand and seventy-eight crore rupees, against a credit need on file of eleven hundred and seventy-two crore, with negotiation room up to twelve hundred and ninety crore. The top fifty alone carry two hundred and twenty-nine crore at an average rate of ten point nine five percent and a RAROC of twenty-two point five percent. A run takes eighteen seconds, so the bank can decide the whole book again after every policy change. And the relationship manager negotiates inside the limit Exasol set, so a deal within it needs no credit committee round trip.</aside>
+  <aside class="sn">What does the bank get? On the published run, Exasol decided a thousand companies. Five hundred and thirty-one are approved, one hundred and eighty-four referred to a person, two hundred and eighty-five declined. The pre-approved offers to the approved companies total one thousand and sixty-five crore rupees, against a credit need on file of eleven hundred and fifty-seven crore, with negotiation room up to twelve hundred and seventy-three crore. The top fifty alone carry one hundred and eighty-nine crore at an average rate of eleven percent and a RAROC of twenty-two point seven percent. A run takes eighteen seconds, so the bank can decide the whole book again after every policy change. And the relationship manager negotiates inside the limit Exasol set, so a deal within it needs no credit committee round trip.</aside>
 </section>
 
 <!-- ============================================================ 5 · big picture -->
@@ -471,7 +471,7 @@
       </div>
     </div>
   </div>
-  <aside class="sn">This is the heart of it. One Lua script, RUN_ANALYSIS, runs thirteen steps. It refreshes the virtual schemas, reads the credit needs on file, fetches CIBIL, GST and Account Aggregator data, computes thirteen features with an Oracle pushdown, scores with the model, flags anomalies, decides the offer and the limit, ranks with PREFERRING, and shadow-scores the challenger. Each step commits and writes a row to RUN_LOG with its row count and time, so the web app shows the run live. The 850,000 core-banking transactions are grouped by month inside Oracle through the pushdown, so feature building takes about 3.3 seconds. The whole run takes 18.2 seconds.</aside>
+  <aside class="sn">This is the heart of it. One Lua script, RUN_ANALYSIS, runs thirteen steps. It refreshes the virtual schemas, reads the credit needs on file, fetches CIBIL, GST and Account Aggregator data, computes thirteen features with an Oracle pushdown, scores with the model, flags anomalies, decides the offer and the limit, ranks with PREFERRING, and shadow-scores the challenger. Each step commits and writes a row to RUN_LOG with its row count and time, so the web app shows the run live. The 850,000 core-banking transactions are grouped by month inside Oracle through the pushdown, so feature building takes about 3.3 seconds. The whole run takes 17.8 seconds.</aside>
 </section>
 
 <!-- ============================================================ 10 · ML inside Exasol -->
@@ -523,7 +523,7 @@
       </g>
     </svg>
   </div>
-  <aside class="sn">Machine learning never leaves the database. TRAIN_PD reads five thousand past loans live from PostgreSQL through VS_LOS, trains gradient-boosted trees with monotonic credit constraints, measures them on a hold-out, and writes the pickle to BucketFS and a row to MODEL_REGISTRY, with AUC 0.756. TRAIN_SCORECARD trains a logistic regression challenger on the same loans and the same hold-out, with AUC 0.769. Both numbers sit near the ceiling the synthetic data allows. The generator draws each default from a logistic curve over the company's hidden risk, so even a model that knew that risk exactly would score about 0.78. The scorecard beats the trees because that relationship is logistic and linear, and five thousand loans favour the simpler model. PD_SCORE checks the file's SHA-256 against MODEL_REGISTRY, loads the active pickle and scores a thousand companies in about two seconds. Next, an Isolation Forest flagged 30 unusual companies, and 4 that would have been approved were referred to a person instead. The challenger shadow-scores every run. It would change 713 grades and 62 decisions. Next, it decides nothing until the admin approves activation.</aside>
+  <aside class="sn">Machine learning never leaves the database. TRAIN_PD reads five thousand past loans live from PostgreSQL through VS_LOS, trains gradient-boosted trees with monotonic credit constraints, measures them on a hold-out, and writes the pickle to BucketFS and a row to MODEL_REGISTRY, with AUC 0.728. TRAIN_SCORECARD trains a logistic regression challenger on the same loans and the same hold-out, with AUC 0.798. Both numbers sit near the ceiling the synthetic data allows. The generator draws each default from a logistic curve over the company's hidden risk, so even a model that knew that risk exactly would score about 0.78. The scorecard beats the trees because that relationship is logistic and linear, and five thousand loans favour the simpler model. PD_SCORE checks the file's SHA-256 against MODEL_REGISTRY, loads the active pickle and scores a thousand companies in about two seconds. Next, an Isolation Forest flagged 30 unusual companies, and 4 that would have been approved were referred to a person instead. The challenger shadow-scores every run. It would change 713 grades and 62 decisions. Next, it decides nothing until the admin approves activation.</aside>
 </section>
 
 <!-- ============================================================ 11 · PREFERRING -->
@@ -872,7 +872,7 @@
       </div>
     </div>
   </div>
-  <aside class="sn">Some numbers, all measured on the live deployment. Eight hundred and fifty thousand current-account transactions in Oracle, four hundred thousand other-bank transactions behind the Account Aggregator, seventy-one thousand GST returns, five thousand past loans to learn from. One RUN_ANALYSIS call over all of it takes 18.2 seconds on a single node. The champion model reaches an AUC of 0.756, the challenger 0.769. The anomaly flag picked out 30 companies. And the whole synthetic world regenerates in about seventy-five seconds.</aside>
+  <aside class="sn">Some numbers, all measured on the live deployment. Eight hundred and fifty thousand current-account transactions in Oracle, four hundred thousand other-bank transactions behind the Account Aggregator, seventy-one thousand GST returns, five thousand past loans to learn from. One RUN_ANALYSIS call over all of it takes 18.2 seconds on a single node. The champion model reaches an AUC of 0.728, the challenger 0.798. The anomaly flag picked out 30 companies. And the whole synthetic world regenerates in about seventy-five seconds.</aside>
 </section>
 
 <!-- ============================================================ 17b · scale-up -->
