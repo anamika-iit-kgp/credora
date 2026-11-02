@@ -23,8 +23,8 @@ cd tests/udf && python -m pytest -q && cd ../..
 pip install -r mocks/generator/requirements-dev.txt
 cd mocks/generator && python -m pytest -q tests && cd ../..
 
-# Web app, type check and build
-cd frontend && npm ci && npm run build && cd ..
+# Web app, unit tests, then type check and build
+cd frontend && npm ci && npm test && npm run build && cd ..
 ```
 
 To click through the web app without a backend, run `npm run dev:fixtures` in `frontend/` and open http://localhost:5173. The README section "Running pieces locally on the starter kit" says what else runs on a laptop with the Exasol Personal Local Starter Kit, and what needs AWS.
