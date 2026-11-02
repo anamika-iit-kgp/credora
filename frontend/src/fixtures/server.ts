@@ -5,6 +5,8 @@ import type {
   AskAnswer,
   AskStep,
   AuditEntry,
+  Calibration,
+  CalibrationDecile,
   CompanyRow,
   CreditMemo,
   DecisionMix,
@@ -18,6 +20,10 @@ import type {
   OfferEvent,
   OfferStage,
   Overview,
+  Psi,
+  PsiBand,
+  PsiBin,
+  PsiFeature,
   PurgeEntry,
   Report,
   Role,
@@ -29,7 +35,7 @@ import type {
   User,
   WhatIfResult,
 } from "../api/types";
-import type { PolicyLeverChange, PolicyProposal, WhatIfRun } from "../api/types";
+import type { PolicyLeverChange, PolicyProposal, Pricing, WhatIfRun } from "../api/types";
 import type { ActivationRequest, LoanStatus, LoanStatusEvent, LoanStatusRow } from "../api/types";
 import { num, rupeesShort } from "../lib/format";
 import { buildFeatures, buildReasons, buildSteps } from "./report";
@@ -696,6 +702,32 @@ function node(u: User, id: string): NodeRecords {
 
 /* ------------------------------ report ------------------------------ */
 
+// Fixture copy of CREDORA.INDUSTRY_MARGIN and CREDORA.LGD_COLLATERAL (docs/PRICING.md), illustrative figures.
+const CASH_MARGIN_PCT: Record<string, number> = {
+  "Plastics and polymers": 11, Textiles: 9, "Food processing": 8, "Steel and metals": 10, Pharmaceuticals: 18,
+  "Auto components": 12, Logistics: 9, Packaging: 12, Electricals: 10, Chemicals: 15, "Building materials": 10,
+  "Paper and printing": 12, Engineering: 12, "Agri trading": 6,
+};
+const LGD_COLLATERAL_PCT: Record<string, number> = { None: 45, Receivables: 35, Property: 35, "Plant & machinery": 40 };
+const LGD_UNSECURED_PCT = 45;
+const MAX_EXPOSURE_PCT = 60;
+
+function pricingOf(c: Company): Pricing {
+  const margin = CASH_MARGIN_PCT[c.industry] ?? 12;
+  const cover = Math.min(c.collateral_value / c.amount_requested, 1);
+  const lgdType = LGD_COLLATERAL_PCT[c.collateral_type] ?? LGD_UNSECURED_PCT;
+  return {
+    industry: c.industry,
+    cash_margin_pct: margin,
+    cash_12m: Math.round((c.turnover_12m * margin) / 100),
+    collateral_type: c.collateral_type,
+    collateral_value: c.collateral_value,
+    lgd_pct: Math.round((LGD_UNSECURED_PCT + (lgdType - LGD_UNSECURED_PCT) * cover) * 100) / 100,
+    existing_exposure: c.cmr_exposure,
+    exposure_room: Math.max((c.turnover_12m * MAX_EXPOSURE_PCT) / 100 - c.cmr_exposure, 0),
+  };
+}
+
 function report(c: Company, u?: User): Report {
   if (!S.analysed) throw new HttpError(404, "No analysis has run on this data set yet. Run analysis to create Exasol reports.");
   const { scored: sc, ranks } = scored();
@@ -729,6 +761,7 @@ function report(c: Company, u?: User): Report {
     features: buildFeatures(c, world, s),
     steps: buildSteps(c, s, ps.length, run.run_id),
     sources_used: ["bank.oracle", "bank.mysql", "bank.postgres", "api.cibil", "api.gstn", "api.aa", "exasol"],
+    pricing: pricingOf(c),
   };
 }
 
@@ -1093,6 +1126,11 @@ on("POST", "/api/ml/train", ({ u }) => {
         detail: `${next} and ${next}-lr registered inactive. ${activeModel().version} stays active until the admin approves an activation request.`,
       },
       { name: "Shadow-score the latest run with the challenger (CREDORA.SCORE_CHALLENGER)", ms: 1600, detail: "1,000 companies scored in the shadow" },
+      {
+        name: "Calibrate both on the hold-out (CREDORA.CALIBRATE_MODEL)",
+        ms: 2400,
+        detail: `${next} Brier 0.0612 (base 0.0694), AUC 0.824 on 1,250 hold-out loans · ${next}-lr Brier 0.0608 (base 0.0694), AUC 0.829 on 1,250 hold-out loans`,
+      },
     ],
     () => {
       const bump = (m: Model): Model => {
@@ -1123,6 +1161,103 @@ on("GET", "/api/ml/models", ({ u }) => {
     .slice()
     .reverse()
     .map((m) => ({ ...m, role: m.active ? "champion" : m === ch ? "challenger" : null, kind: isScorecard(m) ? "coefficient" : "importance" }));
+});
+
+/* ------------------------------ validation evidence ------------------------------ */
+
+/** Calibration of one fixture model on a 1,250-loan hold-out, deterministic per version. */
+function calibrationFor(version: string): Calibration {
+  const m = S.models.find((x) => x.version === version);
+  if (!m) throw new HttpError(404, `No model ${version} in CREDORA.MODEL_REGISTRY.`);
+  const rng = mulberry32(version.length * 7919 + Math.round(m.auc * 1000));
+  const curve = [0.004, 0.009, 0.015, 0.023, 0.034, 0.048, 0.066, 0.092, 0.135, 0.24];
+  const deciles: CalibrationDecile[] = curve.map((p, i) => {
+    const observed = Math.max(0, Math.round(125 * (p + (rng() - 0.5) * 0.02)));
+    return { decile: i + 1, n: 125, defaults: observed, mean_pd: p, observed_rate: observed / 125, pd_min: p * 0.8, pd_max: p * 1.25 };
+  });
+  return {
+    version,
+    computed: true,
+    computed_at: minsAgo(40),
+    n_holdout: 1250,
+    brier: 0.0612,
+    brier_base: 0.0694,
+    auc: m.auc,
+    registry_auc: m.auc,
+    reproduces_training: true,
+    max_gap: Math.max(...deciles.map((d) => Math.abs((d.mean_pd ?? 0) - (d.observed_rate ?? 0)))),
+    deciles,
+  };
+}
+
+const PSI_FIXTURE: [string, number][] = [
+  ["avg_balance_12m", 0.412],
+  ["inflow_volatility", 0.187],
+  ["gst_bank_gap_pct", 0.146],
+  ["partner_other_bank_bal", 0.118],
+  ["dscr", 0.071],
+  ["gst_turnover_12m", 0.052],
+  ["partner_overdue_amt", 0.044],
+  ["bounce_ratio", 0.031],
+  ["gst_late_filings_12m", 0.027],
+  ["partner_avg_score", 0.019],
+  ["partner_min_score", 0.016],
+  ["gst_years", 0.012],
+  ["cmr_rank", 0.008],
+];
+
+function psiFor(runId: string | null): Psi {
+  const empty: Psi = {
+    run_id: runId,
+    computed: false,
+    computed_at: null,
+    max_psi: null,
+    max_feature: null,
+    band: "unknown",
+    counts: { stable: 0, shift: 0, significant: 0 },
+    thresholds: { some_shift: 0.1, significant: 0.25 },
+    features: [],
+  };
+  if (!runId || !S.analysed) return empty;
+  const band = (p: number): PsiBand => (p < 0.1 ? "stable" : p <= 0.25 ? "shift" : "significant");
+  const features: PsiFeature[] = PSI_FIXTURE.map(([feature, psi], i) => {
+    const rng = mulberry32(i + 11);
+    const bins: PsiBin[] = Array.from({ length: 10 }, (_, b) => {
+      const live = Math.max(0.005, 0.1 + (rng() - 0.5) * psi * 0.6);
+      return { bin: b + 1, hi: b === 9 ? null : (b + 1) * 10, train: 0.1, live };
+    });
+    const sum = bins.reduce((a, x) => a + x.live, 0);
+    for (const x of bins) x.live = x.live / sum;
+    return { feature, psi, band: band(psi), n_train: 5000, n_live: world.all().length, null_live: feature === "gst_late_filings_12m" ? 4 : 0, train_mean: 4.2 * (i + 1), live_mean: 4.2 * (i + 1) * (1 + psi), bins };
+  });
+  const counts = { stable: 0, shift: 0, significant: 0 };
+  for (const f of features) if (f.band !== "unknown") counts[f.band]++;
+  return { ...empty, computed: true, computed_at: minsAgo(25), max_psi: features[0].psi, max_feature: features[0].feature, band: features[0].band, counts, features };
+}
+
+on("GET", "/api/ml/models/{version}/calibration", ({ u, m }) => {
+  need(u, ["admin", "datasci"]);
+  return calibrationFor(decodeURIComponent(m[1]));
+});
+
+on("POST", "/api/ml/models/{version}/calibration", ({ u, m }) => {
+  need(u, ["admin", "datasci"]);
+  const v = decodeURIComponent(m[1]);
+  audit(u, "MODEL_CALIBRATE", v, "CREDORA.CALIBRATE_MODEL on VS_LOS.past_loan_training");
+  return calibrationFor(v);
+});
+
+on("GET", "/api/ml/psi", ({ u, q }) => {
+  need(u, ["admin", "datasci"]);
+  return psiFor(q.get("run_id") || officialRun()?.run_id || null);
+});
+
+on("POST", "/api/ml/psi", ({ u, body }) => {
+  need(u, ["admin", "datasci"]);
+  const rid = (typeof body.run_id === "string" && body.run_id) || officialRun()?.run_id || null;
+  if (!rid) throw new HttpError(404, "No analysis run to compare with the past loans yet.");
+  audit(u, "MODEL_PSI", rid, "CREDORA.MODEL_PSI, FEATURES of the run against VS_LOS.past_loan_training");
+  return psiFor(rid);
 });
 
 on("GET", "/api/ml/compare", ({ u }) => {
@@ -1673,7 +1808,14 @@ function quote(o: Offer, amount: number, roi: number, tenure: number) {
   const raroc = Math.round(rarocOf(roi, (o.pd ?? 0.02) * (1 + Math.max(0, tenure - (o.offer_tenure ?? tenure)) / 240), pol.eblr_pct) * 10) / 10;
   if (raroc < pol.hurdle_pct) reasons.push(`RAROC ${raroc.toFixed(1)}% is below the ${pol.hurdle_pct}% hurdle.`);
   if (!reasons.length) reasons.push(`Within limit. RAROC ${raroc.toFixed(1)}% meets the ${pol.hurdle_pct}% hurdle.`);
-  return { within_limit: reasons.length === 1 && reasons[0].startsWith("Within"), raroc, emi: Math.round(emi(amount, roi, tenure)), reasons };
+  const company = world.all().find((c) => c.cif_id === o.cif_id);
+  return {
+    within_limit: reasons.length === 1 && reasons[0].startsWith("Within"),
+    raroc,
+    emi: Math.round(emi(amount, roi, tenure)),
+    lgd_pct: company ? pricingOf(company).lgd_pct : null,
+    reasons,
+  };
 }
 
 on("POST", "/api/offers/{id}/quote", ({ u, m, body }) => {

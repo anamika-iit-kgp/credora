@@ -1,0 +1,3 @@
+# Runs tests/exasol/run_docker_db.py against exasol/docker-db. Same pins as deploy/requirements.txt.
+pyexasol==1.3.0
+requests==2.32.5

@@ -6,5 +6,5 @@ psycopg-pool==3.3.3
 httpx==0.28.1
 PyJWT==2.15.1
 tzdata==2026.6
-anthropic==2.3.0
+anthropic[bedrock]==2.3.0
 mcp==1.30.0

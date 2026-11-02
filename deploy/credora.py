@@ -46,12 +46,14 @@ EXASOL_PORTS = (22, 2581, 8443, 8563, 20002, 20003)  # what the launcher's secur
 TOFU_IMAGE = "ghcr.io/opentofu/opentofu:1.10.6"
 EXASOL_SQL = [  # order matters: virtual schemas need data, grants need virtual schemas
     "exasol/sql/01_schemas.sql",
+    "exasol/sql/18_pricing_reference.sql",
     "exasol/sql/02_connections.sql",
     "exasol/udf/04_api_udfs.sql",
     "exasol/udf/05_ml_udfs.sql",
     "exasol/udf/09_ai_udf.sql",
     "exasol/lua/06_run_analysis.sql",
     "exasol/lua/08_purge.sql",
+    "exasol/sql/19_model_validation.sql",
 ]
 EXASOL_SQL_AFTER_DATA = ["exasol/sql/03_virtual_schemas.sql", "exasol/sql/07_security.sql",
                          "exasol/sql/13_rm_row_security.sql"]
@@ -231,7 +233,8 @@ class Deployment:
         }
         for key, var in (("ORACLE_INSTANCE", "oracle_instance"), ("APP_INSTANCE", "app_instance"),
                          ("AI_PROVIDER", "ai_provider"), ("ANTHROPIC_API_KEY", "anthropic_api_key"),
-                         ("AI_MODEL", "ai_model"), ("PUBLIC_DEMO", "public_demo")):
+                         ("AI_MODEL", "ai_model"), ("BEDROCK_MODEL_ID", "bedrock_model_id"),
+                         ("PUBLIC_DEMO", "public_demo")):
             if key in self.cfg:
                 tfvars[var] = self.cfg[key]
         logins = {r: self.cfg[f"APP_{r.upper()}_PASSWORD"] for r in ("admin", "datasci", "loanops", "rm")
@@ -367,9 +370,9 @@ class Deployment:
 
     # --- Data and Exasol objects ------------------------------------------------------
 
-    def generate(self, seed: int | None = 2026) -> None:
+    def generate(self, seed: int | None = 2026, as_of: str | None = None) -> None:
         say("Generate mock data (1,000 companies)")
-        body = json.dumps({"seed": seed})
+        body = json.dumps({"seed": seed, **({"as_of": as_of} if as_of else {})})
         job = json.loads(self.ssh(f"curl -s -X POST localhost:8100/generate -H 'content-type: application/json' -d '{body}'"))
         while True:
             st = json.loads(self.ssh(f"curl -s localhost:8100/jobs/{job['job_id']}"))

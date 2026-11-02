@@ -4,6 +4,7 @@ import type {
   AiStatus,
   AskAnswer,
   AuditEntry,
+  Calibration,
   CompanyRow,
   CreditMemo,
   DecisionRow,
@@ -17,6 +18,7 @@ import type {
   OfferEvent,
   Overview,
   Page,
+  Psi,
   PurgeEntry,
   Quote,
   Report,
@@ -125,6 +127,36 @@ export const useModels = () =>
 /** Champion vs challenger; under the "models" key, so training and activating refresh it too. */
 export const useModelCompare = () =>
   useQuery({ queryKey: ["models", "compare"], queryFn: () => api<ModelComparison>("/ml/compare") });
+
+/** Calibration deciles, Brier and AUC of one model on the training's hold-out (CREDORA.MODEL_CALIBRATION). */
+export const useCalibration = (version: string | null) =>
+  useQuery({
+    queryKey: ["models", "calibration", version ?? ""],
+    queryFn: () => api<Calibration>(`/ml/models/${encodeURIComponent(version ?? "")}/calibration`),
+    enabled: !!version,
+  });
+
+/** Runs CREDORA.CALIBRATE_MODEL for one version and keeps the fresh evidence. */
+export const useComputeCalibration = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (version: string) => api<Calibration>(`/ml/models/${encodeURIComponent(version)}/calibration`, { method: "POST" }),
+    onSuccess: (data) => qc.setQueryData(["models", "calibration", data.version], data),
+  });
+};
+
+/** PSI per feature of one run (default the latest published run) against the past loans (CREDORA.MODEL_PSI). */
+export const usePsi = (runId?: string) =>
+  useQuery({ queryKey: ["models", "psi", runId ?? ""], queryFn: () => api<Psi>(`/ml/psi${qs({ run_id: runId })}`) });
+
+/** Runs CREDORA.MODEL_PSI for one run (default the latest published run). */
+export const useComputePsi = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (runId?: string) => api<Psi>("/ml/psi", { method: "POST", body: { run_id: runId ?? null } }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["models", "psi"] }),
+  });
+};
 
 export const useOffers = (stage?: string) =>
   useQuery({

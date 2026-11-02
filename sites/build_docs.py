@@ -39,8 +39,10 @@ PAGES = [
     ("README.md", "index.html", "Overview"),
     ("docs/WHY_EXASOL.md", "why-exasol.html", "Why Exasol"),
     ("docs/DATA_MODEL.md", "data-model.html", "Data model"),
+    ("docs/PRICING.md", "pricing.html", "Pricing"),
     ("docs/API.md", "api.html", "APIs"),
     ("docs/PORTING.md", "porting.html", "Porting"),
+    ("docs/MODEL_VALIDATION.md", "model-validation.html", "Model validation"),
     ("docs/GLOSSARY.md", "glossary.html", "Glossary"),
 ]
 COPIED = [("docs/architecture.html", "architecture.html", "Architecture diagrams")]

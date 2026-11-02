@@ -11,6 +11,7 @@ import { dateTime, num, pctFromRatio } from "../../lib/format";
 import { can } from "../../lib/roles";
 import { usePersistentJob } from "../../lib/usePersistentJob";
 import { MyActivationRequests, RequestActivationButton } from "./ActivationParts";
+import { CalibrationPanel, PsiPanel } from "./ValidationParts";
 import { WithExplain } from "../../explain/Explain";
 import { ExaBadge } from "../../explain/ExaBadge";
 
@@ -34,7 +35,8 @@ export function ModelsPage() {
           <>
             Two probability-of-default models, trained together inside Exasol on past loans and versioned in BucketFS. They are gradient-boosted trees with monotonic credit
             constraints (<code>CREDORA.TRAIN_PD</code>) and a logistic regression scorecard (<code>CREDORA.TRAIN_SCORECARD</code>). The active model is the champion and
-            decides, and the other is scored on every run in the shadow.
+            decides, and the other is scored on every run in the shadow. Below, the validation evidence of the picked version, its calibration on the training&apos;s
+            hold-out and the stability of the latest published run&apos;s features against the past loans.
           </>
         }
         actions={
@@ -56,6 +58,7 @@ export function ModelsPage() {
           <div className="xb-row">
             <ExaBadge what="Trained in Exasol" detail="Python UDF TRAIN_PD on VS_LOS" term="python-udf" />
             <ExaBadge what="MODEL_REGISTRY" detail="pickle in BucketFS" term="model-registry" />
+            <ExaBadge what="Validated in Exasol" detail="PD_CALIBRATE, MODEL_PSI" term="model-risk-management" />
           </div>
         }
       />
@@ -136,6 +139,12 @@ export function ModelsPage() {
             </p>
           </Panel>
           {shown && <Importance m={shown} active={active} />}
+        </div>
+      )}
+      {shown && (
+        <div className="stack">
+          <CalibrationPanel m={shown} />
+          <PsiPanel />
         </div>
       )}
     </div>

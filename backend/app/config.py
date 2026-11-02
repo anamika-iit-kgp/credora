@@ -78,10 +78,16 @@ class Settings:
     # Fallback switch only: a value > 0 makes the API run it too, every N minutes. Off by default.
     purge_interval_min: int = field(default_factory=lambda: int(_env("PURGE_INTERVAL_MIN", "0")))
 
-    # Optional AI features
+    # Optional AI features (app/ai.py). AI_PROVIDER is anthropic (the Anthropic API with ANTHROPIC_API_KEY)
+    # or bedrock (Claude on Amazon Bedrock with the host's AWS credentials, the instance role on EC2).
     ai_provider: str = field(default_factory=lambda: _env("AI_PROVIDER").lower())
+    # The Anthropic API model id. The CREDIT_MEMO UDF inside Exasol calls the same model.
     ai_model: str = field(default_factory=lambda: _env("AI_MODEL"))
     anthropic_api_key: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
+    # The model id or inference profile sent to Amazon Bedrock. Blank means "anthropic." followed by
+    # AI_MODEL, which is the Bedrock id of the current models (anthropic.claude-sonnet-5-5).
+    bedrock_model_id: str = field(default_factory=lambda: _env("BEDROCK_MODEL_ID"))
+    # Bedrock's region, from AWS_REGION, else AWS_DEFAULT_REGION, else Mumbai.
     aws_region: str = field(default_factory=lambda: _env("AWS_REGION", _env("AWS_DEFAULT_REGION", "ap-south-1")))
 
 

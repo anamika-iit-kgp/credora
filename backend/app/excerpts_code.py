@@ -107,17 +107,21 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
      '       ABS(COALESCE(gst.TURNOVER, 0) - COALESCE(bank.CREDITS_12M, 0)) / NULLIF(gst.TURNOVER, 0) * 100,\n'
      '       bank.AVG_BAL, bank.VOLATILITY, COALESCE(bank.BOUNCE_RATIO, 0), com.CMR_RANK,\n'
      '       partners.MIN_SCORE, partners.AVG_SCORE, COALESCE(partners.OVERDUE, 0), COALESCE(aa.BAL, 0),\n'
-     '       COALESCE(gst.TURNOVER, 0) * 0.12 /\n'
+     '       COALESCE(gst.TURNOVER, 0)\n'
+     '         * COALESCE(im.CASH_MARGIN_PCT,\n'
+     "                    (SELECT CONFIG_VALUE FROM CREDORA.CONFIG WHERE CONFIG_KEY = 'CASH_MARGIN_DEFAULT_PCT')) / "
+     '100 /\n'
      "         CASE WHEN app.PRODUCT = 'TL'\n"
      '              THEN 12 * app.AMOUNT_REQUESTED * (0.11 / 12) / (1 - POWER(1 + 0.11 / 12, -app.TENURE_REQUESTED))\n'
      '              ELSE app.AMOUNT_REQUESTED * 0.11 END,\n'
-     '       bank.CREDITS_12M, com.WILFUL_DEFAULT, com.SUIT_FILED, gst.STAGE\n'
+     '       bank.CREDITS_12M, com.WILFUL_DEFAULT, com.SUIT_FILED, gst.STAGE, com.TOTAL_EXPOSURE\n'
      'FROM app\n'
      'LEFT JOIN bank ON bank.APP_ID = app.APP_ID\n'
      'LEFT JOIN gst ON gst.APP_ID = app.APP_ID\n'
      'LEFT JOIN partners ON partners.APP_ID = app.APP_ID\n'
      'LEFT JOIN aa ON aa.APP_ID = app.APP_ID\n'
-     'LEFT JOIN CREDORA_STAGE.CIBIL_COMMERCIAL com ON com.PAN = app.PAN AND com.RUN_ID = :r;'),
+     'LEFT JOIN CREDORA_STAGE.CIBIL_COMMERCIAL com ON com.PAN = app.PAN AND com.RUN_ID = :r\n'
+     'LEFT JOIN CREDORA.INDUSTRY_MARGIN im ON im.INDUSTRY = app.INDUSTRY;'),
  8: ('lua',
      'local active = query([[SELECT MODEL_VERSION, MODEL_PATH, MODEL_SHA256 FROM CREDORA.MODEL_REGISTRY WHERE '
      'IS_ACTIVE]])\n'
@@ -155,7 +159,8 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
  11: ('sql',
       'INSERT INTO CREDORA.DECISIONS (RUN_ID, APP_ID, CIF_ID, LEGAL_NAME, RM_ID, PRODUCT, AMOUNT_REQUESTED,\n'
       '  TENURE_REQUESTED, DECISION, HARD_FAILS, GRADE, PD, OFFER_AMOUNT, OFFER_ROI, OFFER_TENURE, FLOOR_ROI,\n'
-      '  MAX_AMOUNT, MAX_TENURE, RAROC_OFFER, RAROC_FLOOR)\n'
+      '  MAX_AMOUNT, MAX_TENURE, RAROC_OFFER, RAROC_FLOOR, CASH_MARGIN_PCT, LGD_PCT, EXISTING_EXPOSURE, '
+      'EXPOSURE_ROOM)\n'
       'WITH cfg AS (\n'
       "  SELECT MAX(CASE WHEN CONFIG_KEY = 'EBLR_PCT' THEN CONFIG_VALUE END) EBLR,\n"
       "         MAX(CASE WHEN CONFIG_KEY = 'OPERATING_SPREAD_PCT' THEN CONFIG_VALUE END) OPS,\n"
@@ -167,12 +172,26 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
       "         MAX(CASE WHEN CONFIG_KEY = 'MAX_GST_SHARE_PCT' THEN CONFIG_VALUE END) GST_SHARE,\n"
       "         MAX(CASE WHEN CONFIG_KEY = 'MIN_DSCR' THEN CONFIG_VALUE END) MIN_DSCR,\n"
       "         MAX(CASE WHEN CONFIG_KEY = 'NEGOTIATION_DSCR' THEN CONFIG_VALUE END) NEG_DSCR,\n"
-      "         MAX(CASE WHEN CONFIG_KEY = 'FLOOR_MARGIN_PCT' THEN CONFIG_VALUE END) FLOOR_MARGIN\n"
+      "         MAX(CASE WHEN CONFIG_KEY = 'FLOOR_MARGIN_PCT' THEN CONFIG_VALUE END) FLOOR_MARGIN,\n"
+      "         MAX(CASE WHEN CONFIG_KEY = 'CASH_MARGIN_DEFAULT_PCT' THEN CONFIG_VALUE END) MARGIN_DEFAULT,\n"
+      "         MAX(CASE WHEN CONFIG_KEY = 'MAX_EXPOSURE_PCT' THEN CONFIG_VALUE END) MAX_EXPOSURE\n"
       '  FROM CREDORA.CONFIG),\n'
       'base AS (\n'
       '  SELECT a.*, f.GST_TURNOVER_12M, f.GST_LATE_FILINGS_12M, f.BOUNCE_RATIO, f.CMR_RANK, f.PARTNER_MIN_SCORE,\n'
       '         f.WILFUL_DEFAULT, s.PD, s.GRADE, an.TOP_REASONS ANOMALY, cfg.*,\n'
-      '         f.GST_TURNOVER_12M * 0.12 CASH,\n'
+      "         -- cash for debt service: the industry's operating cash margin on GST turnover (INDUSTRY_MARGIN)\n"
+      '         COALESCE(im.CASH_MARGIN_PCT, cfg.MARGIN_DEFAULT) CASH_MARGIN,\n'
+      '         f.GST_TURNOVER_12M * COALESCE(im.CASH_MARGIN_PCT, cfg.MARGIN_DEFAULT) / 100 CASH,\n'
+      "         -- loss given default: the collateral type's LGD on the share of the need it covers, the\n"
+      '         -- unsecured policy LGD on the rest (LGD_COLLATERAL); an unknown type counts as unsecured\n'
+      '         ROUND(cfg.LGD + (COALESCE(lc.LGD_PCT, cfg.LGD) - cfg.LGD)\n'
+      '               * COALESCE(LEAST(COALESCE(a.COLLATERAL_VALUE, 0) / NULLIF(a.AMOUNT_REQUESTED, 0), 1), 0), 2) '
+      'LGD_EFF,\n'
+      '         -- room under the total exposure cap: MAX_EXPOSURE_PCT of GST turnover less what the\n'
+      '         -- company already owes all lenders on its CIBIL commercial report\n'
+      '         COALESCE(f.CIBIL_TOTAL_EXPOSURE, 0) EXISTING_EXPOSURE,\n'
+      '         GREATEST(f.GST_TURNOVER_12M * cfg.MAX_EXPOSURE / 100 - COALESCE(f.CIBIL_TOTAL_EXPOSURE, 0), 0) '
+      'EXPOSURE_ROOM,\n'
       "         CASE s.GRADE WHEN 'A1' THEN 1.00 WHEN 'A2' THEN 1.50 WHEN 'B1' THEN 2.25 WHEN 'B2' THEN 3.00\n"
       "                      WHEN 'C1' THEN 4.00 WHEN 'C2' THEN 5.25 ELSE 7.00 END RISK_SPREAD,\n"
       '         CASE WHEN a.COLLATERAL_VALUE >= a.AMOUNT_REQUESTED THEN 0.25 ELSE 0 END COLLATERAL_DISCOUNT,\n'
@@ -183,29 +202,36 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
       '  JOIN CREDORA.FEATURES f ON f.APP_ID = a.APP_ID AND f.RUN_ID = a.RUN_ID\n'
       '  JOIN CREDORA.SCORES s ON s.APP_ID = a.APP_ID AND s.RUN_ID = a.RUN_ID\n'
       '  LEFT JOIN CREDORA.ANOMALY an ON an.APP_ID = a.APP_ID AND an.RUN_ID = a.RUN_ID AND an.IS_ANOMALY\n'
+      '  LEFT JOIN CREDORA.INDUSTRY_MARGIN im ON im.INDUSTRY = a.INDUSTRY\n'
+      '  LEFT JOIN CREDORA.LGD_COLLATERAL lc ON lc.COLLATERAL_TYPE = a.COLLATERAL_TYPE\n'
       '  CROSS JOIN cfg\n'
       '  WHERE a.RUN_ID = :r),\n'
       'priced AS (\n'
       '  SELECT b.*,\n'
-      '         CEIL((GREATEST(EBLR + FLOOR_MARGIN, HURDLE * CAPITAL / 100 + FUNDS + OPEX + PD * LGD)) * 20) / 20 '
+      '         CEIL((GREATEST(EBLR + FLOOR_MARGIN, HURDLE * CAPITAL / 100 + FUNDS + OPEX + PD * LGD_EFF)) * 20) / 20 '
       'FLOOR_ROI_RAW,\n'
       '         EBLR + RISK_SPREAD + OPS - COLLATERAL_DISCOUNT LIST_ROI,\n'
       "         CASE WHEN PRODUCT = 'TL' THEN LEAST(84, TENURE_OFFER + 24) ELSE 12 END TENURE_MAX\n"
       '  FROM base b),\n'
       'sized AS (\n'
       '  SELECT p.*, GREATEST(LIST_ROI, FLOOR_ROI_RAW) OFFER_ROI_RAW,\n'
-      "         CASE WHEN PRODUCT = 'TL'\n"
-      '              THEN CASH / MIN_DSCR / 12 * (1 - POWER(1 + GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200, '
+      '         -- what cash flow can repay at MIN_DSCR, the GST share for working capital, and the room\n'
+      '         -- under the total exposure cap, whichever is smallest\n'
+      '         LEAST(EXPOSURE_ROOM,\n'
+      "               CASE WHEN PRODUCT = 'TL'\n"
+      '                    THEN CASH / MIN_DSCR / 12 * (1 - POWER(1 + GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200, '
       '-TENURE_OFFER))\n'
-      '                   / (GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200)\n'
-      '              ELSE LEAST(GST_TURNOVER_12M * GST_SHARE / 100, CASH / MIN_DSCR / (GREATEST(LIST_ROI, '
+      '                         / (GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200)\n'
+      '                    ELSE LEAST(GST_TURNOVER_12M * GST_SHARE / 100, CASH / MIN_DSCR / (GREATEST(LIST_ROI, '
       'FLOOR_ROI_RAW) / 100))\n'
-      '         END CAP_OFFER,\n'
-      "         CASE WHEN PRODUCT = 'TL'\n"
-      '              THEN CASH / NEG_DSCR / 12 * (1 - POWER(1 + FLOOR_ROI_RAW / 1200, -TENURE_MAX)) / (FLOOR_ROI_RAW / '
-      '1200)\n'
-      '              ELSE LEAST(GST_TURNOVER_12M * (GST_SHARE + 5) / 100, CASH / NEG_DSCR / (FLOOR_ROI_RAW / 100))\n'
-      '         END CAP_MAX\n'
+      '               END) CAP_OFFER,\n'
+      '         LEAST(EXPOSURE_ROOM,\n'
+      "               CASE WHEN PRODUCT = 'TL'\n"
+      '                    THEN CASH / NEG_DSCR / 12 * (1 - POWER(1 + FLOOR_ROI_RAW / 1200, -TENURE_MAX)) / '
+      '(FLOOR_ROI_RAW / 1200)\n'
+      '                    ELSE LEAST(GST_TURNOVER_12M * (GST_SHARE + 5) / 100, CASH / NEG_DSCR / (FLOOR_ROI_RAW / '
+      '100))\n'
+      '               END) CAP_MAX\n'
       '  FROM priced p),\n'
       'judged AS (\n'
       '  SELECT s.*,\n'
@@ -235,14 +261,17 @@ CODE: dict[int, tuple[str, str]] = {1: ('lua',
       "              CASE WHEN GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL THEN ';No GST returns on file' "
       "ELSE '' END ||\n"
       "              CASE WHEN FLOOR_ROI_RAW > LIST_ROI THEN ';Hurdle needs ROI above rate card' ELSE '' END ||\n"
+      '              CASE WHEN OFFER_AMT < AMOUNT_REQUESTED * 0.5 AND EXPOSURE_ROOM < AMOUNT_REQUESTED * 0.5\n'
+      "                   THEN ';Existing exposure near the cap' ELSE '' END ||\n"
       "              CASE WHEN ANOMALY IS NOT NULL THEN ';Anomaly: ' || ANOMALY ELSE '' END), '') HARD_FAILS,\n"
       '       GRADE, PD,\n'
       '       CASE WHEN FAILS IS NULL THEN OFFER_AMT END, CASE WHEN FAILS IS NULL THEN OFFER_ROI_RAW END,\n'
       '       CASE WHEN FAILS IS NULL THEN TENURE_OFFER END, CASE WHEN FAILS IS NULL THEN FLOOR_ROI_RAW END,\n'
       '       CASE WHEN FAILS IS NULL THEN GREATEST(MAX_AMT, OFFER_AMT) END, CASE WHEN FAILS IS NULL THEN TENURE_MAX '
       'END,\n'
-      '       ROUND((OFFER_ROI_RAW - FUNDS - OPEX - PD * LGD) / CAPITAL * 100, 3),\n'
-      '       ROUND((FLOOR_ROI_RAW - FUNDS - OPEX - PD * LGD) / CAPITAL * 100, 3)\n'
+      '       ROUND((OFFER_ROI_RAW - FUNDS - OPEX - PD * LGD_EFF) / CAPITAL * 100, 3),\n'
+      '       ROUND((FLOOR_ROI_RAW - FUNDS - OPEX - PD * LGD_EFF) / CAPITAL * 100, 3),\n'
+      '       CASH_MARGIN, LGD_EFF, EXISTING_EXPOSURE, EXPOSURE_ROOM\n'
       'FROM judged;'),
  12: ('lua',
       "step(12, 'Rank with PREFERRING skyline', function()\n"

@@ -79,7 +79,8 @@ def create_memo(cif: str, user: User = Depends(require(*MEMO_ROLES))):
     except RuntimeError as e:
         raise HTTPException(502, str(e)) from e
     except Exception as e:
-        if type(e).__module__.startswith("anthropic"):
+        # SDK errors, and on Bedrock the AWS credential errors botocore raises while signing
+        if type(e).__module__.split(".")[0] in ("anthropic", "botocore"):
             log.warning("credit memo failed: %s", e)
             raise HTTPException(502, "The AI provider did not answer. Try again shortly.") from e
         raise

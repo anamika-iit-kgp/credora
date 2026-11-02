@@ -3,6 +3,9 @@
 With AI_PROVIDER=anthropic and the Exasol CONNECTION AI_LLM in place, the memo is generated inside
 Exasol by the CREDORA.CREDIT_MEMO UDF (engine "exasol-udf"); otherwise the backend calls the model
 itself (engine "backend", e.g. Claude on Amazon Bedrock). Memos are stored in CREDORA.MEMOS.
+
+The UDF calls api.anthropic.com with the key held in CONNECTION AI_LLM, so that engine is Anthropic
+only, and AI_PROVIDER=bedrock always uses the backend engine.
 """
 
 from __future__ import annotations
@@ -131,7 +134,7 @@ def _generate_backend(fjson: str) -> str:
     client = ai.client()
     if client is None:
         raise RuntimeError("AI is not configured.")
-    resp = client.messages.create(model=settings.ai_model, max_tokens=1000, system=SYSTEM,
+    resp = client.messages.create(model=ai.model(), max_tokens=1000, system=SYSTEM,
                                   messages=[{"role": "user", "content": fjson}])
     if resp.stop_reason == "refusal":
         raise RuntimeError("The model declined to write this memo.")
@@ -139,6 +142,7 @@ def _generate_backend(fjson: str) -> str:
 
 
 def _generate_udf(cif: str, fjson: str) -> str:
+    # The UDF reaches the Anthropic API through the connection, so it takes the Anthropic model id.
     rows = exa.query(exa.SVC, "SELECT CREDORA.CREDIT_MEMO('AI_LLM', {m}, {c}, {f})",
                      {"m": settings.ai_model, "c": cif, "f": fjson})
     return ((rows[0].get("MEMO") if rows else "") or "").strip()
@@ -153,8 +157,8 @@ def generate(report: dict) -> dict:
         raise RuntimeError("The model returned an empty memo.")
     exa.query(exa.SVC, "INSERT INTO CREDORA.MEMOS (RUN_ID, CIF_ID, MODEL, MEMO, CREATED_AT) "
                        "VALUES ({r}, {c}, {m}, {t}, CURRENT_TIMESTAMP)",
-              {"r": run_id, "c": cif, "m": pack_model(settings.ai_model, eng), "t": text})
-    return latest(run_id, cif) or {"memo": text, "model": settings.ai_model, "engine": eng, "created_at": None,
+              {"r": run_id, "c": cif, "m": pack_model(ai.model(), eng), "t": text})
+    return latest(run_id, cif) or {"memo": text, "model": ai.model(), "engine": eng, "created_at": None,
                                    "run_id": run_id}
 
 

@@ -1,6 +1,6 @@
 # <img src="sites/_assets/credora-gem.svg" alt="" width="34" height="34"> Credora
 
-[![CI](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml/badge.svg)](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml)
+[![CI](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml/badge.svg)](https://github.com/anamika-iit-kgp/credora/actions/workflows/ci.yml) [![Exasol SQL on docker-db](https://github.com/anamika-iit-kgp/credora/actions/workflows/exasol.yml/badge.svg)](https://github.com/anamika-iit-kgp/credora/actions/workflows/exasol.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Exasol Personal Local Starterkit 0.2.3](https://img.shields.io/badge/Exasol%20Personal%20Local%20Starterkit-0.2.3-1ba0e2.svg)](https://github.com/exasol-labs/exasol-personal-local-starterkit)
 [![Exasol Personal 2.3.0](https://img.shields.io/badge/Exasol%20Personal-2.3.0-1ba0e2.svg)](https://github.com/exasol/exasol-personal)
@@ -61,7 +61,7 @@ Credora does all of this inside Exasol Personal, where the data already meets, s
 
 ## What changes for the bank
 
-On the published run `R20261031-1923`, Credora analysed 1,000 companies and decided 530 APPROVE, 202 REFER and 268 DECLINE. The pre-approved offers to the 530 approved companies total ₹1,168.9 crore, against a credit need on file of ₹1,252.3 crore, with negotiation room up to ₹1,414.2 crore. The Top 50 alone carry ₹258.7 crore of offers at an average rate of 10.82% and a RAROC of 21.2%. A run takes 17.5 s, so the bank can decide its whole corporate book again after every policy change or data refresh. The relationship manager negotiates inside the limit Exasol set for each company. A deal within the limit needs no credit committee round trip, and only a deal beyond it is escalated to loan operations.
+On the published run `R20261102-1010`, Credora analysed 1,000 companies and decided 534 APPROVE, 181 REFER and 285 DECLINE. The pre-approved offers to the 534 approved companies total ₹1,077.7 crore, against a credit need on file of ₹1,171.7 crore, with negotiation room up to ₹1,290.0 crore. The Top 50 alone carry ₹228.8 crore of offers at an average rate of 10.95% and a RAROC of 22.5%. A run takes 18.2 s, so the bank can decide its whole corporate book again after every policy change or data refresh. The relationship manager negotiates inside the limit Exasol set for each company. A deal within the limit needs no credit committee round trip, and only a deal beyond it is escalated to loan operations.
 
 ## Exasol features used
 
@@ -71,11 +71,13 @@ Credora started on the Exasol Personal Local Starter Kit (`exakit` 0.2.3, with t
 |---|---|
 | Virtual schemas | `VS_CBS` (Oracle adapter 6.0, Java), `VS_CIF` and `VS_LOS` (adbc-vs-rs 0.7, Rust) read the three bank databases live, with pushdown. Nothing is copied. |
 | `EXPLAIN VIRTUAL` | The Sources screen shows the SQL Exasol sends to each database. The aggregation over 850,000 transactions runs inside Oracle. |
+| Scale-up evidence | The same run measured at 1,000, 10,000 and 50,000 companies on one node. 17 s, 68 s and 320 s, peak temporary RAM 1.4 GiB, the inside-Exasol steps close to linear and the 3rd party APIs the limiting factor. Table in [docs/WHY_EXASOL.md](docs/WHY_EXASOL.md). |
 | Script language containers | Built-in Python 3 and Java, plus the exasol-labs Rust container (language-container-rs release 0.23.1) uploaded to BucketFS |
 | BucketFS | The Rust container, the adapter library, JDBC drivers and every trained model |
 | Python UDFs (SET and SCALAR) | Fetch CIBIL, GST and Account Aggregator data in 16 batches, which Exasol runs 4 at a time on the node's 4 cores, with 3 retries per call. Train and score the risk models, and write credit memos with Claude |
 | CONNECTION objects | API endpoints and keys, the BucketFS location and the AI provider, so no secret is in code |
-| In-database ML | A gradient-boosting champion, a logistic-regression challenger scored in the shadow and an Isolation Forest anomaly flag. `MODEL_REGISTRY` holds a SHA-256 of each model file, which `PD_SCORE` checks before unpickling |
+| In-database ML | A gradient-boosting champion, a logistic-regression challenger scored in the shadow and an Isolation Forest anomaly flag. `MODEL_REGISTRY` holds a SHA-256 of each model file, which `PD_SCORE` checks before unpickling Every model's calibration on the training's own hold-out (deciles, Brier score, AUC) and every run's feature stability against the past loans (PSI) are computed inside Exasol and shown on the Risk models screen, see [docs/MODEL_VALIDATION.md](docs/MODEL_VALIDATION.md). |
+| Pricing inside Exasol | Offers are priced with an industry cash margin table, an LGD per collateral type and a cap on total exposure after the offer, all read inside Exasol and written out in [docs/PRICING.md](docs/PRICING.md). |
 | Lua scripting | `RUN_ANALYSIS` runs 13 logged steps as one call, and a failed step stays in `RUN_LOG` with its error. `TRAIN_MODEL` and `PURGE_EXPIRED` (a SHA-256 fingerprint per 1,000-row chunk) are Lua too. |
 | Window functions and analytic SQL | Turn core-banking transactions and GST history into 13 credit features |
 | `PREFERRING` (skyline) | Ranks the Pareto-best companies into the top 50 |
@@ -186,7 +188,7 @@ Everything runs from your own machine against your own AWS account. Nothing in t
    | `EXTERNAL_DOMAIN` | A second hosted zone for the 3rd party data APIs | no |
    | `ADMIN_CIDR` | Your IP as `x.x.x.x/32` (blank detects it) | no |
    | `APP_*_PASSWORD` | Demo login passwords (blank means `Demo@123`) | no |
-   | `AI_PROVIDER`, `ANTHROPIC_API_KEY`, `AI_MODEL` | `anthropic` with your key, or `bedrock` (blank turns the AI off) | no |
+   | `AI_PROVIDER`, `ANTHROPIC_API_KEY`, `AI_MODEL`, `BEDROCK_MODEL_ID` | `anthropic` with your key, or `bedrock` with the app host's instance role and no key (blank turns the AI off) | no |
 
 6. Deploy, then write every URL, login and password to `deployments/mysite/ACCESS.md`.
    ```bash
@@ -229,6 +231,8 @@ These need AWS.
 - The virtual schemas `VS_CBS`, `VS_CIF` and `VS_LOS` read the three RDS databases, so they exist only on a deployment.
 
 The tests also run in [GitHub Actions](.github/workflows/ci.yml) on every push, and [CONTRIBUTING.md](CONTRIBUTING.md) lists the commands.
+
+The Exasol SQL itself is tested too, on a throwaway `exasol/docker-db` of the live version in [.github/workflows/exasol.yml](.github/workflows/exasol.yml). It applies every SQL, Lua and UDF file in deploy order, loads a run of 50 synthetic companies, decides and ranks it with the real decision SQL, and checks as each Exasol user what it may read, including the row filter and the purge. The fixtures and checks are described in [tests/exasol/README.md](tests/exasol/README.md).
 
 ### Known limitations
 
@@ -287,7 +291,7 @@ Both are in this repository and on their own sites, so a person or an evaluation
 |---|---|---|
 | Demo video, 2 min 56 s with a voice-over | [media/demo.mp4](media/demo.mp4), 1080p with the captions burned in, compressed for the repository. GitHub plays it on the file page. | https://video.credora.loan plays the full quality copy, with captions the viewer can switch on. Direct file https://video.credora.loan/demo.mp4 |
 | What the video says | [media/demo-transcript.md](media/demo-transcript.md), one row per scene with the narration, plus [media/demo.srt](media/demo.srt) and [media/demo.vtt](media/demo.vtt) | https://video.credora.loan/demo.vtt |
-| Presentation, 22 slides | [media/presentation.pdf](media/presentation.pdf). GitHub shows it on the file page. | https://ppt.credora.loan, animated, and https://ppt.credora.loan/presentation.pdf to download |
+| Presentation, 23 slides | [media/presentation.pdf](media/presentation.pdf). GitHub shows it on the file page. | https://ppt.credora.loan, animated, and https://ppt.credora.loan/presentation.pdf to download |
 | Live app with four demo logins | | https://credora.loan |
 | Docs site, with the architecture and glossary | [docs/](docs/) | https://docs.credora.loan |
 | 3rd party data APIs | [mocks/](mocks/) | https://credora.link |
@@ -329,6 +333,9 @@ docs/       architecture, diagrams, glossary, data model, APIs, porting
 | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Bank schemas, mock API data and feature definitions |
 | [docs/API.md](docs/API.md) | The mock API contracts and the web app's API |
 | [docs/PORTING.md](docs/PORTING.md) | Deploying to another AWS account or domain |
+| [docs/PRICING.md](docs/PRICING.md) | How an offer is priced, the industry cash margins, LGD by collateral and the exposure cap |
+| [docs/MODEL_VALIDATION.md](docs/MODEL_VALIDATION.md) | Calibration on the hold-out and feature stability (PSI) per run |
+| [tests/exasol/README.md](tests/exasol/README.md) | The Exasol SQL job on docker-db, what it applies and checks |
 
 ## Built with Exasol open source, thank you
 
@@ -354,7 +361,7 @@ Every project below runs in the live deployment or in CI. Thank you to the Exaso
 
 ## About, contributing and contact
 
-Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 1.2.0, see [CHANGELOG.md](CHANGELOG.md).
+Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 2.0.0, see [CHANGELOG.md](CHANGELOG.md).
 
 Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Security reports go through [SECURITY.md](SECURITY.md), and the [code of conduct](CODE_OF_CONDUCT.md) is short. To build on Credora, adapt it for your bank, or buy or license it, raise an [issue](https://github.com/anamika-iit-kgp/credora/issues) and I will get in touch.
 

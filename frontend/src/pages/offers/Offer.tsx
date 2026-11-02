@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { ArrowLeft, FileSearch, RotateCcw, Send, TriangleAlert, Handshake, History, Receipt } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { quoteOffer, useOfferAction, useOfferEvents, useOffers } from "../../api/hooks";
@@ -273,6 +274,13 @@ function Negotiate({ offer }: { offer: Offer }) {
   }, [offer.offer_id, t]);
 
   const within = quote?.within_limit ?? true;
+  const quoteItems: [ReactNode, ReactNode][] = quote
+    ? [
+        ["EMI", <span className="num strong">{rupees(quote.emi)}</span>],
+        [<WithExplain id="raroc">RAROC</WithExplain>, <span className="num strong">{pct(quote.raroc, 1)}</span>],
+      ]
+    : [];
+  if (quote?.lgd_pct != null) quoteItems.push([<WithExplain id="lgd">LGD used</WithExplain>, <span className="num strong">{pct(quote.lgd_pct, 0)}</span>]);
 
   return (
     <Panel
@@ -300,13 +308,7 @@ function Negotiate({ offer }: { offer: Offer }) {
           {qErr && <p className="form-error">{qErr}</p>}
           {quote && (
             <>
-              <KV
-                cols={2}
-                items={[
-                  ["EMI", <span className="num strong">{rupees(quote.emi)}</span>],
-                  [<WithExplain id="raroc">RAROC</WithExplain>, <span className="num strong">{pct(quote.raroc, 1)}</span>],
-                ]}
-              />
+              <KV cols={quoteItems.length} items={quoteItems} />
               <ul className="quote-reasons">
                 {quote.reasons.map((r, i) => (
                   <li key={i}>{r}</li>

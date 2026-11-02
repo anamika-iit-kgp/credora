@@ -150,8 +150,9 @@ def build_report(cif: str, user: User) -> dict:
         f_rows = exa.query(db(user), "SELECT * FROM CREDORA.V_RM_FEATURES WHERE RUN_ID = {r} AND APP_ID = {a}",
                            {"r": r_id, "a": d["APP_ID"]})
         f = f_rows[0] if f_rows else None
-        m = exa.query(db(user), "SELECT PARTNERS, GST_STAGE, GST_YEARS FROM CREDORA.V_RM_COMPANY "
-                                "WHERE RUN_ID = {r} AND APP_ID = {a}", {"r": r_id, "a": d["APP_ID"]})
+        m = exa.query(db(user), "SELECT PARTNERS, GST_STAGE, GST_YEARS, INDUSTRY, COLLATERAL_TYPE, COLLATERAL_VALUE "
+                                "FROM CREDORA.V_RM_COMPANY WHERE RUN_ID = {r} AND APP_ID = {a}",
+                      {"r": r_id, "a": d["APP_ID"]})
         m = m[0] if m else {}
         partners = int(m.get("PARTNERS") or 0)
         stage = m.get("GST_STAGE")
@@ -162,9 +163,10 @@ def build_report(cif: str, user: User) -> dict:
         f_rows = exa.query(db(user), "SELECT * FROM CREDORA.FEATURES WHERE RUN_ID = {r} AND APP_ID = {a}",
                            {"r": r_id, "a": d["APP_ID"]})
         f = f_rows[0] if f_rows else None
-        a = exa.query(db(user), "SELECT PARTNERS FROM CREDORA.APPLICATIONS WHERE RUN_ID = {r} AND APP_ID = {a}",
-                      {"r": r_id, "a": d["APP_ID"]})
-        partners = int(a[0]["PARTNERS"] or 0) if a else 0
+        a = exa.query(db(user), "SELECT PARTNERS, INDUSTRY, COLLATERAL_TYPE, COLLATERAL_VALUE FROM CREDORA.APPLICATIONS "
+                                "WHERE RUN_ID = {r} AND APP_ID = {a}", {"r": r_id, "a": d["APP_ID"]})
+        m = a[0] if a else {}
+        partners = int(m.get("PARTNERS") or 0)
         stage = f.get("GST_STAGE") if f else None
         gst_years = f.get("GST_YEARS") if f else None
         sources_used = ALL_SOURCES
@@ -210,6 +212,28 @@ def build_report(cif: str, user: User) -> dict:
         "steps": report_steps(log),
         "sources_used": sources_used,
         "anomaly": anomaly,
+        "pricing": pricing_view(d, f, m),
+    }
+
+
+def pricing_view(d: dict, f: dict | None, company: dict | None) -> dict | None:
+    """Pure: the pricing inputs stored with the decision (docs/PRICING.md) -> the report's pricing
+    block. None for runs made before they were stored (the new DECISIONS columns are NULL there)."""
+    if d.get("CASH_MARGIN_PCT") is None and d.get("LGD_PCT") is None:
+        return None
+    c = company or {}
+    turnover = f.get("GST_TURNOVER_12M") if f else None
+    margin = d.get("CASH_MARGIN_PCT")
+    num = lambda x: None if x is None else float(x)  # noqa: E731
+    return {
+        "industry": c.get("INDUSTRY"),
+        "cash_margin_pct": num(margin),
+        "cash_12m": None if turnover is None or margin is None else round(float(turnover) * float(margin) / 100, 2),
+        "collateral_type": c.get("COLLATERAL_TYPE"),
+        "collateral_value": num(c.get("COLLATERAL_VALUE")),
+        "lgd_pct": num(d.get("LGD_PCT")),
+        "existing_exposure": num(d.get("EXISTING_EXPOSURE")),
+        "exposure_room": num(d.get("EXPOSURE_ROOM")),
     }
 
 

@@ -1,6 +1,7 @@
 -- CREDORA.TRAIN_MODEL(version): trains the champion and the challenger risk models on past loans
 --   and registers both (activation needs the admin's approval: see the note in the script).
 -- CREDORA.DECISION_LOGIC: the decision SQL, a library shared by RUN_ANALYSIS and SCORE_CHALLENGER.
+--   The pricing rule it applies is written out in docs/PRICING.md.
 -- CREDORA.SCORE_CHALLENGER(run_id): scores a run with the challenger model, shadow only.
 -- CREDORA.RUN_ANALYSIS(run_id): the whole daily analysis in one call. Every step is logged to
 -- CREDORA.RUN_LOG with its row count and duration, which the web app shows as "how Exasol decided".
@@ -55,12 +56,24 @@ function decide(scores)
            MAX(CASE WHEN CONFIG_KEY = 'MAX_GST_SHARE_PCT' THEN CONFIG_VALUE END) GST_SHARE,
            MAX(CASE WHEN CONFIG_KEY = 'MIN_DSCR' THEN CONFIG_VALUE END) MIN_DSCR,
            MAX(CASE WHEN CONFIG_KEY = 'NEGOTIATION_DSCR' THEN CONFIG_VALUE END) NEG_DSCR,
-           MAX(CASE WHEN CONFIG_KEY = 'FLOOR_MARGIN_PCT' THEN CONFIG_VALUE END) FLOOR_MARGIN
+           MAX(CASE WHEN CONFIG_KEY = 'FLOOR_MARGIN_PCT' THEN CONFIG_VALUE END) FLOOR_MARGIN,
+           MAX(CASE WHEN CONFIG_KEY = 'CASH_MARGIN_DEFAULT_PCT' THEN CONFIG_VALUE END) MARGIN_DEFAULT,
+           MAX(CASE WHEN CONFIG_KEY = 'MAX_EXPOSURE_PCT' THEN CONFIG_VALUE END) MAX_EXPOSURE
     FROM CREDORA.CONFIG),
   base AS (
     SELECT a.*, f.GST_TURNOVER_12M, f.GST_LATE_FILINGS_12M, f.BOUNCE_RATIO, f.CMR_RANK, f.PARTNER_MIN_SCORE,
            f.WILFUL_DEFAULT, s.PD, s.GRADE, an.TOP_REASONS ANOMALY, cfg.*,
-           f.GST_TURNOVER_12M * 0.12 CASH,
+           -- cash for debt service: the industry's operating cash margin on GST turnover (INDUSTRY_MARGIN)
+           COALESCE(im.CASH_MARGIN_PCT, cfg.MARGIN_DEFAULT) CASH_MARGIN,
+           f.GST_TURNOVER_12M * COALESCE(im.CASH_MARGIN_PCT, cfg.MARGIN_DEFAULT) / 100 CASH,
+           -- loss given default: the collateral type's LGD on the share of the need it covers, the
+           -- unsecured policy LGD on the rest (LGD_COLLATERAL); an unknown type counts as unsecured
+           ROUND(cfg.LGD + (COALESCE(lc.LGD_PCT, cfg.LGD) - cfg.LGD)
+                 * COALESCE(LEAST(COALESCE(a.COLLATERAL_VALUE, 0) / NULLIF(a.AMOUNT_REQUESTED, 0), 1), 0), 2) LGD_EFF,
+           -- room under the total exposure cap: MAX_EXPOSURE_PCT of GST turnover less what the
+           -- company already owes all lenders on its CIBIL commercial report
+           COALESCE(f.CIBIL_TOTAL_EXPOSURE, 0) EXISTING_EXPOSURE,
+           GREATEST(f.GST_TURNOVER_12M * cfg.MAX_EXPOSURE / 100 - COALESCE(f.CIBIL_TOTAL_EXPOSURE, 0), 0) EXPOSURE_ROOM,
            CASE s.GRADE WHEN 'A1' THEN 1.00 WHEN 'A2' THEN 1.50 WHEN 'B1' THEN 2.25 WHEN 'B2' THEN 3.00
                         WHEN 'C1' THEN 4.00 WHEN 'C2' THEN 5.25 ELSE 7.00 END RISK_SPREAD,
            CASE WHEN a.COLLATERAL_VALUE >= a.AMOUNT_REQUESTED THEN 0.25 ELSE 0 END COLLATERAL_DISCOUNT,
@@ -71,25 +84,31 @@ function decide(scores)
     JOIN CREDORA.FEATURES f ON f.APP_ID = a.APP_ID AND f.RUN_ID = a.RUN_ID
     JOIN CREDORA.SCORES s ON s.APP_ID = a.APP_ID AND s.RUN_ID = a.RUN_ID
     LEFT JOIN CREDORA.ANOMALY an ON an.APP_ID = a.APP_ID AND an.RUN_ID = a.RUN_ID AND an.IS_ANOMALY
+    LEFT JOIN CREDORA.INDUSTRY_MARGIN im ON im.INDUSTRY = a.INDUSTRY
+    LEFT JOIN CREDORA.LGD_COLLATERAL lc ON lc.COLLATERAL_TYPE = a.COLLATERAL_TYPE
     CROSS JOIN cfg
     WHERE a.RUN_ID = :r),
   priced AS (
     SELECT b.*,
-           CEIL((GREATEST(EBLR + FLOOR_MARGIN, HURDLE * CAPITAL / 100 + FUNDS + OPEX + PD * LGD)) * 20) / 20 FLOOR_ROI_RAW,
+           CEIL((GREATEST(EBLR + FLOOR_MARGIN, HURDLE * CAPITAL / 100 + FUNDS + OPEX + PD * LGD_EFF)) * 20) / 20 FLOOR_ROI_RAW,
            EBLR + RISK_SPREAD + OPS - COLLATERAL_DISCOUNT LIST_ROI,
            CASE WHEN PRODUCT = 'TL' THEN LEAST(84, TENURE_OFFER + 24) ELSE 12 END TENURE_MAX
     FROM base b),
   sized AS (
     SELECT p.*, GREATEST(LIST_ROI, FLOOR_ROI_RAW) OFFER_ROI_RAW,
-           CASE WHEN PRODUCT = 'TL'
-                THEN CASH / MIN_DSCR / 12 * (1 - POWER(1 + GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200, -TENURE_OFFER))
-                     / (GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200)
-                ELSE LEAST(GST_TURNOVER_12M * GST_SHARE / 100, CASH / MIN_DSCR / (GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 100))
-           END CAP_OFFER,
-           CASE WHEN PRODUCT = 'TL'
-                THEN CASH / NEG_DSCR / 12 * (1 - POWER(1 + FLOOR_ROI_RAW / 1200, -TENURE_MAX)) / (FLOOR_ROI_RAW / 1200)
-                ELSE LEAST(GST_TURNOVER_12M * (GST_SHARE + 5) / 100, CASH / NEG_DSCR / (FLOOR_ROI_RAW / 100))
-           END CAP_MAX
+           -- what cash flow can repay at MIN_DSCR, the GST share for working capital, and the room
+           -- under the total exposure cap, whichever is smallest
+           LEAST(EXPOSURE_ROOM,
+                 CASE WHEN PRODUCT = 'TL'
+                      THEN CASH / MIN_DSCR / 12 * (1 - POWER(1 + GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200, -TENURE_OFFER))
+                           / (GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 1200)
+                      ELSE LEAST(GST_TURNOVER_12M * GST_SHARE / 100, CASH / MIN_DSCR / (GREATEST(LIST_ROI, FLOOR_ROI_RAW) / 100))
+                 END) CAP_OFFER,
+           LEAST(EXPOSURE_ROOM,
+                 CASE WHEN PRODUCT = 'TL'
+                      THEN CASH / NEG_DSCR / 12 * (1 - POWER(1 + FLOOR_ROI_RAW / 1200, -TENURE_MAX)) / (FLOOR_ROI_RAW / 1200)
+                      ELSE LEAST(GST_TURNOVER_12M * (GST_SHARE + 5) / 100, CASH / NEG_DSCR / (FLOOR_ROI_RAW / 100))
+                 END) CAP_MAX
     FROM priced p),
   judged AS (
     SELECT s.*,
@@ -115,13 +134,16 @@ function decide(scores)
                 CASE WHEN KYC_STATUS <> 'VERIFIED' THEN ';KYC ' || KYC_STATUS ELSE '' END ||
                 CASE WHEN GST_TURNOVER_12M = 0 OR GST_LATE_FILINGS_12M IS NULL THEN ';No GST returns on file' ELSE '' END ||
                 CASE WHEN FLOOR_ROI_RAW > LIST_ROI THEN ';Hurdle needs ROI above rate card' ELSE '' END ||
+                CASE WHEN OFFER_AMT < AMOUNT_REQUESTED * 0.5 AND EXPOSURE_ROOM < AMOUNT_REQUESTED * 0.5
+                     THEN ';Existing exposure near the cap' ELSE '' END ||
                 CASE WHEN ANOMALY IS NOT NULL THEN ';Anomaly: ' || ANOMALY ELSE '' END), '') HARD_FAILS,
          GRADE, PD,
          CASE WHEN FAILS IS NULL THEN OFFER_AMT END, CASE WHEN FAILS IS NULL THEN OFFER_ROI_RAW END,
          CASE WHEN FAILS IS NULL THEN TENURE_OFFER END, CASE WHEN FAILS IS NULL THEN FLOOR_ROI_RAW END,
          CASE WHEN FAILS IS NULL THEN GREATEST(MAX_AMT, OFFER_AMT) END, CASE WHEN FAILS IS NULL THEN TENURE_MAX END,
-         ROUND((OFFER_ROI_RAW - FUNDS - OPEX - PD * LGD) / CAPITAL * 100, 3),
-         ROUND((FLOOR_ROI_RAW - FUNDS - OPEX - PD * LGD) / CAPITAL * 100, 3)
+         ROUND((OFFER_ROI_RAW - FUNDS - OPEX - PD * LGD_EFF) / CAPITAL * 100, 3),
+         ROUND((FLOOR_ROI_RAW - FUNDS - OPEX - PD * LGD_EFF) / CAPITAL * 100, 3),
+         CASH_MARGIN, LGD_EFF, EXISTING_EXPOSURE, EXPOSURE_ROOM
   FROM judged]]
   local i, j = string.find(sql, 'CREDORA.SCORES', 1, true)
   return string.sub(sql, 1, i - 1) .. scores .. string.sub(sql, j + 1)
@@ -271,7 +293,9 @@ step(6, 'Fetch partner accounts at other banks (Account Aggregator API)', functi
           GROUP BY b)]], p))
 end)
 
--- 7. Features, exactly as defined in docs/DATA_MODEL.md section 8. Bank transactions are
+-- 7. Features, exactly as defined in docs/DATA_MODEL.md section 8, plus the pricing inputs: the
+--    DSCR cash is the industry's margin on GST turnover (INDUSTRY_MARGIN, docs/PRICING.md) and the
+--    company's CIBIL exposure at all lenders is kept for the exposure cap. Bank transactions are
 --    aggregated per account and month in Oracle (pushdown through VS_CBS): the join, the filter
 --    and the GROUP BY all run inside Oracle, so ~19,000 monthly rows cross the network instead of
 --    ~850,000 transactions. The month is grouped as TO_CHAR(TXN_DATE, 'YYYY-MM') because the Oracle
@@ -334,17 +358,20 @@ step(7, 'Compute features', function()
            ABS(COALESCE(gst.TURNOVER, 0) - COALESCE(bank.CREDITS_12M, 0)) / NULLIF(gst.TURNOVER, 0) * 100,
            bank.AVG_BAL, bank.VOLATILITY, COALESCE(bank.BOUNCE_RATIO, 0), com.CMR_RANK,
            partners.MIN_SCORE, partners.AVG_SCORE, COALESCE(partners.OVERDUE, 0), COALESCE(aa.BAL, 0),
-           COALESCE(gst.TURNOVER, 0) * 0.12 /
+           COALESCE(gst.TURNOVER, 0)
+             * COALESCE(im.CASH_MARGIN_PCT,
+                        (SELECT CONFIG_VALUE FROM CREDORA.CONFIG WHERE CONFIG_KEY = 'CASH_MARGIN_DEFAULT_PCT')) / 100 /
              CASE WHEN app.PRODUCT = 'TL'
                   THEN 12 * app.AMOUNT_REQUESTED * (0.11 / 12) / (1 - POWER(1 + 0.11 / 12, -app.TENURE_REQUESTED))
                   ELSE app.AMOUNT_REQUESTED * 0.11 END,
-           bank.CREDITS_12M, com.WILFUL_DEFAULT, com.SUIT_FILED, gst.STAGE
+           bank.CREDITS_12M, com.WILFUL_DEFAULT, com.SUIT_FILED, gst.STAGE, com.TOTAL_EXPOSURE
     FROM app
     LEFT JOIN bank ON bank.APP_ID = app.APP_ID
     LEFT JOIN gst ON gst.APP_ID = app.APP_ID
     LEFT JOIN partners ON partners.APP_ID = app.APP_ID
     LEFT JOIN aa ON aa.APP_ID = app.APP_ID
-    LEFT JOIN CREDORA_STAGE.CIBIL_COMMERCIAL com ON com.PAN = app.PAN AND com.RUN_ID = :r]], p))
+    LEFT JOIN CREDORA_STAGE.CIBIL_COMMERCIAL com ON com.PAN = app.PAN AND com.RUN_ID = :r
+    LEFT JOIN CREDORA.INDUSTRY_MARGIN im ON im.INDUSTRY = app.INDUSTRY]], p))
 end)
 
 -- 8. Make sure a risk model exists; train the first one on past loans if needed.
@@ -388,12 +415,13 @@ step(10, 'Flag anomalies (Isolation Forest UDF)', function()
 end)
 
 -- 11. Decide: eligible amount, price, return, negotiation limit, decision. The SQL is the
---     CREDORA.DECISION_LOGIC library, on the active model's scores.
+--     CREDORA.DECISION_LOGIC library, on the active model's scores. The pricing inputs it used
+--     (cash margin, LGD after collateral, CIBIL exposure, room under the cap) go into the row.
 step(11, 'Decide offer and negotiation limit', function()
   return rows(query([[
     INSERT INTO CREDORA.DECISIONS (RUN_ID, APP_ID, CIF_ID, LEGAL_NAME, RM_ID, PRODUCT, AMOUNT_REQUESTED,
       TENURE_REQUESTED, DECISION, HARD_FAILS, GRADE, PD, OFFER_AMOUNT, OFFER_ROI, OFFER_TENURE, FLOOR_ROI,
-      MAX_AMOUNT, MAX_TENURE, RAROC_OFFER, RAROC_FLOOR)
+      MAX_AMOUNT, MAX_TENURE, RAROC_OFFER, RAROC_FLOOR, CASH_MARGIN_PCT, LGD_PCT, EXISTING_EXPOSURE, EXPOSURE_ROOM)
     ]] .. logic.decide('CREDORA.SCORES'), p))
 end)
 

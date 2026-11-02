@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
-from . import console, crm, exa, mockapi, runs, sources
+from . import console, crm, exa, mockapi, runs, sources, validation
 from .excerpts import ANALYSIS_STEP_NAMES, CRM_STEP_NAME
 
 log = logging.getLogger("credora.jobs")
@@ -311,6 +311,10 @@ def _run_analysis(j: Job, run_id: str, export: bool = True) -> None:
     console.run_log_steps(run_id, rows, len(ANALYSIS_STEP_NAMES), seen, ANALYSIS_STEP_NAMES)
     j.progress = int((total - 1) * 100 / total)
     j.result = {"run_id": run_id, "counts": counts}
+    try:  # population stability of the run's features against the past loans. Evidence, never the run.
+        validation.compute_psi(run_id)
+    except Exception:  # noqa: BLE001
+        log.warning("PSI for run %s failed", run_id, exc_info=True)
 
     crm_step = j.steps[-1]
     if not export:
@@ -343,6 +347,7 @@ TRAIN_STEPS = [
     "Train the challenger, a logistic regression scorecard (CREDORA.TRAIN_SCORECARD)",
     "Save both to BucketFS and register them (CREDORA.MODEL_REGISTRY). Activation needs the admin's approval.",
     "Shadow-score the latest run with the challenger (CREDORA.SCORE_CHALLENGER)",
+    "Calibrate both on the hold-out (CREDORA.CALIBRATE_MODEL)",
 ]
 
 
@@ -417,7 +422,13 @@ def _train(j: Job, version: str) -> None:
                 "challenger_auc": c["AUC"] if c else None, "challenger_gini": c["GINI"] if c else None}
 
     # Score the latest run with the new challenger, so the Models screen compares on today's companies.
-    shadow = j.steps[4]
+    _shadow_score(j.steps[4])
+    j.progress = 90
+    # Calibration evidence for both, on the hold-out the trainers measured (docs/MODEL_VALIDATION.md).
+    _calibrate(j.steps[5], version, lr if c else None)
+
+
+def _shadow_score(shadow: dict) -> None:
     run = runs.current_run(exa.SVC)
     if not run:
         shadow.update(status="done", detail="no analysis run yet; the next run scores both")
@@ -435,6 +446,27 @@ def _train(j: Job, version: str) -> None:
         WHERE c.RUN_ID = {r}""", {"r": run["run_id"]})[0]
     shadow.update(status="done", detail=f"{int(n['N'] or 0):,} companies of run {run['run_id']}, "
                                         f"{int(n['CHANGED'] or 0):,} decisions would change")
+
+
+def _calibrate(step: dict, version: str, challenger: str | None) -> None:
+    """CREDORA.CALIBRATE_MODEL for the champion and the challenger. Evidence only, so a failure marks
+    the step and leaves the registered models as they are."""
+    step["status"] = "running"
+    parts = []
+    try:
+        for v in (version, challenger):
+            if not v:
+                continue
+            validation.compute_calibration(v)
+            r = exa.query(exa.SVC, "SELECT MAX(N_HOLDOUT) N, MAX(BRIER) B, MAX(BRIER_BASE) B0, MAX(AUC) A "
+                                   "FROM CREDORA.MODEL_CALIBRATION WHERE MODEL_VERSION = {v}", {"v": v})[0]
+            parts.append(f"{v} Brier {float(r['B'] or 0):.4f} (base {float(r['B0'] or 0):.4f}), "
+                         f"AUC {float(r['A'] or 0):.3f} on {int(r['N'] or 0):,} hold-out loans")
+    except Exception as e:  # noqa: BLE001
+        log.warning("calibration after training failed", exc_info=True)
+        step.update(status="failed", detail=_message(e))
+        return
+    step.update(status="done", detail=" · ".join(parts))
 
 
 # ---------------------------------------------------------------- purge

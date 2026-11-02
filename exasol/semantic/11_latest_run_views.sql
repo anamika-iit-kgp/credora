@@ -39,18 +39,21 @@ WHERE NOT sc.IS_RM
    OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = m.CIF_ID AND a.EXA_USER = sc.EXA_USER)
 COMMENT IS 'The companies analysed in the latest published run, masked as V_COMPANY_MASKED. A relationship manager gets only her assigned companies. Read by the semantic model (CREDORA_SEM.PORTFOLIO) and the AI assistant.';
 
--- LGD_RATE is the policy loss-given-default (CONFIG LGD_PCT), so expected loss follows the policy knob.
+-- LGD_RATE is the loss given default the decision used (DECISIONS.LGD_PCT, after the collateral),
+-- or the policy figure (CONFIG LGD_PCT) for runs made before it was stored, so expected loss
+-- follows the collateral and the policy knob.
 CREATE OR REPLACE VIEW CREDORA.V_LATEST_DECISION AS
 SELECT d.RUN_ID, d.APP_ID, d.CIF_ID, d.DECISION, d.HARD_FAILS, d.GRADE, d.PD, d.OFFER_AMOUNT, d.OFFER_ROI,
        d.OFFER_TENURE, d.FLOOR_ROI, d.MAX_AMOUNT, d.MAX_TENURE, d.RAROC_OFFER, d.RAROC_FLOOR, d.RANK_NO,
        d.SKYLINE_LAYER, d.TOP50, d.DECIDED_AT,
-       COALESCE((SELECT CONFIG_VALUE FROM CREDORA.CONFIG WHERE CONFIG_KEY = 'LGD_PCT'), 45) / 100 LGD_RATE
+       d.CASH_MARGIN_PCT, d.LGD_PCT, d.EXISTING_EXPOSURE, d.EXPOSURE_ROOM,
+       COALESCE(d.LGD_PCT, (SELECT CONFIG_VALUE FROM CREDORA.CONFIG WHERE CONFIG_KEY = 'LGD_PCT'), 45) / 100 LGD_RATE
 FROM CREDORA.DECISIONS d
 JOIN CREDORA.V_LATEST_RUN r ON r.RUN_ID = d.RUN_ID
 CROSS JOIN CREDORA.V_SESSION_SCOPE sc
 WHERE NOT sc.IS_RM
    OR EXISTS (SELECT 1 FROM CREDORA.RM_ASSIGNMENT a WHERE a.CIF_ID = d.CIF_ID AND a.EXA_USER = sc.EXA_USER)
-COMMENT IS 'DECISIONS of the latest published run plus LGD_RATE from the policy, one row per company. A relationship manager gets only her assigned companies. Read by the semantic model and the AI assistant.';
+COMMENT IS 'DECISIONS of the latest published run plus LGD_RATE, the loss given default the decision used after the collateral (the policy figure for older runs), one row per company. A relationship manager gets only her assigned companies. Read by the semantic model and the AI assistant.';
 
 CREATE OR REPLACE VIEW CREDORA.V_LATEST_SCORE AS
 SELECT s.RUN_ID, s.APP_ID, s.MODEL_VERSION, s.PD, s.GRADE

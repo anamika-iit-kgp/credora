@@ -50,6 +50,18 @@ INDUSTRIES = {
     "Healthcare": (["Hospitals", "Diagnostics", "Medicare"], 0.05, 0.35, False, 0.04),
 }
 
+# Industry -> operating cash margin, % of 12 month GST turnover: the cash a company has for debt
+# service in the DSCR of past loans. The same figures seed CREDORA.INDUSTRY_MARGIN in Exasol
+# (exasol/sql/18_pricing_reference.sql), which prices the companies analysed now; a test keeps the
+# two in step. Illustrative, see docs/PRICING.md.
+CASH_MARGIN_PCT = {
+    "Textiles": 9.0, "Pharmaceuticals": 18.0, "Auto Components": 12.0, "Food Processing": 8.0,
+    "Chemicals": 15.0, "Plastics & Polymers": 11.0, "Engineering": 12.0, "IT Services": 20.0,
+    "Construction": 10.0, "Logistics": 9.0, "Agro Products": 6.0, "Steel & Metals": 10.0,
+    "Electronics": 10.0, "Hospitality": 22.0, "Retail Trade": 5.0, "Gems & Jewellery": 5.0,
+    "Paper & Packaging": 12.0, "Healthcare": 18.0,
+}
+
 NAME_PREFIXES = [
     "Shree Ganesh", "Sai", "Balaji", "Om", "Lakshmi", "Surya", "Govind", "Shiva", "Ambika",
     "Vardhman", "Kaveri", "Narmada", "Ganga", "Himalaya", "Sahyadri", "Deccan", "Navkar",

@@ -24,6 +24,8 @@ export const CAN = {
   report: ["admin", "datasci", "loanops", "rm"],
   models: ["admin", "datasci"],
   train: ["datasci"],
+  /** Compute calibration and PSI evidence in Exasol (CALIBRATE_MODEL, MODEL_PSI). */
+  computeValidation: ["admin", "datasci"],
   requestActivation: ["datasci"],
   whatif: ["datasci"],
   proposePolicy: ["datasci"],

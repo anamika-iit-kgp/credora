@@ -34,13 +34,15 @@ def merge_counts(before: dict, added: dict) -> dict:
 
 
 class Job:
-    def __init__(self, seed: int | None, mode: str = "replace", companies: int = DEFAULT_COMPANIES):
+    def __init__(self, seed: int | None, mode: str = "replace", companies: int = DEFAULT_COMPANIES,
+                 as_of=None):
         if mode not in MODES:
             raise ValueError(f"mode must be one of {MODES}")
         self.job_id = str(uuid.uuid4())
         self.seed = seed if seed is not None else secrets.randbelow(2**31)
         self.mode = mode
         self.companies = companies
+        self.as_of = as_of  # None means today
         self.step_defs = STEPS_BY_MODE[mode]
         self.status = "running"
         self.started_at = now()
@@ -165,7 +167,7 @@ class Job:
 
         self._run_step(0, clear if self.mode == "replace" else prepare)
         world = self._run_step(1, lambda: synth.build_world(
-            self.seed, n_companies=self.companies, existing=existing[0] if existing else None))
+            self.seed, today=self.as_of, n_companies=self.companies, existing=existing[0] if existing else None))
         self.steps[1]["detail"] = (f"{len(world.companies):,} new companies, {len(world.partners):,} partners "
                                    + self.steps[1]["detail"])
 

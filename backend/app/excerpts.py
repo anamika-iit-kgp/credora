@@ -37,7 +37,9 @@ STEP_INFO: dict[int, dict[str, Any]] = {
             engine="Python UDF", object="CREDORA.AA_FETCH", sources=["api.aa", "bank.mysql"]),
     7: dict(name="Compute features",
             what="Twelve calendar months of current-account behaviour are aggregated in Oracle (pushdown), then "
-                 "joined with GST, CIBIL and AA data into the 13 model features. {rows} feature rows.",
+                 "joined with GST, CIBIL and AA data into the 13 model features. The DSCR cash is the industry's "
+                 "margin on GST turnover (INDUSTRY_MARGIN), and the company's CIBIL exposure at all lenders is "
+                 "kept for the exposure cap. {rows} feature rows.",
             engine="SQL · window functions", object="CREDORA.FEATURES",
             sources=["bank.oracle", "bank.mysql", "api.gstn", "api.cibil", "api.aa"]),
     8: dict(name="Pick the risk model",
@@ -56,7 +58,9 @@ STEP_INFO: dict[int, dict[str, Any]] = {
              engine="Python UDF", object="CREDORA.ANOMALY_FLAG", sources=["exasol", "api.gstn", "bank.oracle", "api.aa"]),
     11: dict(name="Size the offer, set the negotiation limit and decide",
              what="One SQL statement applies hard filters, prices the loan (EBLR + risk spread + operating spread), "
-                  "sizes it from cash flow and GST turnover, sets the floor ROI where RAROC meets the hurdle, and "
+                  "sizes it from the industry's cash margin on GST turnover, the GST share and the room under the "
+                  "total exposure cap (existing CIBIL exposure plus the offer within MAX_EXPOSURE_PCT of turnover), "
+                  "sets the floor ROI where RAROC meets the hurdle with the LGD of the collateral type, and "
                   "decides Approve, Refer or Decline. A company the anomaly model flagged is referred for a person to "
                   "look at, never declined on it. {rows} decisions.",
              engine="SQL", object="CREDORA.DECISIONS", sources=["exasol", "bank.postgres"]),

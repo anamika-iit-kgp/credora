@@ -20,16 +20,17 @@ WITH cfg AS (
          MAX(CASE WHEN CONFIG_KEY = 'HURDLE_PCT' THEN CONFIG_VALUE END) HURDLE
   FROM CREDORA.CONFIG),
 d AS (
-  SELECT PD, PRODUCT, DECISION, FLOOR_ROI, MAX_AMOUNT, MAX_TENURE
+  SELECT PD, PRODUCT, DECISION, FLOOR_ROI, MAX_AMOUNT, MAX_TENURE, LGD_PCT
   FROM CREDORA.DECISIONS WHERE RUN_ID = {run} AND APP_ID = {app}),
 t AS (SELECT CAST({amount!d} AS DOUBLE) AMT, CAST({roi!d} AS DOUBLE) ROI, CAST({tenure!d} AS DOUBLE) TEN FROM DUAL)
-SELECT ROUND((t.ROI - cfg.FUNDS - cfg.OPEX - d.PD * cfg.LGD) / cfg.CAPITAL * 100, 3) RAROC,
+SELECT ROUND((t.ROI - cfg.FUNDS - cfg.OPEX - d.PD * COALESCE(d.LGD_PCT, cfg.LGD)) / cfg.CAPITAL * 100, 3) RAROC,
        ROUND(CASE WHEN d.PRODUCT = 'TL'
                   THEN t.AMT * (t.ROI / 1200) / (1 - POWER(1 + t.ROI / 1200, -t.TEN))
                   ELSE t.AMT * t.ROI / 1200 END, 0) EMI,
        t.AMT <= d.MAX_AMOUNT AMOUNT_OK, t.ROI >= d.FLOOR_ROI ROI_OK, t.TEN <= d.MAX_TENURE TENURE_OK,
-       ROUND((t.ROI - cfg.FUNDS - cfg.OPEX - d.PD * cfg.LGD) / cfg.CAPITAL * 100, 3) >= cfg.HURDLE RAROC_OK,
-       cfg.HURDLE, d.FLOOR_ROI, d.MAX_AMOUNT, d.MAX_TENURE, d.PRODUCT, d.DECISION, d.PD
+       ROUND((t.ROI - cfg.FUNDS - cfg.OPEX - d.PD * COALESCE(d.LGD_PCT, cfg.LGD)) / cfg.CAPITAL * 100, 3) >= cfg.HURDLE RAROC_OK,
+       cfg.HURDLE, d.FLOOR_ROI, d.MAX_AMOUNT, d.MAX_TENURE, d.PRODUCT, d.DECISION, d.PD,
+       COALESCE(d.LGD_PCT, cfg.LGD) LGD
 FROM d CROSS JOIN cfg CROSS JOIN t
 """
 
@@ -45,7 +46,8 @@ def quote_params(run_id: str, app_id: str, amount: float, roi: float, tenure: in
 
 
 def quote_result(row: dict[str, Any]) -> dict[str, Any]:
-    """Exasol's quote row -> {within_limit, raroc, emi, reasons}."""
+    """Exasol's quote row -> {within_limit, raroc, emi, lgd_pct, reasons}. lgd_pct is the loss given
+    default the RAROC used: the decision's own figure after collateral, else the policy LGD."""
     reasons: list[str] = []
     if not row.get("AMOUNT_OK"):
         reasons.append(f"Amount is above the maximum of {inr(row.get('MAX_AMOUNT'))}.")
@@ -60,7 +62,9 @@ def quote_result(row: dict[str, Any]) -> dict[str, Any]:
     within = not reasons
     if within:
         reasons.append(f"Within limit. RAROC {raroc:.1f}% meets the {hurdle:g}% hurdle.")
-    return {"within_limit": within, "raroc": round(raroc, 2), "emi": float(row["EMI"]), "reasons": reasons}
+    lgd = row.get("LGD")
+    return {"within_limit": within, "raroc": round(raroc, 2), "emi": float(row["EMI"]),
+            "lgd_pct": None if lgd is None else float(lgd), "reasons": reasons}
 
 
 def emi_ref(amount: float, roi: float, tenure: int, product: str = "TL") -> float:
@@ -72,8 +76,23 @@ def emi_ref(amount: float, roi: float, tenure: int, product: str = "TL") -> floa
 
 
 def raroc_ref(roi: float, pd: float, funds: float, opex: float, lgd: float, capital: float) -> float:
-    """Mirrors RAROC_OFFER in RUN_ANALYSIS step 11 (all inputs in %, pd 0..1)."""
+    """Mirrors RAROC_OFFER in RUN_ANALYSIS step 11 (all inputs in %, pd 0..1). lgd is the effective
+    loss given default after collateral, see lgd_ref."""
     return (roi - funds - opex - pd * lgd) / capital * 100
+
+
+def lgd_ref(lgd_unsecured: float, lgd_collateral: float | None, collateral_value: float, amount: float) -> float:
+    """Mirrors LGD_EFF in the decision SQL: the collateral type's LGD on the share of the credit need
+    the collateral covers, the unsecured policy LGD on the rest (all LGDs in %)."""
+    cover = min(collateral_value / amount, 1.0) if amount else 0.0
+    lgd_c = lgd_unsecured if lgd_collateral is None else lgd_collateral
+    return round(lgd_unsecured + (lgd_c - lgd_unsecured) * cover, 2)
+
+
+def exposure_room_ref(turnover: float, existing_exposure: float | None, max_exposure_pct: float) -> float:
+    """Mirrors EXPOSURE_ROOM in the decision SQL: the cap as a share of GST turnover less what the
+    company already owes all lenders, never below 0."""
+    return max(turnover * max_exposure_pct / 100 - (existing_exposure or 0.0), 0.0)
 
 
 # ---------------------------------------------------------------- what-if
@@ -93,7 +112,7 @@ def _decide_sql() -> tuple[str, str, str]:
 
 WHATIF_KEYS = {"hurdle_pct": "HURDLE", "eblr_pct": "EBLR", "max_gst_share_pct": "GST_SHARE"}
 CFG_COLS = ["EBLR", "OPS", "FUNDS", "OPEX", "LGD", "CAPITAL", "HURDLE", "GST_SHARE", "MIN_DSCR", "NEG_DSCR",
-            "FLOOR_MARGIN"]
+            "FLOOR_MARGIN", "MARGIN_DEFAULT", "MAX_EXPOSURE"]
 
 
 def whatif_sql(overrides: dict[str, float | None]) -> str:

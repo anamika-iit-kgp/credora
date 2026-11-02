@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ExternalLink, Search } from "lucide-react";
-import { PageHeader, Empty, Segmented } from "../../components/ui";
-import { GLOSSARY, type Term } from "../../explain/glossary";
+import { PageHeader, Empty, Loading, Segmented } from "../../components/ui";
+import type { Term } from "../../explain/glossary";
+import { useGlossary, type Glossary } from "../../explain/glossaryStore";
 import { KIND_META, TermBody } from "../../explain/Explain";
 
 type KindFilter = "all" | Term["kind"];
 const KINDS: KindFilter[] = ["all", "exasol", "banking", "ai", "aws", "app"];
-const TERMS = Object.values(GLOSSARY).sort((a, b) => a.term.localeCompare(b.term, "en", { sensitivity: "base" }));
 
 function matches(t: Term, q: string) {
   if (!q) return true;
@@ -19,7 +19,15 @@ function matches(t: Term, q: string) {
     .every((w) => hay.includes(w));
 }
 
+/** The route fetches the term data together with this screen, so the loading state below is only a fallback. */
 export function GlossaryPage() {
+  const glossary = useGlossary();
+  if (!glossary) return <Loading label="Opening the glossary" rows={3} />;
+  return <GlossaryList glossary={glossary} />;
+}
+
+function GlossaryList({ glossary }: { glossary: Glossary }) {
+  const terms = useMemo(() => Object.values(glossary).sort((a, b) => a.term.localeCompare(b.term, "en", { sensitivity: "base" })), [glossary]);
   const { hash } = useLocation();
   const [q, setQ] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
@@ -27,7 +35,7 @@ export function GlossaryPage() {
 
   // A link from a popover's "More" names one term: show it even if the filters would hide it.
   useEffect(() => {
-    if (!target || !GLOSSARY[target]) return;
+    if (!target || !glossary[target]) return;
     setQ("");
     setKind("all");
     const t = window.setTimeout(() => {
@@ -37,14 +45,14 @@ export function GlossaryPage() {
       el.focus({ preventScroll: true });
     }, 60);
     return () => window.clearTimeout(t);
-  }, [target]);
+  }, [target, glossary]);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: TERMS.length };
-    for (const t of TERMS) c[t.kind] = (c[t.kind] ?? 0) + 1;
+    const c: Record<string, number> = { all: terms.length };
+    for (const t of terms) c[t.kind] = (c[t.kind] ?? 0) + 1;
     return c;
-  }, []);
-  const shown = TERMS.filter((t) => (kind === "all" || t.kind === kind) && matches(t, q));
+  }, [terms]);
+  const shown = terms.filter((t) => (kind === "all" || t.kind === kind) && matches(t, q));
 
   return (
     <div className="page glossary">
@@ -52,7 +60,7 @@ export function GlossaryPage() {
         title="Glossary"
         lede={
           <>
-            {TERMS.length} terms behind Credora, each in plain words and in Exasol's terms, with the objects it touches, the code that runs and where to read
+            {terms.length} terms behind Credora, each in plain words and in Exasol's terms, with the objects it touches, the code that runs and where to read
             more. The same text is in{" "}
             <a href="https://docs.credora.loan/glossary.html" target="_blank" rel="noreferrer">
               the documentation
@@ -89,7 +97,7 @@ export function GlossaryPage() {
         />
       </div>
       <p className="muted small" role="status">
-        {shown.length === TERMS.length ? `${TERMS.length} terms` : `${shown.length} of ${TERMS.length} terms`}
+        {shown.length === terms.length ? `${terms.length} terms` : `${shown.length} of ${terms.length} terms`}
       </p>
       {shown.length === 0 ? (
         <Empty title="No term matches">Try a shorter word, an Exasol object such as VS_CBS, or another kind.</Empty>

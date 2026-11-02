@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { Shell } from "./components/Shell";
 import { Empty, Loading } from "./components/ui";
 import { can, type Permission } from "./lib/roles";
+import { loadGlossary } from "./explain/glossaryStore";
 
 // Each screen is its own chunk, so the first paint only downloads what it shows.
 const LoginPage = lazy(() => import("./pages/Login").then((m) => ({ default: m.LoginPage })));
@@ -30,9 +31,11 @@ const OfferPage = lazy(() => import("./pages/offers/Offer").then((m) => ({ defau
 const QueuePage = lazy(() => import("./pages/offers/Queue").then((m) => ({ default: m.QueuePage })));
 const AskPage = lazy(() => import("./pages/ask/Ask").then((m) => ({ default: m.AskPage })));
 const ControlRoomPage = lazy(() => import("./pages/exasol/ControlRoom").then((m) => ({ default: m.ControlRoomPage })));
-// The glossary screen loads only when opened. Its term data also feeds the Explain popovers on every screen, so that
-// part stays in the main bundle until the popover reads it lazily too.
-const GlossaryPage = lazy(() => import("./pages/glossary/Glossary").then((m) => ({ default: m.GlossaryPage })));
+// The glossary screen and its term data load only when needed. The data is fetched alongside the screen, so the page
+// opens with the terms in place; the Explain popovers fetch the same data on first use and share the one copy.
+const GlossaryPage = lazy(() =>
+  Promise.all([import("./pages/glossary/Glossary"), loadGlossary()]).then(([m]) => ({ default: m.GlossaryPage })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {

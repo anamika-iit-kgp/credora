@@ -3,11 +3,11 @@ import { Briefcase, ChevronsDownUp, Code, Handshake, LoaderCircle, Network, Play
 import { Link, useParams } from "react-router-dom";
 import { useAiStatus, useCreditMemo, useGenerateMemo, useReport } from "../../api/hooks";
 import type { ApiError } from "../../api/client";
-import type { CreditMemo, Feature, Reason, Report, ReportStep } from "../../api/types";
+import type { CreditMemo, Feature, Pricing, Reason, Report, ReportStep } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
 import { CodeBlock } from "../../components/CodeBlock";
 import { SourceTag } from "../../components/SourceTag";
-import { DecisionBadge, Empty, ErrorState, Grade, Loading, PageHeader, Panel } from "../../components/ui";
+import { DecisionBadge, Empty, ErrorState, Grade, KV, Loading, PageHeader, Panel } from "../../components/ui";
 import { dateTime, duration, num, pct, pctFromRatio, rupees, rupeesShort } from "../../lib/format";
 import { can } from "../../lib/roles";
 import { Explain, WithExplain } from "../../explain/Explain";
@@ -372,8 +372,53 @@ function Terms({ r }: { r: Report }) {
         </p>
       </div>
       <p className="small muted">
-        {r.requested.product}. Amount is the smallest of the indicated need, a share of GST turnover and what cash flow can repay.
+        {r.requested.product}. Amount is the smallest of the indicated need, a share of GST turnover, what cash flow can repay and the room
+        left under the total exposure cap.
       </p>
+      {r.pricing && <PricedWith p={r.pricing} />}
+    </div>
+  );
+}
+
+/** The pricing inputs Exasol stored with the decision: the industry's cash margin, the LGD after collateral and the
+ *  CIBIL exposure against the cap (CREDORA.DECISIONS, docs/PRICING.md). */
+function PricedWith({ p }: { p: Pricing }) {
+  const margin = p.cash_margin_pct != null ? `${pct(p.cash_margin_pct, 0)} of GST turnover` : "–";
+  const lgd = p.lgd_pct != null ? pct(p.lgd_pct, 0) : "–";
+  return (
+    <div className="top-gap">
+      <p className="small muted">Priced with</p>
+      <KV
+        cols={2}
+        items={[
+          [
+            <>
+              Cash margin
+              <Explain id="dscr" label="cash for debt service" />
+            </>,
+            <span className="num">
+              {margin}
+              {p.industry && <span className="muted small"> · {p.industry}</span>}
+              {p.cash_12m != null && <span className="muted small"> · {rupeesShort(p.cash_12m)} a year</span>}
+            </span>,
+          ],
+          [
+            <WithExplain id="lgd">LGD</WithExplain>,
+            <span className="num">
+              {lgd}
+              {p.collateral_type && (
+                <span className="muted small">
+                  {" "}
+                  · {p.collateral_type}
+                  {p.collateral_value != null && p.collateral_value > 0 && ` ${rupeesShort(p.collateral_value)}`}
+                </span>
+              )}
+            </span>,
+          ],
+          ["Existing exposure (CIBIL)", <span className="num">{rupeesShort(p.existing_exposure)}</span>],
+          ["Room under the exposure cap", <span className="num">{rupeesShort(p.exposure_room)}</span>],
+        ]}
+      />
     </div>
   );
 }

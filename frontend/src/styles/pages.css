@@ -1300,6 +1300,142 @@
   }
 }
 
+/* model validation: calibration deciles and population stability */
+.val {
+  display: grid;
+  gap: 12px;
+}
+.val-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 0;
+}
+.val-metrics dt {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.val-metrics dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.val-metrics dd .small {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.val-read {
+  margin: 0;
+  max-width: 90ch;
+}
+.cal-bar {
+  position: relative;
+  display: block;
+  height: 14px;
+  min-width: 140px;
+  background: var(--chart-track);
+  border-radius: 4px;
+}
+.cal-pred,
+.cal-obs {
+  position: absolute;
+  left: 0;
+  height: 5px;
+  border-radius: 3px;
+  transform-origin: left center;
+  animation: grow-x 700ms var(--ease-out) both;
+}
+.cal-pred {
+  top: 2px;
+  background: var(--primary);
+}
+.cal-obs {
+  bottom: 2px;
+  background: var(--ink);
+}
+.cal-legend {
+  display: inline-flex;
+  gap: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.cal-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: 2px;
+}
+.cal-legend-pred {
+  background: var(--primary);
+}
+.cal-legend-obs {
+  background: var(--ink);
+}
+.psi-bar {
+  position: relative;
+  display: block;
+  height: 10px;
+  min-width: 120px;
+  background: var(--chart-track);
+  border-radius: 5px;
+}
+.psi-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  background: var(--approve);
+  transform-origin: left center;
+  animation: grow-x 700ms var(--ease-out) both;
+}
+.psi-fill.is-shift {
+  background: var(--refer);
+}
+.psi-fill.is-significant {
+  background: var(--decline);
+}
+.psi-tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--line-strong);
+}
+.pill-warn {
+  background: var(--refer-tint);
+  color: var(--refer);
+}
+.pill-off {
+  background: var(--decline-tint);
+  color: var(--decline);
+}
+.bins {
+  display: inline-flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 18px;
+}
+.bins > span {
+  display: inline-flex;
+  gap: 1px;
+  align-items: flex-end;
+  height: 100%;
+}
+.bins i {
+  display: inline-block;
+  width: 3px;
+  min-height: 1px;
+  border-radius: 1px;
+  background: var(--primary);
+}
+.bins i + i {
+  background: var(--ink);
+  opacity: 0.55;
+}
+
 /* report: referral and decline reasons, anomaly flag */
 .verdict-reasons {
   display: grid;

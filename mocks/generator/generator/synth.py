@@ -769,7 +769,8 @@ def past_loan_features(z: float, rng: np.random.Generator, as_of: date) -> dict:
     b = behaviour(z, rng)
     gst_months = int(rng.integers(24, 121))
     annual = float(np.clip(np.exp(rng.normal(np.log(8e7), 0.9)), 5e6, 2.5e9))
-    amp = ref.INDUSTRIES[pick(rng, list(ref.INDUSTRIES))][4]
+    industry = pick(rng, list(ref.INDUSTRIES))
+    amp = ref.INDUSTRIES[industry][4]
     season = 1 + amp * np.sin(np.arange(12) / 12 * 2 * np.pi + rng.uniform(0, 2 * np.pi))
     sales = annual / 12 * season * np.exp(rng.normal(0, b.volatility, 12))
     bank = sales * (1 + b.gap_sign * b.gst_bank_gap) * np.exp(rng.normal(0, 0.03, 12))
@@ -812,5 +813,5 @@ def past_loan_features(z: float, rng: np.random.Generator, as_of: date) -> dict:
         "partner_avg_score": round(float(np.mean(scores)), 1),
         "partner_overdue_amt": round(overdue, 2),
         "partner_other_bank_bal": round(other_bal, 2),
-        "dscr": round(dscr(gst_turnover, product, amount, tenure), 3),
+        "dscr": round(dscr(gst_turnover, product, amount, tenure, ref.CASH_MARGIN_PCT[industry] / 100), 3),
     }
