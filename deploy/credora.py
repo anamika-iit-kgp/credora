@@ -321,7 +321,7 @@ class Deployment:
                    "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
                    "base-uri 'self'; form-action 'self'; object-src 'none'").format(h=self.inline_script_hash())
         site_csp = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-                    "img-src 'self' data: blob:; font-src 'self' data:; media-src 'self'; connect-src 'self'; "
+                    "img-src 'self' data: blob: https://github.com https://img.shields.io; font-src 'self' data:; media-src 'self'; connect-src 'self'; "
                     "frame-src 'self'; object-src 'self'; frame-ancestors 'none'; base-uri 'self'")
         secure = ("\theader {\n\t\tStrict-Transport-Security \"max-age=31536000\"\n\t\tX-Content-Type-Options nosniff\n"
                   "\t\tReferrer-Policy strict-origin-when-cross-origin\n"

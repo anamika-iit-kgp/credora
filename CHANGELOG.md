@@ -5,7 +5,7 @@ All notable changes to Credora. Dates are in IST.
 ## 2.0.2, 2 November 2026
 
 - Sign-in is rate limited. After 10 failed attempts from one address or for one username inside 5 minutes the next attempt gets 429 for the rest of the window, and a success clears the username's count.
-- Every site sends a Content-Security-Policy. The app allows only its own files plus its one inline theme script, by hash computed from the built page at ship time, and no third party. The docs, deck and video sites keep their inline scripts and styles and nothing external. A Permissions-Policy turns off camera, microphone and geolocation.
+- Every site sends a Content-Security-Policy. The app allows only its own files plus its one inline theme script, by hash computed from the built page at ship time, and no third party. The docs, deck and video sites keep their inline scripts and styles, and the only external sources are the badge images from GitHub and shields.io on the docs home page. A Permissions-Policy turns off camera, microphone and geolocation.
 - The report shows the offer's key facts (rate, tenure, monthly instalment or monthly interest, total interest, total repayment, annualised cost) the way a key facts statement reads. Credora charges no fee, so the annualised cost equals the rate. `GET /api/companies/{cif}/report` returns `key_facts`.
 - Frontend unit tests with vitest, run in CI, over the fixtures decision logic, the loan status state machine and the role gating.
 
