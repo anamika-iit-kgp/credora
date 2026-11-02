@@ -71,6 +71,7 @@ Credora started on the Exasol Personal Local Starter Kit (`exakit` 0.2.3, with t
 |---|---|
 | Virtual schemas | `VS_CBS` (Oracle adapter 6.0, Java), `VS_CIF` and `VS_LOS` (adbc-vs-rs 0.7, Rust) read the three bank databases live, with pushdown. Nothing is copied. |
 | `EXPLAIN VIRTUAL` | The Sources screen shows the SQL Exasol sends to each database. The aggregation over 850,000 transactions runs inside Oracle. |
+| Scale-up evidence | The same run measured at 1,000, 10,000 and 50,000 companies on one node. 17 s, 68 s and 320 s, peak temporary RAM 1.4 GiB, the inside-Exasol steps close to linear and the 3rd party APIs the limiting factor. Table in [docs/WHY_EXASOL.md](docs/WHY_EXASOL.md). |
 | Script language containers | Built-in Python 3 and Java, plus the exasol-labs Rust container (language-container-rs release 0.23.1) uploaded to BucketFS |
 | BucketFS | The Rust container, the adapter library, JDBC drivers and every trained model |
 | Python UDFs (SET and SCALAR) | Fetch CIBIL, GST and Account Aggregator data in 16 batches, which Exasol runs 4 at a time on the node's 4 cores, with 3 retries per call. Train and score the risk models, and write credit memos with Claude |
@@ -290,7 +291,7 @@ Both are in this repository and on their own sites, so a person or an evaluation
 |---|---|---|
 | Demo video, 2 min 56 s with a voice-over | [media/demo.mp4](media/demo.mp4), 1080p with the captions burned in, compressed for the repository. GitHub plays it on the file page. | https://video.credora.loan plays the full quality copy, with captions the viewer can switch on. Direct file https://video.credora.loan/demo.mp4 |
 | What the video says | [media/demo-transcript.md](media/demo-transcript.md), one row per scene with the narration, plus [media/demo.srt](media/demo.srt) and [media/demo.vtt](media/demo.vtt) | https://video.credora.loan/demo.vtt |
-| Presentation, 22 slides | [media/presentation.pdf](media/presentation.pdf). GitHub shows it on the file page. | https://ppt.credora.loan, animated, and https://ppt.credora.loan/presentation.pdf to download |
+| Presentation, 23 slides | [media/presentation.pdf](media/presentation.pdf). GitHub shows it on the file page. | https://ppt.credora.loan, animated, and https://ppt.credora.loan/presentation.pdf to download |
 | Live app with four demo logins | | https://credora.loan |
 | Docs site, with the architecture and glossary | [docs/](docs/) | https://docs.credora.loan |
 | 3rd party data APIs | [mocks/](mocks/) | https://credora.link |

@@ -4,6 +4,7 @@ All notable changes to Credora. Dates are in IST.
 
 ## 2.0.0, 2 November 2026
 
+- Scale-up evidence. The same `RUN_ANALYSIS` was measured at 1,000, 10,000 and 50,000 companies on the live single node (17.4 s, 67.7 s and 319.5 s, peak temporary RAM 425 MiB, 625 MiB and 1,332 MiB). The per-step table with rows, seconds, CPU and temp RAM from `EXA_DBA_AUDIT_SQL` is in `docs/WHY_EXASOL.md` and on a deck slide. The inside-Exasol steps scale close to linearly and the 3rd party API fetches set the wall clock. The generator gained an optional `as_of` date so a data set can be drawn again later (`seed` and `as_of` together give the same data).
 - Offers are priced with an operating cash margin per industry (`CREDORA.INDUSTRY_MARGIN`, 5% to 22%, illustrative) instead of a flat 12% of GST turnover, in the DSCR feature, the offer size and the negotiation limit. An industry not in the table gets `CONFIG CASH_MARGIN_DEFAULT_PCT`.
 - Loss given default follows the collateral (`CREDORA.LGD_COLLATERAL`, Basel II foundation IRB style figures) blended with the unsecured 45% by the share of the credit need the collateral covers. The floor ROI, RAROC, the RM's quote and the certified `expected_loss` use it, so collateral changes expected loss and not only the rate card.
 - The CIBIL commercial report's total exposure now sizes the offer. Existing exposure plus the offer stays within `CONFIG MAX_EXPOSURE_PCT` (60%) of GST turnover, and the negotiation limit respects the same room. The referral reason "Existing exposure near the cap" names it.
