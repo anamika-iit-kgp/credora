@@ -22,7 +22,7 @@
 --                  other 75% and scores the hold-out. It emits one row per decile of predicted PD with
 --                  the count, the mean predicted PD and the observed default rate, and the Brier score
 --                  and AUC of the whole hold-out on every row. CALIBRATE_MODEL
---                  (exasol/sql/18_model_validation.sql) stores the rows in MODEL_CALIBRATION.
+--                  (exasol/sql/19_model_validation.sql) stores the rows in MODEL_CALIBRATION.
 --
 -- Both trainers sort the past loans by loan_id before the stratified 75/25 split, so the champion
 -- and the challenger are measured on exactly the same hold-out loans.
