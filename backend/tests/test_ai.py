@@ -212,3 +212,80 @@ def test_assistant_needs_an_ai_session_user_password(monkeypatch):
     assert assistant.enabled() is False
     _with_passwords(monkeypatch, {"CREDORA_RM": "person-pw", "CREDORA_RM_AI": "ai-pw"}, exa_mcp_password="")
     assert assistant.enabled() is True
+
+
+# ---------------------------------------------------------------- provider selection (app/ai.py), no network
+
+def _ai_settings(monkeypatch, **kw):
+    monkeypatch.setattr(ai, "settings", dataclasses.replace(ai.settings, **kw))
+    monkeypatch.setattr(ai, "_client", None)
+
+
+def test_ai_is_off_without_a_provider_a_model_or_a_key(monkeypatch):
+    _ai_settings(monkeypatch, ai_provider="", ai_model="claude-sonnet-5-5", anthropic_api_key="sk-test")
+    assert ai.enabled() is False and ai.client() is None
+    assert ai.status() == {"enabled": False, "provider": None, "model": None}
+    _ai_settings(monkeypatch, ai_provider="anthropic", ai_model="claude-sonnet-5-5", anthropic_api_key="")
+    assert ai.enabled() is False and ai.client() is None
+    _ai_settings(monkeypatch, ai_provider="anthropic", ai_model="", anthropic_api_key="sk-test")
+    assert ai.enabled() is False
+    _ai_settings(monkeypatch, ai_provider="openai", ai_model="gpt", anthropic_api_key="sk-test")
+    assert ai.enabled() is False and ai.status()["provider"] == "openai"
+    _ai_settings(monkeypatch, ai_provider="bedrock", ai_model="", bedrock_model_id="")
+    assert ai.enabled() is False and ai.model() == "" and ai.client() is None
+
+
+def test_anthropic_is_the_default_provider_and_uses_the_anthropic_client(monkeypatch):
+    import anthropic
+
+    _ai_settings(monkeypatch, ai_provider="anthropic", ai_model="claude-sonnet-5-5", anthropic_api_key="sk-test",
+                 bedrock_model_id="anthropic.ignored-for-this-provider")
+    assert ai.enabled() is True and ai.model() == "claude-sonnet-5-5"
+    c = ai.client()
+    assert isinstance(c, anthropic.Anthropic) and not isinstance(c, anthropic.AnthropicBedrock)
+    assert c.api_key == "sk-test"
+    assert ai.client() is c  # one client per process
+    assert ai.status() == {"enabled": True, "provider": "anthropic", "model": "claude-sonnet-5-5"}
+
+
+def test_bedrock_uses_the_sdk_bedrock_client_in_the_region_without_an_api_key(monkeypatch):
+    import anthropic
+    pytest.importorskip("botocore", reason="the package extra anthropic[bedrock] is not installed in this venv")
+
+    _ai_settings(monkeypatch, ai_provider="bedrock", ai_model="claude-sonnet-5-5", anthropic_api_key="",
+                 bedrock_model_id="", aws_region="ap-south-1")
+    assert ai.enabled() is True
+    # A blank BEDROCK_MODEL_ID means the Bedrock id of AI_MODEL, which carries the anthropic. prefix.
+    assert ai.model() == "anthropic.claude-sonnet-5-5"
+    c = ai.client()
+    assert isinstance(c, anthropic.AnthropicBedrock)
+    assert c.aws_region == "ap-south-1" and "bedrock-runtime.ap-south-1" in str(c.base_url)
+    assert ai.status() == {"enabled": True, "provider": "bedrock", "model": "anthropic.claude-sonnet-5-5"}
+
+    _ai_settings(monkeypatch, ai_provider="bedrock", ai_model="claude-sonnet-5-5",
+                 bedrock_model_id="global.anthropic.claude-opus-4-6-v1", aws_region="us-east-1")
+    assert ai.model() == "global.anthropic.claude-opus-4-6-v1"
+    assert ai.client().aws_region == "us-east-1"
+
+    # The memo UDF inside Exasol calls the Anthropic API only, so Bedrock always writes the memo in the backend.
+    monkeypatch.setattr(memo, "settings", ai.settings)
+    monkeypatch.setattr(memo, "udf_available", lambda: True)
+    assert memo.engine() == memo.ENGINE_BACKEND
+
+
+def test_the_model_sent_to_the_provider_is_the_providers_model_id(monkeypatch):
+    sent = []
+
+    class Fake:
+        def __init__(self):
+            self.messages = self
+
+        def create(self, **kw):
+            sent.append(kw["model"])
+            return NS(stop_reason="end_turn", content=[NS(type="text", text="IN")])
+
+    _ai_settings(monkeypatch, ai_provider="bedrock", ai_model="claude-sonnet-5-5", bedrock_model_id="")
+    monkeypatch.setattr(ai, "client", lambda: Fake())
+    assert memo._generate_backend("{}") == "IN"
+    assert asyncio.run(assistant._on_topic(Fake(), "How many companies were approved?")) is True
+    assert sent == ["anthropic.claude-sonnet-5-5", "anthropic.claude-sonnet-5-5"]

@@ -2,6 +2,11 @@
 
     docker run --rm --user root -v "$PWD/mocks/generator/tests:/app/tests" -w /app mocks-generator
         sh -c "pip install -q pytest && python -m pytest -q -p no:cacheprovider tests"
+
+Or locally, with the test dependencies that requirements-dev.txt lists (the same ones CI installs)
+
+    pip install -r mocks/generator/requirements-dev.txt
+    python -m pytest -q mocks/generator/tests
 """
 
 import numpy as np

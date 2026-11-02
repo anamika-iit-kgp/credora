@@ -129,3 +129,9 @@ variable "ai_model" {
   type    = string
   default = "claude-sonnet-5-5"
 }
+
+variable "bedrock_model_id" {
+  description = "Model id or inference profile for AI_PROVIDER=bedrock. Empty means anthropic. followed by ai_model."
+  type        = string
+  default     = ""
+}

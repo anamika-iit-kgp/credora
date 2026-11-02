@@ -1015,7 +1015,7 @@ except asyncio.TimeoutError:
     """A one-word classification call before any tool use; unrelated questions never reach Exasol."""
     try:
         resp = await asyncio.to_thread(
-            client.messages.create, model=settings.ai_model, max_tokens=5, system=SCOPE_PROMPT,
+            client.messages.create, model=ai.model(), max_tokens=5, system=SCOPE_PROMPT,
             messages=[{"role": "user", "content": question}])
     except Exception as e:  # noqa: BLE001 - if the filter itself fails, the main prompt's scope rule decides
         log.warning("topic check failed: %s", e)
