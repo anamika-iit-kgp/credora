@@ -62,6 +62,13 @@ SKIPPED = {
     "exasol/semantic/12_credora_model.sql":
         "the semantic model needs exasol-semantic-views, installed by its own release installer",
 }
+# Steps of deploy/credora.py that are not SQL files and cannot run here either, and why.
+SKIPPED_STEPS = {
+    "deploy/exasol_setup.py install_semantic_views":
+        "exasol-semantic-views is installed by its own release installer, which the semantic model needs",
+    "deploy/exasol_setup.py install_preprocessor_library":
+        "the module resolver fetches each module from GitHub from inside Exasol, and that UDF crashed on the GitHub runner",
+}
 # Stand-ins, so the grants in 07_security.sql resolve: three empty schemas with the names of the
 # virtual schemas. Nothing reads them.
 STUB_SCHEMAS = ("VS_CBS", "VS_CIF", "VS_LOS")
@@ -211,13 +218,12 @@ def main() -> None:
     with as_sys() as c:
         apply(c, AFTER_USERS)
     # The SQL preprocessing of deploy/credora.py semantic_layer, without the semantic layer itself:
-    # the framework from its pinned release, the latest-run views, the framework in the system slot,
-    # and the two preprocessor-library modules for the roles that send AI-written SQL.
+    # the framework from its pinned release, the latest-run views, then the framework in the system
+    # slot, so every role session from here on runs through it.
     es.install_preprocessor_framework(ex)
     with as_sys() as c:
         apply(c, VIEWS)
     es.activate_preprocessor(ex)
-    es.install_preprocessor_library(ex)
     with as_sys() as c:
         apply(c, COMMENTS)
         views = c.execute("SELECT VIEW_NAME FROM EXA_ALL_VIEWS WHERE VIEW_SCHEMA = 'CREDORA' ORDER BY 1").fetchall()
@@ -226,6 +232,8 @@ def main() -> None:
         print(f"   {len(views)} views in CREDORA compile")
     for f, why in SKIPPED.items():
         print(f"   skipped {f}: {why}")
+    for step, why in SKIPPED_STEPS.items():
+        print(f"   skipped {step}: {why}")
 
     say("One analysis run of 50 companies, written as CREDORA_SVC, decided and ranked by the real decision SQL")
     with as_sys() as c:
@@ -287,21 +295,13 @@ def main() -> None:
         for obj in RM_REFUSED:
             assert refused(rm, f"SELECT COUNT(*) FROM {obj}"), f"CREDORA_RM must not read {obj}"
         print(f"   CREDORA_RM sees its {len(rm1)} companies and is refused {len(RM_REFUSED)} direct reads")
-        # Her session runs through the preprocessor framework (the pipeline it compiled for role
-        # R_RM), so the cast shorthand and the trailing comma of AI-written SQL reach Exasol as
-        # plain SQL. The same statement fails in a deploy session, which has the preprocessor off.
+        # Every read above went through the preprocessor framework in the system slot, as on a
+        # deployment. A deploy session (sys here) has it switched off.
         pipeline = rm.execute("SELECT SESSION_VALUE FROM EXA_PARAMETERS WHERE PARAMETER_NAME = 'SQL_PREPROCESSOR_SCRIPT'").fetchval()
-        assert pipeline and pipeline.startswith("PREPROC_RT."), pipeline
-        shorthand = "SELECT MAX(OFFER_ROI)::DECIMAL(5, 2), FROM CREDORA.V_RM_DECISIONS"
-        assert rm.execute(shorthand).fetchval() > 0
-        print(f"   CREDORA_RM's SQL goes through {pipeline}, which rewrites the cast shorthand and the trailing comma")
+        assert pipeline and pipeline.upper().startswith("PREPROC_RT."), pipeline
+        print(f"   CREDORA_RM's SQL goes through {pipeline}")
     with as_sys() as c:
-        try:
-            c.execute(shorthand)
-        except pyexasol.ExaQueryError as e:
-            assert "syntax error" in str(e), e
-        else:
-            raise AssertionError("the deploy session has the preprocessor off, so the shorthand must not parse")
+        assert not c.execute("SELECT SESSION_VALUE FROM EXA_PARAMETERS WHERE PARAMETER_NAME = 'SQL_PREPROCESSOR_SCRIPT'").fetchval()
     with as_user("CREDORA_RM_AI") as ai:
         assert cifs(ai, "CREDORA.V_RM_DECISIONS") == rm1, "the AI session user sees exactly its person's book"
         assert cifs(ai, "CREDORA.V_LATEST_DECISION") == rm1

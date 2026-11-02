@@ -6,7 +6,7 @@ GitHub Actions runs `run_docker_db.py` against `exasol/docker-db` on every push 
 
 - `exasol/sql/01_schemas.sql`, `02_connections.sql` (with placeholder hosts and passwords, a `CONNECTION` connects to nothing when it is created), the Python UDFs in `exasol/udf/`, the Lua scripts in `exasol/lua/`, `07_security.sql`, `13_rm_row_security.sql`, `16_resources.sql`, `17_scheduler.sql`, `exasol/semantic/11_latest_run_views.sql`, `15_comments.sql` and `14_seed_rm_book.sql`.
 - The roles, users and consumer groups come from `deploy/exasol_setup.py`, as on a deployment. The passwords are made for the run and never stored.
-- The SQL preprocessing, through the same functions of `deploy/exasol_setup.py`. The preprocessor framework is installed from its pinned release (the SHA-256 is checked), put in the system slot, and the two preprocessor-library modules are installed for the roles that send AI-written SQL. `CREDORA_RM`'s session is then checked to run through the framework's pipeline, which rewrites a cast shorthand and a trailing comma, while a deploy session, with the preprocessor off, refuses the same statement.
+- The SQL preprocessing, through the same functions of `deploy/exasol_setup.py`. The preprocessor framework is installed from its pinned release (the SHA-256 is checked) and put in the system slot before the fixtures are loaded, so every read by a role user below goes through it, as on a deployment. The runner checks that `CREDORA_RM`'s session has it and that the deploy session does not.
 - `fixtures.sql` writes the run as `CREDORA_SVC`. It holds what steps 2 to 10 of `RUN_ANALYSIS` would have produced for 50 companies, with values that are arithmetic on the company number, so the run is the same everywhere. The staging tables get rows whose purge time has passed and rows still within consent, and an older run that has expired as a whole.
 - `ci_scripts.sql` holds one test-only Lua script that is steps 11 and 12 of `RUN_ANALYSIS` on their own. It is dropped at the end.
 
@@ -14,6 +14,7 @@ GitHub Actions runs `run_docker_db.py` against `exasol/docker-db` on every push 
 
 - `exasol/sql/03_virtual_schemas.sql`. The virtual schemas need the Oracle adapter, the adbc-vs-rs Rust adapter and the three RDS databases. Three empty schemas with the same names stand in, so the grants in `07_security.sql` resolve.
 - `exasol/extensions/10_semantic_views_module.sql` and `exasol/semantic/12_credora_model.sql`. They need exasol-semantic-views, which its own release installer puts in place on a deployment.
+- The two preprocessor-library modules (cast shorthand and trailing comma). The framework's module resolver fetches each module from GitHub from inside Exasol, and that UDF crashed on the GitHub runner, so the modules are left out and the role sessions run through the framework with no rules.
 - The full `RUN_ANALYSIS`. Its first ten steps read the virtual schemas, call the API UDFs and load a model file from BucketFS. The fixture rows stand in for their output.
 
 The runner compares its own list with the file names in `deploy/credora.py`. A SQL file added to the deploy tool fails this job until it is applied or listed as skipped here.
