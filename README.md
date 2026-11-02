@@ -75,7 +75,8 @@ Credora started on the Exasol Personal Local Starter Kit (`exakit` 0.2.3, with t
 | BucketFS | The Rust container, the adapter library, JDBC drivers and every trained model |
 | Python UDFs (SET and SCALAR) | Fetch CIBIL, GST and Account Aggregator data in 16 batches, which Exasol runs 4 at a time on the node's 4 cores, with 3 retries per call. Train and score the risk models, and write credit memos with Claude |
 | CONNECTION objects | API endpoints and keys, the BucketFS location and the AI provider, so no secret is in code |
-| In-database ML | A gradient-boosting champion, a logistic-regression challenger scored in the shadow and an Isolation Forest anomaly flag. `MODEL_REGISTRY` holds a SHA-256 of each model file, which `PD_SCORE` checks before unpickling |
+| In-database ML | A gradient-boosting champion, a logistic-regression challenger scored in the shadow and an Isolation Forest anomaly flag. `MODEL_REGISTRY` holds a SHA-256 of each model file, which `PD_SCORE` checks before unpickling Every model's calibration on the training's own hold-out (deciles, Brier score, AUC) and every run's feature stability against the past loans (PSI) are computed inside Exasol and shown on the Risk models screen, see [docs/MODEL_VALIDATION.md](docs/MODEL_VALIDATION.md). |
+| Pricing inside Exasol | Offers are priced with an industry cash margin table, an LGD per collateral type and a cap on total exposure after the offer, all read inside Exasol and written out in [docs/PRICING.md](docs/PRICING.md). |
 | Lua scripting | `RUN_ANALYSIS` runs 13 logged steps as one call, and a failed step stays in `RUN_LOG` with its error. `TRAIN_MODEL` and `PURGE_EXPIRED` (a SHA-256 fingerprint per 1,000-row chunk) are Lua too. |
 | Window functions and analytic SQL | Turn core-banking transactions and GST history into 13 credit features |
 | `PREFERRING` (skyline) | Ranks the Pareto-best companies into the top 50 |
@@ -186,7 +187,7 @@ Everything runs from your own machine against your own AWS account. Nothing in t
    | `EXTERNAL_DOMAIN` | A second hosted zone for the 3rd party data APIs | no |
    | `ADMIN_CIDR` | Your IP as `x.x.x.x/32` (blank detects it) | no |
    | `APP_*_PASSWORD` | Demo login passwords (blank means `Demo@123`) | no |
-   | `AI_PROVIDER`, `ANTHROPIC_API_KEY`, `AI_MODEL` | `anthropic` with your key, or `bedrock` (blank turns the AI off) | no |
+   | `AI_PROVIDER`, `ANTHROPIC_API_KEY`, `AI_MODEL`, `BEDROCK_MODEL_ID` | `anthropic` with your key, or `bedrock` with the app host's instance role and no key (blank turns the AI off) | no |
 
 6. Deploy, then write every URL, login and password to `deployments/mysite/ACCESS.md`.
    ```bash
@@ -354,7 +355,7 @@ Every project below runs in the live deployment or in CI. Thank you to the Exaso
 
 ## About, contributing and contact
 
-Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 1.2.0, see [CHANGELOG.md](CHANGELOG.md).
+Credora is an ExaThon India 2026 project, a bank's pre-approved corporate lending, decided inside Exasol Personal. It was built on the Exasol Personal Local Starter Kit and deployed on AWS. The live deployment runs in my own AWS account, on the domains `credora.loan` and `credora.link`, which I registered for this project. This is version 2.0.0, see [CHANGELOG.md](CHANGELOG.md).
 
 Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). Security reports go through [SECURITY.md](SECURITY.md), and the [code of conduct](CODE_OF_CONDUCT.md) is short. To build on Credora, adapt it for your bank, or buy or license it, raise an [issue](https://github.com/anamika-iit-kgp/credora/issues) and I will get in touch.
 

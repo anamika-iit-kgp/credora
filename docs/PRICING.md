@@ -24,7 +24,7 @@ Cash available in a year is the industry's operating cash margin applied to 12 m
 CASH = GST_TURNOVER_12M x CASH_MARGIN_PCT / 100
 ```
 
-`CASH_MARGIN_PCT` comes from `CREDORA.INDUSTRY_MARGIN` for the company's industry. An industry missing from the table gets `CONFIG CASH_MARGIN_DEFAULT_PCT` (12 percent, the single figure every industry had before 1.3.0). The same cash figure feeds the DSCR feature in step 7 of the run, so the risk model and the offer size see the same cash. The mock data generator uses the same margins for the DSCR of the past loans the model trains on (`mocks/generator/generator/reference.py`, kept in step by a test).
+`CASH_MARGIN_PCT` comes from `CREDORA.INDUSTRY_MARGIN` for the company's industry. An industry missing from the table gets `CONFIG CASH_MARGIN_DEFAULT_PCT` (12 percent, the single figure every industry had before 2.0.0). The same cash figure feeds the DSCR feature in step 7 of the run, so the risk model and the offer size see the same cash. The mock data generator uses the same margins for the DSCR of the past loans the model trains on (`mocks/generator/generator/reference.py`, kept in step by a test).
 
 | Industry | Cash margin, % of GST turnover |
 |---|---|
@@ -66,7 +66,7 @@ LGD_EFF = LGD_PCT + (LGD_COLLATERAL - LGD_PCT) x COVER
 | Plant & machinery | 40 | Other physical collateral, Basel II foundation IRB |
 | Fixed deposit | 0 | Financial collateral, the covered part counts as recovered. The mock data does not produce it |
 
-A collateral type missing from the table counts as unsecured. The blend is a simplification of the foundation IRB treatment, which also sets minimum and full-recognition coverage levels, and the figures are illustrative. `LGD_EFF` is stored as `DECISIONS.LGD_PCT` and is what the floor ROI, both RAROC figures, the expected loss metric and the quote use. Before 1.3.0 collateral only took 0.25 percent off the rate card while the LGD stayed at 45 percent for everyone. The rate card discount stays.
+A collateral type missing from the table counts as unsecured. The blend is a simplification of the foundation IRB treatment, which also sets minimum and full-recognition coverage levels, and the figures are illustrative. `LGD_EFF` is stored as `DECISIONS.LGD_PCT` and is what the floor ROI, both RAROC figures, the expected loss metric and the quote use. Before 2.0.0 collateral only took 0.25 percent off the rate card while the LGD stayed at 45 percent for everyone. The rate card discount stays.
 
 ## 4. Price
 
@@ -108,7 +108,7 @@ Unchanged by the pricing inputs. Any hard fail declines (wilful default, CMR ran
 |---|---|
 | Exasol report, Offer and negotiation limit | A "Priced with" block under the terms, with the cash margin and the industry, the yearly cash, the LGD and the collateral, the existing CIBIL exposure and the room under the cap |
 | Offer, Negotiate | The quote's RAROC uses the decision's LGD, shown next to RAROC as "LGD used" |
-| Ask Credora and the semantic view | `expected_loss` is PD x `LGD_RATE` x offer amount, where `V_LATEST_DECISION.LGD_RATE` is the decision's LGD after collateral, or the policy figure for runs made before 1.3.0 |
+| Ask Credora and the semantic view | `expected_loss` is PD x `LGD_RATE` x offer amount, where `V_LATEST_DECISION.LGD_RATE` is the decision's LGD after collateral, or the policy figure for runs made before 2.0.0 |
 | What-if | The policy levers rerun the same SQL, so the margin table, the LGD table and the exposure cap apply to a what-if too |
 
 ## 8. Changing the figures

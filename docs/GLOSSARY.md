@@ -1423,7 +1423,7 @@ Paying the sanctioned loan money into the customer's account. Credora tracks it 
 
 Debt service coverage ratio. It is the cash the business earns divided by the loan payments due. Above 1 means it can pay.
 
-**In Exasol.** A feature in CREDORA.FEATURES, computed as 12% of 12-month GST turnover over the yearly payment on the indicated need at 11%. The offer amount keeps DSCR at least MIN_DSCR (1.25). The negotiation limit keeps it at least NEGOTIATION_DSCR (1.10).
+**In Exasol.** A feature in CREDORA.FEATURES, computed as the industry cash margin (CREDORA.INDUSTRY_MARGIN, 12% when the industry is unknown) of 12-month GST turnover over the yearly payment on the indicated need at 11%. The offer amount keeps DSCR at least MIN_DSCR (1.25). The negotiation limit keeps it at least NEGOTIATION_DSCR (1.10).
 
 **Objects.** `CREDORA.FEATURES`, `CREDORA.CONFIG`
 
@@ -1637,7 +1637,7 @@ WHEN KYC_STATUS <> 'VERIFIED' OR GRADE IN ('C2', 'D') OR OFFER_AMT < AMOUNT_REQU
 
 If a borrower defaults, the share of the loan the bank expects to lose after recovery.
 
-**In Exasol.** CONFIG LGD_PCT, 45% by default. Used in RAROC, the floor ROI and the certified metric expected_loss.
+**In Exasol.** CONFIG LGD_PCT, 45% unsecured, lowered per decision by the collateral type (CREDORA.LGD_COLLATERAL) and stored in DECISIONS.LGD_PCT. Used in RAROC, the floor ROI, the RM quote and the certified metric expected_loss.
 
 **Objects.** `CREDORA.CONFIG`
 
@@ -2262,3 +2262,21 @@ A number that says how far the companies a model scores today have drifted from 
 **Objects.** `CREDORA.MODEL_PSI`, `CREDORA.FEATURES`, `VS_LOS`
 
 **See also.** [Calibration (deciles and Brier score)](#calibration), [Model risk management](#model-risk-management), [Risk model](#risk-model)
+
+### Cash margin (industry)
+
+The share of yearly turnover an industry keeps as operating cash, which is the money available to service debt.
+
+**In Exasol.** CREDORA.INDUSTRY_MARGIN holds one margin per industry (5% to 22%, illustrative), with CONFIG CASH_MARGIN_DEFAULT_PCT for an unknown industry. It feeds the DSCR feature, the offer size and the negotiation limit, and the value used is written to DECISIONS.CASH_MARGIN_PCT.
+
+### LGD by collateral type
+
+Loss given default that depends on what secures the loan. A cash deposit or receivables lose the bank far less than an unsecured loan.
+
+**In Exasol.** CREDORA.LGD_COLLATERAL holds one LGD per collateral type. It is blended with the unsecured 45% by the share of the credit need the collateral covers, stored in DECISIONS.LGD_PCT, and used in RAROC, the floor ROI, the RM quote and expected_loss.
+
+### Exposure cap
+
+The rule that what a company already owes all lenders, plus the new offer, must stay within a share of its yearly turnover.
+
+**In Exasol.** The CIBIL commercial report's total exposure (FEATURES.CIBIL_TOTAL_EXPOSURE) plus the offer stays within CONFIG MAX_EXPOSURE_PCT (60%) of 12-month GST turnover. The room left is DECISIONS.EXPOSURE_ROOM and caps both the offer and the negotiation limit. When it is the binding cap the referral reason says so.
