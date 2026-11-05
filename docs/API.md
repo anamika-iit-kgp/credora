@@ -159,6 +159,7 @@ Login returns a bearer token. Each user has one role, which is `admin`, `datasci
 | `GET /api/offers/{offer_id}/events` | rm, loanops, admin | negotiation trail |
 | `GET /api/ai/status` | all | whether the AI features are on. The assistant needs an AI provider and at least one `EXA_*_AI_PASSWORD` |
 | `POST /api/ai/ask` `{question}` | all | Ask Credora. After a topic check, Claude answers through the Exasol MCP server logged in as the caller's own AI session user (the role user with the `_AI` suffix). The response holds the answer, every tool call and the Exasol user |
+| `POST /api/ai/ask/stream` `{question}` | all | The same question and rules, sent as it happens. One JSON event per line (`application/x-ndjson`), ending in `done` or `error` |
 | `POST /api/companies/{cif_id}/memo` | admin, datasci, loanops, rm | writes a credit memo for the company (inside Exasol by `CREDORA.CREDIT_MEMO` when possible) and stores it |
 | `GET /api/companies/{cif_id}/memo` | admin, datasci, loanops, rm | the latest stored credit memo for the current run, or `404` |
 | `GET /api/exasol/console?since=&scope=` | all (own statements, `scope=all` admin only) | Explain mode's Exasol console, listing the statements the backend ran in Exasol for this tab, with Exasol user, ms, rows, error |

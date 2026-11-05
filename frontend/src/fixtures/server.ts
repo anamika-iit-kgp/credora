@@ -3,6 +3,7 @@
 
 import type {
   AskAnswer,
+  AskEvent,
   AskStep,
   AuditEntry,
   Calibration,
@@ -1999,12 +2000,14 @@ function askFixture(question: string): AskAnswer {
   };
 }
 
-on("POST", "/api/ai/ask", ({ u, body }) => {
+const askRoute: Handler = ({ u, body }) => {
   const q = String(body.question ?? "").trim();
   if (!q) throw new HttpError(422, "Ask a question.");
   audit(u, "ASK_CREDORA", "", q.slice(0, 200));
   return u.role === "rm" ? askRmFixture(q) : askFixture(q);
-});
+};
+on("POST", "/api/ai/ask", askRoute);
+on("POST", "/api/ai/ask/stream", askRoute);
 
 /** The relationship manager's Ask Credora reads only the row-filtered V_RM_* views (her assigned companies). */
 function askRmFixture(question: string): AskAnswer {
@@ -2103,6 +2106,32 @@ function json(status: number, body: unknown) {
   });
 }
 
+/** The fixture answer as the live stream sends it: progress, each tool call, then the text piece by piece. */
+function askStream(a: AskAnswer) {
+  const events: AskEvent[] = [
+    { type: "status", stage: "topic" },
+    { type: "status", stage: "connecting" },
+    { type: "status", stage: "thinking" },
+    ...a.steps.flatMap((step): AskEvent[] => [
+      { type: "tool", tool: step.tool, input: step.input },
+      { type: "step", step },
+    ]),
+    ...(a.answer.match(/\S+\s*/g) ?? []).map((text): AskEvent => ({ type: "text", text })),
+    { type: "done", ...a },
+  ];
+  const encoder = new TextEncoder();
+  let i = 0;
+  const body = new ReadableStream<Uint8Array>({
+    async pull(c) {
+      const e = events[i++];
+      if (!e) return c.close();
+      await new Promise((r) => setTimeout(r, e.type === "text" ? 30 : 350));
+      c.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
+    },
+  });
+  return new Response(body, { status: 200, headers: { "Content-Type": "application/x-ndjson", "X-Credora-Fixture": "1" } });
+}
+
 function userFromToken(h: Headers): User | null {
   const a = h.get("Authorization") ?? "";
   const m = /^Bearer fx\.(\w+)$/.exec(a);
@@ -2141,6 +2170,7 @@ export function installFixtures() {
       try {
         const out = h({ u, body, q: url.searchParams, m: match, tab });
         if (method !== "GET") save();
+        if (url.pathname === "/api/ai/ask/stream") return askStream(out as AskAnswer);
         return json(200, out);
       } catch (e) {
         if (e instanceof HttpError) return json(e.status, { detail: e.message });

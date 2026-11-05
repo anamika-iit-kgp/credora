@@ -28,6 +28,7 @@ import os
 import shlex
 import shutil
 import time
+from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 from fastapi import HTTPException
@@ -36,6 +37,8 @@ from . import ai, console, exa, runs
 from .config import settings
 
 log = logging.getLogger("credora.assistant")
+
+Emit = Callable[[dict], None]
 
 MCP_SERVER_PACKAGE = "exasol-mcp-server@2.3.0"
 # The read-only user for sessions that belong to no signed-in person (the self-test). A person's
@@ -419,20 +422,29 @@ def _current_run_id() -> str | None:
         return None
 
 
-async def ask(question: str, role: str = "rm") -> dict:
+def check_question(question: str, role: str = "rm") -> tuple[str, str]:
+    """The cleaned question and the Exasol user, or ValueError or AssistantUnavailable before any AI call."""
     question = (question or "").strip()
     if not question:
         raise ValueError("Ask a question.")
     if len(question) > MAX_QUESTION_CHARS:
         raise ValueError(f"Keep the question under {MAX_QUESTION_CHARS} characters.")
-    client = ai.client()
-    if client is None or not enabled():
+    if ai.client() is None or not enabled():
         raise AssistantUnavailable("Ask Credora is off: no AI provider is configured on this server.")
     try:
         exa_user, _ = exasol_login(role)
     except HTTPException as e:  # the route answers 503 with this text, before any AI call
         raise AssistantUnavailable(str(e.detail)) from e
+    return question, exa_user
 
+
+async def ask(question: str, role: str = "rm", emit: Emit | None = None) -> dict:
+    """Answer one question. With `emit`, progress and the answer's text go to it as they happen."""
+    question, exa_user = check_question(question, role)
+    client = ai.client()
+    say = emit or (lambda _event: None)
+
+    say({"type": "status", "stage": "topic"})
     if not await _on_topic(client, question):
         return {"answer": OFF_TOPIC_ANSWER, "steps": [], "model": ai.model(), "run_id": None,
                 "off_topic": True}
@@ -440,12 +452,14 @@ async def ask(question: str, role: str = "rm") -> dict:
     run_id = await asyncio.to_thread(_current_run_id)
     system = system_prompt(run_id, role)
     steps: list[dict] = []
+    say({"type": "status", "stage": "connecting"})
     async with _slots:
         try:
             async with _Session(role) as session:
                 tools = to_claude_tools((await session.list_tools()).tools)
                 messages: list[dict] = [{"role": "user", "content": question}]
-                answer = await _loop(client, session, system, tools, messages, steps)
+                say({"type": "status", "stage": "thinking"})
+                answer = await _loop(client, session, system, tools, messages, steps, emit)
         except AssistantUnavailable:
             raise
         except (OSError, asyncio.TimeoutError) as e:
@@ -468,25 +482,38 @@ async def _on_topic(client: Any, question: str) -> bool:
     return not verdict.startswith("OUT")
 
 
+def _stream_turn(client: Any, emit: Emit, kw: dict) -> Any:
+    """One model turn, sending its text to `emit` as it is written. Runs in a worker thread."""
+    with client.messages.stream(**kw) as stream:
+        for text in stream.text_stream:
+            emit({"type": "text", "text": text})
+        return stream.get_final_message()
+
+
 async def _loop(client: Any, session: Any, system: str, tools: list[dict], messages: list[dict],
-                steps: list[dict]) -> str:
+                steps: list[dict], emit: Emit | None = None) -> str:
     calls = 0
+    say = emit or (lambda _event: None)
     while True:
         last = calls >= MAX_TOOL_CALLS
-        resp = await asyncio.to_thread(
-            client.messages.create,
-            model=ai.model(),
-            max_tokens=16000,
-            system=system,
-            tools=tools,
-            tool_choice={"type": "none"} if last else {"type": "auto"},
-            messages=messages,
-        )
+        kw = {
+            "model": ai.model(),
+            "max_tokens": 16000,
+            "system": system,
+            "tools": tools,
+            "tool_choice": {"type": "none"} if last else {"type": "auto"},
+            "messages": messages,
+        }
+        if emit:
+            resp = await asyncio.to_thread(_stream_turn, client, emit, kw)
+        else:
+            resp = await asyncio.to_thread(client.messages.create, **kw)
         if resp.stop_reason == "refusal":
             return "Credora cannot answer that question."
         uses = [b for b in resp.content if b.type == "tool_use"]
         if resp.stop_reason != "tool_use" or not uses:
             return "".join(b.text for b in resp.content if b.type == "text").strip()
+        say({"type": "reset"})  # text written before a tool call is not the answer
         messages.append({"role": "assistant", "content": resp.content})
         results = []
         for b in uses:
@@ -495,6 +522,7 @@ async def _loop(client: Any, session: Any, system: str, tools: list[dict], messa
                                 "content": "Tool budget used up. Answer with what you have."})
                 continue
             calls += 1
+            say({"type": "tool", "tool": b.name, "input": b.input or {}})
             t0 = time.perf_counter()
             try:
                 r = await asyncio.wait_for(session.call_tool(b.name, b.input or {}), timeout=120)
@@ -507,6 +535,41 @@ async def _loop(client: Any, session: Any, system: str, tools: list[dict], messa
                              (time.perf_counter() - t0) * 1000, is_error, text[:300] if is_error else None)
             steps.append({"tool": b.name, "input": b.input or {}, "result_preview": clip(text, PREVIEW_CHARS),
                           "is_error": is_error})
+            say({"type": "step", "step": steps[-1]})
             results.append({"type": "tool_result", "tool_use_id": b.id, "is_error": is_error,
                             "content": clip(text, MAX_RESULT_CHARS) or "(no rows)"})
         messages.append({"role": "user", "content": results})
+
+
+async def stream_events(question: str, role: str = "rm") -> AsyncIterator[dict]:
+    """The events of one question: status, tool, step, reset and text, then one done or error.
+
+    The question runs in its own task because the MCP session must be opened and closed in one task.
+    If the browser goes away the task is cancelled, which also closes the MCP server.
+    """
+    queue: asyncio.Queue[dict | None] = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def emit(event: dict | None) -> None:  # called from worker threads as well
+        loop.call_soon_threadsafe(queue.put_nowait, event)
+
+    async def run() -> None:
+        try:
+            emit({"type": "done", **await ask(question, role, emit)})
+        except ValueError as e:
+            emit({"type": "error", "status": 422, "detail": str(e)})
+        except AssistantUnavailable as e:
+            emit({"type": "error", "status": 503, "detail": str(e)})
+        except Exception as e:  # noqa: BLE001 - provider errors (rate limits, network)
+            log.warning("Ask Credora failed: %s", e)
+            emit({"type": "error", "status": 502, "detail": "The AI provider did not answer. Try again shortly."})
+        finally:
+            emit(None)
+
+    task = asyncio.create_task(run())
+    try:
+        while (event := await queue.get()) is not None:
+            yield event
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)

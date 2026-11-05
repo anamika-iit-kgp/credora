@@ -1986,3 +1986,24 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Ask Credora: the marker at the end of an answer while it is being written */
+.ask-caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: currentColor;
+  opacity: 0.6;
+  animation: ask-caret 1s steps(2) infinite;
+}
+@keyframes ask-caret {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ask-caret {
+    animation: none;
+  }
+}

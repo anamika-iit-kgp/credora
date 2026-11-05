@@ -593,6 +593,18 @@ export interface AskAnswer {
   exasol_user?: string | null;
 }
 
+export type AskStage = "topic" | "connecting" | "thinking";
+
+/** One line of POST /api/ai/ask/stream. The last event is a done or an error. */
+export type AskEvent =
+  | { type: "status"; stage: AskStage }
+  | { type: "text"; text: string }
+  | { type: "reset" }
+  | { type: "tool"; tool: string; input: Record<string, unknown> }
+  | { type: "step"; step: AskStep }
+  | ({ type: "done" } & AskAnswer)
+  | { type: "error"; status: number; detail: string };
+
 export type MemoEngine = "exasol-udf" | "backend";
 
 export interface CreditMemo {
