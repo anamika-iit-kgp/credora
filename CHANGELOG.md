@@ -5,6 +5,7 @@ All notable changes to Credora. Dates are in IST.
 ## Unreleased
 
 - Ask Credora streams. The answer appears as Claude writes it, each MCP call appears as it finishes, and the panel says what is happening now. `POST /api/ai/ask/stream` sends one JSON event per line. `POST /api/ai/ask` still answers in one piece.
+- Ask Credora draws charts. The model picks a bar, line or share chart and names the columns, and the numbers are read from the result of its last query, so a chart cannot show a figure Exasol did not return. Each chart can open as a table. The charts use Recharts (MIT).
 
 ## 2.0.2, 2 November 2026
 

@@ -36,7 +36,7 @@ describe("readLines", () => {
 });
 
 describe("applyAskEvent", () => {
-  const start: AskLive = { stage: null, tool: null, text: "", steps: [] };
+  const start: AskLive = { stage: null, tool: null, text: "", steps: [], charts: [] };
   const step: AskStep = { tool: "execute_exasol_query", input: { query: "SELECT 42" }, result_preview: "42", is_error: false };
   const run = (...events: AskEvent[]) => events.reduce(applyAskEvent, start);
 
@@ -46,6 +46,12 @@ describe("applyAskEvent", () => {
 
   it("drops text written before a tool call, because it is not the answer", () => {
     expect(run({ type: "text", text: "Let me check." }, { type: "reset" }).text).toBe("");
+  });
+
+  it("adds a chart as soon as it arrives", () => {
+    const chart = { kind: "bar", title: "t", unit: "number", x_label: "X", categories: ["a"], series: [{ name: "Y", values: [1] }] } as const;
+    const copy = { ...chart, categories: [...chart.categories], series: chart.series.map((s) => ({ ...s, values: [...s.values] })) };
+    expect(run({ type: "chart", chart: copy }).charts).toEqual([copy]);
   });
 
   it("shows the tool while it runs and adds the step when it finishes", () => {

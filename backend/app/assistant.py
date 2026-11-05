@@ -33,7 +33,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from . import ai, console, exa, runs
+from . import ai, charts as chart_tool, console, exa, runs
 from .config import settings
 
 log = logging.getLogger("credora.assistant")
@@ -279,7 +279,7 @@ ROLE_PROMPTS = {
 
 
 def system_prompt(run_id: str | None, role: str = "rm") -> str:
-    out = SYSTEM_PROMPT + "\n\n" + ROLE_PROMPTS.get(role, ROLE_PROMPTS["rm"])
+    out = SYSTEM_PROMPT + chart_tool.PROMPT + "\n\n" + ROLE_PROMPTS.get(role, ROLE_PROMPTS["rm"])
     if role == "rm":
         out += (f"\nThe signed-in relationship manager is {settings.rm_id}. 'My companies', 'my book' and "
                 "'assigned companies' mean the rows the V_RM_* views return; RM_ID in DECISIONS is the "
@@ -452,20 +452,21 @@ async def ask(question: str, role: str = "rm", emit: Emit | None = None) -> dict
     run_id = await asyncio.to_thread(_current_run_id)
     system = system_prompt(run_id, role)
     steps: list[dict] = []
+    charts: list[dict] = []
     say({"type": "status", "stage": "connecting"})
     async with _slots:
         try:
             async with _Session(role) as session:
-                tools = to_claude_tools((await session.list_tools()).tools)
+                tools = to_claude_tools((await session.list_tools()).tools) + [chart_tool.TOOL]
                 messages: list[dict] = [{"role": "user", "content": question}]
                 say({"type": "status", "stage": "thinking"})
-                answer = await _loop(client, session, system, tools, messages, steps, emit)
+                answer = await _loop(client, session, system, tools, messages, steps, emit, charts)
         except AssistantUnavailable:
             raise
         except (OSError, asyncio.TimeoutError) as e:
             log.warning("Exasol MCP server failed: %s", e)
             raise AssistantUnavailable("The Exasol MCP server could not start. Try again shortly.") from e
-    return {"answer": answer, "steps": steps, "model": ai.model(), "run_id": run_id,
+    return {"answer": answer, "steps": steps, "charts": charts, "model": ai.model(), "run_id": run_id,
             "exasol_user": exa_user}
 
 
@@ -490,9 +491,24 @@ def _stream_turn(client: Any, emit: Emit, kw: dict) -> Any:
         return stream.get_final_message()
 
 
+def _add_chart(spec: dict, last_result: str | None, charts: list[dict], say: Emit) -> tuple[str, bool]:
+    """Build one chart. The returned text and error flag go back to the model as the tool's result."""
+    if len(charts) >= chart_tool.MAX_CHARTS:
+        return f"At most {chart_tool.MAX_CHARTS} charts. Answer with what is shown.", True
+    try:
+        chart = chart_tool.build_chart(spec, last_result)
+    except chart_tool.ChartError as e:
+        return str(e), True
+    charts.append(chart)
+    say({"type": "chart", "chart": chart})
+    return "The chart is shown under your answer.", False
+
+
 async def _loop(client: Any, session: Any, system: str, tools: list[dict], messages: list[dict],
-                steps: list[dict], emit: Emit | None = None) -> str:
+                steps: list[dict], emit: Emit | None = None, charts: list[dict] | None = None) -> str:
     calls = 0
+    charts = [] if charts is None else charts
+    last_result: str | None = None  # in full: a chart reads its numbers from here
     say = emit or (lambda _event: None)
     while True:
         last = calls >= MAX_TOOL_CALLS
@@ -517,6 +533,10 @@ async def _loop(client: Any, session: Any, system: str, tools: list[dict], messa
         messages.append({"role": "assistant", "content": resp.content})
         results = []
         for b in uses:
+            if b.name == chart_tool.TOOL_NAME:
+                text, is_error = _add_chart(b.input or {}, last_result, charts, say)
+                results.append({"type": "tool_result", "tool_use_id": b.id, "is_error": is_error, "content": text})
+                continue
             if calls >= MAX_TOOL_CALLS:
                 results.append({"type": "tool_result", "tool_use_id": b.id, "is_error": True,
                                 "content": "Tool budget used up. Answer with what you have."})
@@ -536,6 +556,8 @@ async def _loop(client: Any, session: Any, system: str, tools: list[dict], messa
             steps.append({"tool": b.name, "input": b.input or {}, "result_preview": clip(text, PREVIEW_CHARS),
                           "is_error": is_error})
             say({"type": "step", "step": steps[-1]})
+            if not is_error and chart_tool.parse_result(text) is not None:
+                last_result = text
             results.append({"type": "tool_result", "tool_use_id": b.id, "is_error": is_error,
                             "content": clip(text, MAX_RESULT_CHARS) or "(no rows)"})
         messages.append({"role": "user", "content": results})
