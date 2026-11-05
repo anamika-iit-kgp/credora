@@ -3,12 +3,15 @@ import { Search, SearchX, X } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCompanies } from "../../api/hooks";
 import { useUser } from "../../auth/AuthContext";
+import { SortableTh, useUrlSort } from "../../components/SortableTh";
 import { SourceLegend } from "../../components/SourceTag";
 import { DecisionBadge, Empty, ErrorState, Loading, Money, PageHeader, Pager, Panel } from "../../components/ui";
 import { num } from "../../lib/format";
 import { ExaBadge } from "../../explain/ExaBadge";
 
 const SIZE = 25;
+// The list is paginated, so the server sorts it. backend/app/routes/explorer.py holds the same keys.
+const SORT_KEYS = ["cif_id", "legal_name", "industry", "city", "stage", "partners", "rm_id", "decision", "rank_no", "offer_amount"];
 
 export function CompaniesPage() {
   const user = useUser();
@@ -34,7 +37,8 @@ export function CompaniesPage() {
     setSp(n, { replace: true });
   }
 
-  const res = useCompanies({ q, stage, decision, page, size: SIZE });
+  const sort = useUrlSort(SORT_KEYS);
+  const res = useCompanies({ q, stage, decision, page, size: SIZE, sort: sort.sort?.key, order: sort.sort?.dir });
 
   return (
     <div className="page">
@@ -117,16 +121,16 @@ export function CompaniesPage() {
               <table className="table table-hover">
                 <thead>
                   <tr>
-                    <th scope="col">CIF</th>
-                    <th scope="col">Company</th>
-                    <th scope="col">Industry</th>
-                    <th scope="col">City</th>
-                    <th scope="col">GST stage</th>
-                    <th scope="col" className="r">Partners</th>
-                    <th scope="col">RM</th>
-                    <th scope="col">Decision</th>
-                    <th scope="col" className="r">Rank</th>
-                    <th scope="col" className="r">Offer</th>
+                    <SortableTh sortKey="cif_id" control={sort}>CIF</SortableTh>
+                    <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+                    <SortableTh sortKey="industry" control={sort}>Industry</SortableTh>
+                    <SortableTh sortKey="city" control={sort}>City</SortableTh>
+                    <SortableTh sortKey="stage" control={sort}>GST stage</SortableTh>
+                    <SortableTh sortKey="partners" control={sort} className="r">Partners</SortableTh>
+                    <SortableTh sortKey="rm_id" control={sort}>RM</SortableTh>
+                    <SortableTh sortKey="decision" control={sort}>Decision</SortableTh>
+                    <SortableTh sortKey="rank_no" control={sort} className="r">Rank</SortableTh>
+                    <SortableTh sortKey="offer_amount" control={sort} className="r">Offer</SortableTh>
                   </tr>
                 </thead>
                 <tbody>

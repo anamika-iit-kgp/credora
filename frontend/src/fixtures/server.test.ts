@@ -143,6 +143,37 @@ describe("overview and decisions", () => {
     expect(ov.body.decision_mix).toEqual(expected);
   });
 
+  it("sorts the decisions over every page, not within one page, with blanks last", async () => {
+    const rows = await allDecisions("&sort=offer_amount&order=desc");
+    expect(rows).toHaveLength(1000);
+    const offers = rows.map((r) => r.offer_amount);
+    const firstBlank = offers.indexOf(null);
+    expect(firstBlank).toBeGreaterThan(50);
+    expect(offers.slice(firstBlank).every((v) => v === null)).toBe(true);
+    const held = offers.slice(0, firstBlank) as number[];
+    expect(held).toEqual([...held].sort((a, b) => b - a));
+  });
+
+  it("sorts the decisions in working order, and refuses a column it does not offer", async () => {
+    const rows = await allDecisions("&sort=decision");
+    const order = rows.map((r) => r.decision);
+    expect(order.indexOf("APPROVE")).toBe(0);
+    expect(order.lastIndexOf("APPROVE")).toBeLessThan(order.indexOf("REFER"));
+    expect(order.lastIndexOf("REFER")).toBeLessThan(order.indexOf("DECLINE"));
+    expect((await get("admin", "/api/decisions?sort=hard_fails")).status).toBe(422);
+    expect((await get("admin", "/api/companies?sort=__proto__")).status).toBe(422);
+  });
+
+  it("sorts the companies across pages by name, and keeps the usual order without a sort", async () => {
+    const first = await get<Page<CompanyRow>>("admin", "/api/companies?size=25&sort=legal_name");
+    const second = await get<Page<CompanyRow>>("admin", "/api/companies?size=25&page=2&sort=legal_name");
+    const names = [...first.body.items, ...second.body.items].map((r) => r.legal_name.toLowerCase());
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, "en", { numeric: true })));
+    const plain = await get<Page<CompanyRow>>("admin", "/api/companies?size=25");
+    expect(plain.body.items[0].cif_id).toBe("C000001");
+    expect(first.body.total).toBe(plain.body.total);
+  });
+
   it("pages the decisions 50 at a time and ranks every company once, 1 to 1000", async () => {
     const first = await get<Page<DecisionRow>>("admin", "/api/decisions");
     expect(first.body.total).toBe(1000);

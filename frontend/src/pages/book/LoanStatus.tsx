@@ -3,12 +3,22 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ChevronRight, Download, ListChecks } from "lucide-react";
 import type { LoanStatus, LoanStatusEvent, LoanStatusRow } from "../../api/types";
 import { LOAN_STATUS_LABEL, useLoanStatus } from "../../api/workflow";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { DecisionBadge, Empty, ErrorState, Loading, Money, PageHeader, Panel } from "../../components/ui";
 import { csvName, downloadCsv, type CsvColumn } from "../../lib/csv";
 import { dateTime, num } from "../../lib/format";
-import { WithExplain } from "../../explain/Explain";
+import { decisionRank, ordinal, type SortColumns } from "../../lib/sort";
 
-const ORDER: LoanStatus[] = ["ASSIGNED", "CONTACTED", "NEGOTIATING", "LOAN_TAKEN", "IN_PROGRESS", "DISBURSED", "NOT_INTERESTED"];
+export const LOAN_STATUS_ORDER: LoanStatus[] = ["ASSIGNED", "CONTACTED", "NEGOTIATING", "LOAN_TAKEN", "IN_PROGRESS", "DISBURSED", "NOT_INTERESTED"];
+
+const SORT: SortColumns<LoanStatusRow> = {
+  legal_name: (r) => r.legal_name || r.cif_id,
+  rm_name: (r) => r.rm_name,
+  decision: (r) => decisionRank(r.decision),
+  offer_amount: (r) => r.offer_amount,
+  status: (r) => ordinal(LOAN_STATUS_ORDER, r.status),
+  updated_at: (r) => r.updated_at,
+};
 
 export function LoanStatusBadge({ s }: { s: LoanStatus }) {
   return <span className={`loan-status ls-${s.toLowerCase().replace("_", "-")}`}>{LOAN_STATUS_LABEL[s]}</span>;
@@ -52,8 +62,9 @@ export function LoanStatusPage() {
   const [open, setOpen] = useState<string | null>(null);
   const all = q.data ?? [];
   const rms = useMemo(() => [...new Map(all.map((r) => [r.rm_id, r.rm_name])).entries()].sort(), [all]);
-  const rows = all.filter((r) => (!rm || r.rm_id === rm) && (!status || r.status === status));
-  const counts = ORDER.map((s) => [s, all.filter((r) => r.status === s).length] as const).filter(([, n]) => n > 0);
+  const sort = useSort(all.filter((r) => (!rm || r.rm_id === rm) && (!status || r.status === status)), SORT);
+  const rows = sort.rows;
+  const counts = LOAN_STATUS_ORDER.map((s) => [s, all.filter((r) => r.status === s).length] as const).filter(([, n]) => n > 0);
   return (
     <div className="page">
       <PageHeader
@@ -67,7 +78,7 @@ export function LoanStatusPage() {
           </>
         }
         actions={
-          <button className="btn btn-quiet" disabled={!rows.length} onClick={() => downloadCsv(csvName("loan-status"), CSV, rows)}>
+          <button className="btn btn-quiet" disabled={!rows.length} onClick={() => downloadCsv(csvName("loan-status"), CSV, [...rows])}>
             <Download aria-hidden="true" />
             Export CSV
           </button>
@@ -99,7 +110,7 @@ export function LoanStatusPage() {
             <span className="field-label">Status</span>
             <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">All</option>
-              {ORDER.map((s) => (
+              {LOAN_STATUS_ORDER.map((s) => (
                 <option key={s} value={s}>
                   {LOAN_STATUS_LABEL[s]}
                 </option>
@@ -123,16 +134,12 @@ export function LoanStatusPage() {
               <thead>
                 <tr>
                   <th scope="col"><span className="sr-only">History</span></th>
-                  <th scope="col">Company</th>
-                  <th scope="col">
-                    <WithExplain id="rm-assignment">Relationship manager</WithExplain>
-                  </th>
-                  <th scope="col">Decision</th>
-                  <th scope="col" className="r">Offer</th>
-                  <th scope="col">
-                    <WithExplain id="loan-status">Status</WithExplain>
-                  </th>
-                  <th scope="col">Last update</th>
+                  <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+                  <SortableTh sortKey="rm_name" control={sort} explain="rm-assignment">Relationship manager</SortableTh>
+                  <SortableTh sortKey="decision" control={sort}>Decision</SortableTh>
+                  <SortableTh sortKey="offer_amount" control={sort} className="r">Offer</SortableTh>
+                  <SortableTh sortKey="status" control={sort} explain="loan-status">Status</SortableTh>
+                  <SortableTh sortKey="updated_at" control={sort}>Last update</SortableTh>
                 </tr>
               </thead>
               <tbody>

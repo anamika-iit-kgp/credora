@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from .. import crm, exa, mockapi, runs
+from .. import crm, exa, mockapi, runs, sorting
 from ..auth import User, current_user
 from ..features import inr
 from .core import db
@@ -65,9 +65,25 @@ def run_id_or_blank(user: User) -> str:
 
 # ---------------------------------------------------------------- companies
 
+COMPANY_SORT = {
+    "cif_id": "CIF_ID",
+    "legal_name": "LOWER(LEGAL_NAME)",
+    "industry": "LOWER(INDUSTRY)",
+    "city": "LOWER(CITY)",
+    "stage": sorting.GST_STAGE_ORDER,
+    "partners": "COALESCE(PARTNERS, 0)",
+    "rm_id": "RM_ID",
+    "decision": sorting.DECISION_ORDER,
+    "rank_no": "RANK_NO",
+    "offer_amount": "OFFER_AMOUNT",
+}
+
+
 @router.get("/companies")
 def companies(q: str = "", stage: str = "", decision: str = "", page: int = Query(1, ge=1),
-              size: int = Query(50, ge=1, le=200), user: User = Depends(current_user)):
+              size: int = Query(50, ge=1, le=200), sort: str = Query("", max_length=40),
+              order: str = Query("asc", pattern="^(asc|desc)$"), user: User = Depends(current_user)):
+    order_sql = sorting.order_by(COMPANY_SORT, sort, order, "CIF_ID")
     run = run_id_or_blank(user)
     params: dict = {"run": run, "size": str(size), "off": str((page - 1) * size)}
     where = []
@@ -106,7 +122,7 @@ def companies(q: str = "", stage: str = "", decision: str = "", page: int = Quer
     sql = f"WITH x AS ({base}) SELECT x.*, COUNT(*) OVER () TOTAL FROM x"
     if where:
         sql += " WHERE " + " AND ".join(where)
-    rows = exa.query(db(user), sql + " ORDER BY CIF_ID LIMIT {size!d} OFFSET {off!d}", params)
+    rows = exa.query(db(user), sql + f" ORDER BY {order_sql} LIMIT {{size!d}} OFFSET {{off!d}}", params)
     total = int(rows[0]["TOTAL"]) if rows else 0
     if not rows and page > 1:
         cnt = f"WITH x AS ({base}) SELECT COUNT(*) N FROM x" + (" WHERE " + " AND ".join(where) if where else "")

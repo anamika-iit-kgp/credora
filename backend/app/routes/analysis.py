@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from .. import finance, crm, exa, jobs, publish, runs
+from .. import finance, crm, exa, jobs, publish, runs, sorting
 from ..auth import User, require
 from ..excerpts import report_steps
 from ..features import feature_list, parse_contributions, reasons
@@ -40,10 +40,26 @@ def list_runs(user: User = Depends(require("admin", "datasci", "loanops"))):
     return out if user.role in DRAFT_ROLES else [r for r in out if r["published"]]
 
 
+DECISION_SORT = {
+    "rank_no": "RANK_NO",
+    "legal_name": "LOWER(LEGAL_NAME)",
+    "decision": sorting.DECISION_ORDER,
+    "grade": "GRADE",
+    "pd": "PD",
+    "raroc": "RAROC_OFFER",
+    "offer_amount": "OFFER_AMOUNT",
+    "offer_roi": "OFFER_ROI",
+    "offer_tenure": "OFFER_TENURE",
+    "assigned_rm_id": "ASSIGNED_RM_ID",
+}
+
+
 @router.get("/decisions")
 def decisions(decision: str = "", grade: str = "", assigned: str = Query("", pattern="^(|yes|no)$"),
               page: int = Query(1, ge=1), size: int = Query(50, ge=1, le=200),
+              sort: str = Query("", max_length=40), order: str = Query("asc", pattern="^(asc|desc)$"),
               user: User = Depends(require("admin", "datasci", "loanops"))):
+    order_sql = sorting.order_by(DECISION_SORT, sort, order, "RANK_NO, CIF_ID")
     run = runs.current_run(db(user))
     if not run:
         return {"items": [], "total": 0, "page": page, "size": size}
@@ -64,7 +80,7 @@ def decisions(decision: str = "", grade: str = "", assigned: str = Query("", pat
         SELECT CIF_ID, LEGAL_NAME, DECISION, GRADE, PD, RANK_NO, OFFER_AMOUNT, OFFER_ROI, OFFER_TENURE, RAROC_OFFER,
                HARD_FAILS, ASSIGNED_RM_ID, COUNT(*) OVER () TOTAL
         FROM {src} x WHERE {' AND '.join(where)}
-        ORDER BY RANK_NO LIMIT {{size!d}} OFFSET {{off!d}}""", params)
+        ORDER BY {order_sql} LIMIT {{size!d}} OFFSET {{off!d}}""", params)
     total = int(rows[0]["TOTAL"]) if rows else 0
     if not rows and page > 1:
         total = int(exa.scalar(db(user), f"SELECT COUNT(*) FROM {src} x WHERE {' AND '.join(where)}",

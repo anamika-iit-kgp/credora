@@ -6,9 +6,11 @@ import { useModelCompare, useModels, useStartTraining } from "../../api/hooks";
 import type { FeatureImportance, Model, ModelCard, ModelComparison } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
 import { JobProgress } from "../../components/JobProgress";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { DecisionBadge, Empty, ErrorState, Grade, Loading, PageHeader, Panel } from "../../components/ui";
 import { dateTime, num, pctFromRatio } from "../../lib/format";
 import { can } from "../../lib/roles";
+import { decisionRank, type SortColumns } from "../../lib/sort";
 import { usePersistentJob } from "../../lib/usePersistentJob";
 import { MyActivationRequests, RequestActivationButton } from "./ActivationParts";
 import { CalibrationPanel, PsiPanel } from "./ValidationParts";
@@ -25,6 +27,7 @@ export function ModelsPage() {
   const models = q.data ?? [];
   const active = models.find((m) => m.active) ?? null;
   const shown = models.find((m) => m.version === picked) ?? active ?? models[0] ?? null;
+  const sort = useSort(models, VERSION_SORT);
 
   return (
     <div className="page">
@@ -80,23 +83,17 @@ export function ModelsPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th scope="col">
-                      <WithExplain id="model-registry">Version</WithExplain>
-                    </th>
-                    <th scope="col">Trained</th>
-                    <th scope="col" className="r">Rows</th>
-                    <th scope="col" className="r">
-                      <WithExplain id="risk-model">AUC</WithExplain>
-                    </th>
-                    <th scope="col" className="r">Gini</th>
-                    <th scope="col">
-                      <WithExplain id="model-activation">Status</WithExplain>
-                    </th>
+                    <SortableTh sortKey="version" control={sort} explain="model-registry">Version</SortableTh>
+                    <SortableTh sortKey="trained_at" control={sort}>Trained</SortableTh>
+                    <SortableTh sortKey="train_rows" control={sort} className="r">Rows</SortableTh>
+                    <SortableTh sortKey="auc" control={sort} className="r" explain="risk-model">AUC</SortableTh>
+                    <SortableTh sortKey="gini" control={sort} className="r">Gini</SortableTh>
+                    <SortableTh sortKey="status" control={sort} explain="model-activation">Status</SortableTh>
                     <th scope="col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {models.map((m) => (
+                  {sort.rows.map((m) => (
                     <tr key={m.version} className={shown?.version === m.version ? "is-picked" : ""}>
                       <td>
                         <button className="linkish" onClick={() => setPicked(m.version)} aria-pressed={shown?.version === m.version}>
@@ -226,7 +223,63 @@ function CardFor({ m, label, note, vs, action }: { m: ModelCard; label: string; 
   );
 }
 
+const VERSION_SORT: SortColumns<Model> = {
+  version: (m) => m.version,
+  trained_at: (m) => m.trained_at,
+  train_rows: (m) => m.train_rows,
+  auc: (m) => m.auc,
+  gini: (m) => m.gini,
+  status: (m) => (m.active ? 0 : m.role === "challenger" ? 1 : 2),
+};
+
 const MOVE_WORD: Record<string, string> = { APPROVE: "approve", REFER: "refer", DECLINE: "decline" };
+
+const CHANGED_SORT: SortColumns<ModelComparison["changed"][number]> = {
+  legal_name: (x) => x.legal_name,
+  from: (x) => decisionRank(x.from),
+  to: (x) => decisionRank(x.to),
+  champion_pd: (x) => x.champion_pd,
+  challenger_pd: (x) => x.challenger_pd,
+};
+
+function ChangedTable({ rows }: { rows: ModelComparison["changed"] }) {
+  const sort = useSort(rows, CHANGED_SORT);
+  return (
+    <div className="table-wrap">
+      <table className="table">
+        <caption className="sr-only">Companies whose decision would change, largest PD difference first until you sort a column</caption>
+        <thead>
+          <tr>
+            <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+            <SortableTh sortKey="from" control={sort}>Champion</SortableTh>
+            <SortableTh sortKey="to" control={sort}>Challenger</SortableTh>
+            <SortableTh sortKey="champion_pd" control={sort} className="r">PD champion</SortableTh>
+            <SortableTh sortKey="challenger_pd" control={sort} className="r">PD challenger</SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sort.rows.map((x) => (
+            <tr key={x.cif_id}>
+              <td>
+                <Link to={`/companies/${x.cif_id}/report`}>{x.legal_name}</Link>
+                <br />
+                <code className="small muted">{x.cif_id}</code>
+              </td>
+              <td className="nowrap">
+                <DecisionBadge d={x.from} /> <Grade g={x.champion_grade} />
+              </td>
+              <td className="nowrap">
+                <DecisionBadge d={x.to} /> <Grade g={x.challenger_grade} />
+              </td>
+              <td className="r num">{pctFromRatio(x.champion_pd)}</td>
+              <td className="r num">{pctFromRatio(x.challenger_pd)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function Shadow({ c }: { c: ModelComparison }) {
   if (!c.scored)
@@ -257,41 +310,7 @@ function Shadow({ c }: { c: ModelComparison }) {
           ))}
         </ul>
       )}
-      {c.changed.length > 0 && (
-        <div className="table-wrap">
-          <table className="table">
-            <caption className="sr-only">Companies whose decision would change, largest PD difference first</caption>
-            <thead>
-              <tr>
-                <th scope="col">Company</th>
-                <th scope="col">Champion</th>
-                <th scope="col">Challenger</th>
-                <th scope="col" className="r">PD champion</th>
-                <th scope="col" className="r">PD challenger</th>
-              </tr>
-            </thead>
-            <tbody>
-              {c.changed.map((x) => (
-                <tr key={x.cif_id}>
-                  <td>
-                    <Link to={`/companies/${x.cif_id}/report`}>{x.legal_name}</Link>
-                    <br />
-                    <code className="small muted">{x.cif_id}</code>
-                  </td>
-                  <td className="nowrap">
-                    <DecisionBadge d={x.from} /> <Grade g={x.champion_grade} />
-                  </td>
-                  <td className="nowrap">
-                    <DecisionBadge d={x.to} /> <Grade g={x.challenger_grade} />
-                  </td>
-                  <td className="r num">{pctFromRatio(x.champion_pd)}</td>
-                  <td className="r num">{pctFromRatio(x.challenger_pd)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {c.changed.length > 0 && <ChangedTable rows={c.changed} />}
       <p className="small muted top-gap">
         Shadow only. <code>CREDORA.SCORE_CHALLENGER</code> runs the decision SQL again on the challenger's PD and writes <code>CREDORA.CHALLENGER_SCORES</code>. No offer changes until a
         data scientist requests the challenger&apos;s activation and the admin approves it, and then from the next run.
