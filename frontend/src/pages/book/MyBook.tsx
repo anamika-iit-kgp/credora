@@ -193,7 +193,7 @@ function StatusDialog({ row, onClose, onSaved }: { row: LoanStatusRow | null; on
     >
       <p className="small muted">
         Now <LoanStatusBadge s={row.status} /> since {dateTime(row.updated_at)}. Every update is kept with its note and time. The status
-        moves one step at a time. Loan taken needs terms agreed within the negotiation limits, or sanctioned by loan operations.
+        moves one step at a time. Loan taken needs terms agreed within the negotiation limits, or verified by loan operations and sanctioned by the admin.
       </p>
       {row.offer_block && (
         <p className="small muted">

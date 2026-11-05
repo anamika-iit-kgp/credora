@@ -82,7 +82,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
       { to: "/companies", label: "Data explorer", icon: Network },
       { to: "/pipeline", label: "My pipeline", icon: Briefcase, only: ["rm"] },
       { to: "/pipeline", label: "Offer pipeline", icon: Briefcase, only: ["admin"] },
-      { to: "/queue", label: "Approval queue", icon: Inbox, perm: "checker" },
+      { to: "/queue", label: "Approval queue", icon: Inbox, perm: "queue" },
       { to: "/status", label: "Loan status", icon: ListChecks, perm: "loanStatus" },
     ],
   },

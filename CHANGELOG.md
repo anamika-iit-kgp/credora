@@ -2,6 +2,10 @@
 
 All notable changes to Credora. Dates are in IST.
 
+## Unreleased
+
+- Loan operations verifies an offer and the admin sanctions it, so the two checks are always two people. Before, one loan operations login could do both, although the screen said a second person was needed. The admin sees the verified offers in the Approval queue.
+
 ## 2.0.2, 2 November 2026
 
 - Sign-in is rate limited. After 10 failed attempts from one address or for one username inside 5 minutes the next attempt gets 429 for the rest of the window, and a success clears the username's count.

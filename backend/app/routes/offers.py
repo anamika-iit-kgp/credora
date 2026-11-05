@@ -1,4 +1,4 @@
-"""CRM pipeline: RMs negotiate within Exasol's limits; loan operations verify and sanction (maker-checker)."""
+"""CRM pipeline: RMs negotiate within Exasol's limits; loan operations verify and the admin sanctions (maker-checker)."""
 
 from __future__ import annotations
 
@@ -145,6 +145,8 @@ def checker(action: str, offer_id: int, body: NoteBody, user: User) -> dict:
     note = body.note.strip()
     if not note:
         raise HTTPException(422, "A note is required.")
+    if action == "reject" and user.role == "admin" and o["stage"] != "VERIFIED":
+        raise HTTPException(403, "The admin decides offers after loan operations has verified them.")
     if o["stage"] not in from_stages:
         raise HTTPException(409, f"An offer at {o['stage']} cannot be {to.lower()}.")
     if action == "reject":
@@ -164,12 +166,13 @@ def verify(offer_id: int, body: NoteBody, user: User = Depends(require("loanops"
 
 
 @router.post("/offers/{offer_id}/sanction")
-def sanction(offer_id: int, body: NoteBody, user: User = Depends(require("loanops"))):
+def sanction(offer_id: int, body: NoteBody, user: User = Depends(require("admin"))):
+    # Loan operations verifies and the admin sanctions, so the two checks are always two people.
     return checker("sanction", offer_id, body, user)
 
 
 @router.post("/offers/{offer_id}/reject")
-def reject(offer_id: int, body: NoteBody, user: User = Depends(require("loanops"))):
+def reject(offer_id: int, body: NoteBody, user: User = Depends(require("loanops", "admin"))):
     return checker("reject", offer_id, body, user)
 
 

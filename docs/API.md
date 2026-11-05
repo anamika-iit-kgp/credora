@@ -155,7 +155,9 @@ Login returns a bearer token. Each user has one role, which is `admin`, `datasci
 | `GET /api/offers?stage=` | rm, loanops, admin | CRM pipeline |
 | `POST /api/offers/{offer_id}/quote` `{amount, roi, tenure}` | rm | Exasol checks the terms and returns `{within_limit, raroc, emi, lgd_pct, reasons}` |
 | `POST /api/offers/{offer_id}/propose` `{amount, roi, tenure, note}` | rm | records agreed terms. Above the limit the offer goes to ESCALATED |
-| `POST /api/offers/{offer_id}/verify` / `sanction` / `reject` `{note}` | loanops | maker-checker |
+| `POST /api/offers/{offer_id}/verify` `{note}` | loanops | maker-checker, first check |
+| `POST /api/offers/{offer_id}/sanction` `{note}` | admin | maker-checker, final approval |
+| `POST /api/offers/{offer_id}/reject` `{note}` | loanops, or admin once the offer is VERIFIED | maker-checker |
 | `GET /api/offers/{offer_id}/events` | rm, loanops, admin | negotiation trail |
 | `GET /api/ai/status` | all | whether the AI features are on. The assistant needs an AI provider and at least one `EXA_*_AI_PASSWORD` |
 | `POST /api/ai/ask` `{question}` | all | Ask Credora. After a topic check, Claude answers through the Exasol MCP server logged in as the caller's own AI session user (the role user with the `_AI` suffix). The response holds the answer, every tool call and the Exasol user |
@@ -197,7 +199,7 @@ The shapes follow `frontend/src/api/types.ts`. Where this document and `types.ts
 
 The relationship manager moves a company one step at a time. Contacted leads to Negotiating, then Loan taken, then In progress, then Disbursed. Not interested is open from every status except Disbursed, and Contacted reopens a company marked Not interested. Disbursed is final. The rules live in `app/rmbook.py` (`NEXT`, `offer_block`).
 
-Loan taken, In progress and Disbursed need terms the bank has agreed to. The company's newest CRM offer must be NEGOTIATING (terms agreed within the negotiation limits), VERIFIED after an in-limit proposal, or SANCTIONED by loan operations. An offer that was escalated must be verified and sanctioned first. Otherwise the request gets `409` with the reason.
+Loan taken, In progress and Disbursed need terms the bank has agreed to. The company's newest CRM offer must be NEGOTIATING (terms agreed within the negotiation limits), VERIFIED after an in-limit proposal, or SANCTIONED by the admin. An offer that was escalated must be verified by loan operations and sanctioned by the admin first. Otherwise the request gets `409` with the reason.
 
 The offer and the status stay in step. A proposal moves the status from Assigned or Contacted to Negotiating. Once the status is Loan taken or later, the RM cannot propose new terms and loan operations cannot reject the offer (`409`). Each `GET /api/loan-status` row also carries `offer_id`, `offer_stage`, `offer_block` (why Loan taken is not open yet, or null) and `next_statuses`, which the My companies screen uses to enable its options.
 

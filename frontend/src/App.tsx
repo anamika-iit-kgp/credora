@@ -107,7 +107,7 @@ export function App() {
               />
               <Route path="pipeline" element={<Gate perm="offers"><PipelinePage /></Gate>} />
               <Route path="offers/:offerId" element={<Gate perm="offers"><OfferPage /></Gate>} />
-              <Route path="queue" element={<Gate perm="checker"><QueuePage /></Gate>} />
+              <Route path="queue" element={<Gate perm="queue"><QueuePage /></Gate>} />
               <Route path="admin/data" element={<Gate perm="generate"><DataGenerationPage /></Gate>} />
               <Route path="admin/sources" element={<Gate perm="sources"><SourcesPage /></Gate>} />
               <Route path="admin/audit" element={<Gate perm="audit"><AuditPage /></Gate>} />

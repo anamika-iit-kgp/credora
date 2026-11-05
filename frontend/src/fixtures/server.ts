@@ -372,7 +372,7 @@ function syntheticEvents(o: Offer): OfferEvent[] {
     if (original.stage === "ESCALATED") seeded.push(ev(2, "system", "ESCALATE", "Terms outside the negotiation limit. ROI below floor.", false));
     if (original.stage === "VERIFIED" || original.stage === "SANCTIONED")
       seeded.push(ev(3, "loanops", "VERIFY", "KYC current, collateral valuation on file.", false));
-    if (original.stage === "SANCTIONED") seeded.push(ev(4, "loanops2", "SANCTION", "Sanctioned within delegated authority.", false));
+    if (original.stage === "SANCTIONED") seeded.push(ev(4, "admin", "SANCTION", "Sanctioned within delegated authority.", false));
   }
   return [...seeded, ...base].sort((a, b) => a.at.localeCompare(b.at));
 }
@@ -1416,7 +1416,7 @@ function offerBlock(o: Offer | null): string | null {
   const within =
     (o.agreed_amount ?? 0) <= (o.max_amount ?? 0) && (o.agreed_roi ?? 0) >= (o.floor_roi ?? 0) && (o.agreed_tenure ?? 0) <= (o.max_tenure ?? 0);
   if (o.stage === "ESCALATED" || (o.stage === "VERIFIED" && !within))
-    return "The agreed terms are above the negotiation limits. Loan operations must sanction them first.";
+    return "The agreed terms are above the negotiation limits. Loan operations must verify them and the admin must sanction them first.";
   return null;
 }
 const nextStatuses = (cur: LoanStatus, block: string | null) => NEXT[cur].filter((s) => !(block && NEEDS_AGREED.includes(s)));
@@ -1867,8 +1867,9 @@ on("POST", "/api/offers/{id}/propose", ({ u, m, body }) => {
 
 for (const action of ["verify", "sanction", "reject"] as const) {
   on("POST", `/api/offers/{id}/${action}`, ({ u, m, body }) => {
-    need(u, ["loanops"]);
+    need(u, action === "verify" ? ["loanops"] : action === "sanction" ? ["admin"] : ["loanops", "admin"]);
     const o = offerFor(u, m[1]);
+    if (action === "reject" && u.role === "admin" && o.stage !== "VERIFIED") throw new HttpError(403, "The admin decides offers after loan operations has verified them.");
     const note = String(body.note ?? "").trim();
     if (!note) throw new HttpError(422, "A note is required.");
     if (action === "verify" && !["NEGOTIATING", "ESCALATED"].includes(o.stage)) throw new HttpError(409, `Only proposed or escalated offers can be verified. This one is ${o.stage}.`);

@@ -405,7 +405,7 @@ ol.seq .actor{font-weight:600}
       <tr><td>Risk-model activation</td><td>Data scientist</td><td>Admin</td><td><code>crm.model_activation_request</code></td><td>Training never activates a model. One pending request per version, nobody approves their own, and approval is blocked if the active model changed since. Approval switches <code>MODEL_REGISTRY.IS_ACTIVE</code> as <code>CREDORA_SVC</code>. Audit <code>MODEL_ACTIVATION_REQUEST</code>, <code>_APPROVE</code>, <code>_REJECT</code></td></tr>
       <tr><td>Assign companies</td><td>Loan operations</td><td>(Exasol filters the RM's rows)</td><td><code>CREDORA.RM_ASSIGNMENT</code> (Exasol)</td><td>Single or bulk from Decisions or the Top 50. Reassigning moves the company. Audit <code>ASSIGN_RM</code></td></tr>
       <tr><td>Loan status</td><td>Relationship manager</td><td>(tracked by admin, data scientist, loan operations)</td><td><code>CREDORA.LOAN_STATUS_LOG</code> (Exasol)</td><td>Contacted, Negotiating, Loan taken, In progress, Disbursed, Not interested. A note is required, the full history is kept, and nothing changes after Disbursed. Audit <code>LOAN_STATUS</code></td></tr>
-      <tr><td>Escalated terms</td><td>Relationship manager</td><td>Loan operations</td><td><code>crm.offer</code>, <code>crm.offer_event</code></td><td>Above the negotiation limit the offer is escalated. Loan operations verifies and sanctions</td></tr>
+      <tr><td>Escalated terms</td><td>Relationship manager</td><td>Loan operations, then the admin</td><td><code>crm.offer</code>, <code>crm.offer_event</code></td><td>Above the negotiation limit the offer is escalated. Loan operations verifies and sanctions</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -663,7 +663,7 @@ Sources:     Oracle CBS · MySQL cif · PostgreSQL los · CIBIL · GSTN · AA</p
     <li><span class="actor">Exasol · AI</span><span>On demand from a company report, <code>CREDIT_MEMO</code> writes a short credit memo inside Exasol through <code>CONNECTION AI_LLM</code>.</span></li>
     <li><span class="actor">Any role</span><span>Asks <strong>Ask Credora</strong> a question. Claude answers through the Exasol MCP server, logged in as that role's Exasol user, and shows every SQL statement it ran.</span></li>
     <li><span class="actor">Relationship manager</span><span>Quotes and proposes terms with the customer, and Exasol checks them against the limit and RAROC. Above the limit the offer is escalated.</span></li>
-    <li><span class="actor">Loan operations</span><span>Verifies and sanctions (maker-checker). PostgreSQL <code>crm</code> records each stage.</span></li>
+    <li><span class="actor">Loan operations</span><span>Verifies what the RM proposes, and the admin sanctions (maker-checker). PostgreSQL <code>crm</code> records each stage.</span></li>
     <li><span class="actor">Admin · DS · LO</span><span>Follow every assigned company on the <strong>Loan status</strong> tracker, with its manager, current status, last update and history, filterable by manager and status, exportable as CSV.</span></li>
     <li><span class="actor">Exasol · purge</span><span>Every 15 minutes the Exasol Scheduler runs <code>PURGE_EXPIRED</code> from <code>SCHED.SCHED_TASKS</code>. It deletes raw API data past its purge time, and the row count and SHA-256 fingerprint are kept in <code>PURGE_LOG</code> as proof, and the run in <code>SCHED.SCHED_HISTORY</code>. Every statement of every step is also in Exasol's audit log, tagged with the app user and screen.</span></li>
   </ol>

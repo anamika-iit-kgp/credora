@@ -105,10 +105,10 @@ Every app role reads Exasol as its own database user. The backend runs each scre
 |---|---|---|---|
 | `admin` | `CREDORA_ADMIN` / `R_ADMIN` | Data generation, sources, approvals, audit and purge, Loan status | Results, the semantic view, the three bank databases and raw 3rd party data, without the audit log |
 | `datasci` | `CREDORA_DATASCI` / `R_DATASCI` | Runs and publishes the analysis, trains models, what-if and policy proposals | Same as admin |
-| `loanops` | `CREDORA_LOANOPS` / `R_LOANOPS` | Published runs, assigning companies to managers, sanctioning escalations | Same as admin, without raw 3rd party data (`CREDORA_STAGE`) |
+| `loanops` | `CREDORA_LOANOPS` / `R_LOANOPS` | Published runs, assigning companies to managers, verifying what managers propose | Same as admin, without raw 3rd party data (`CREDORA_STAGE`) |
 | `rm` | `CREDORA_RM` / `R_RM` | Only her assigned companies, at full detail, with negotiation and loan status | Only the row-filtered `V_RM_*` and `V_LATEST_*` views |
 
-The RM logs the loan status one step at a time, from Contacted to Disbursed. Loan taken needs terms agreed within the negotiation limits or sanctioned by loan operations ([docs/API.md](docs/API.md#loan-status-state-machine)).
+The RM logs the loan status one step at a time, from Contacted to Disbursed. Loan taken needs terms agreed within the negotiation limits or verified by loan operations and sanctioned by the admin ([docs/API.md](docs/API.md#loan-status-state-machine)).
 
 The `V_RM_*` views join `CREDORA.RM_ASSIGNMENT` on the logged-in Exasol user (an AI session user `<person>_AI` counts as its person), and `R_RM` has no grant on the result tables. Signed in to Exasol as `CREDORA_RM`, `V_RM_DECISIONS` returns her 25 companies and `SELECT * FROM CREDORA.DECISIONS` fails with "insufficient privileges". A prompt can't widen that, because the limit lives in the database. The control room panel "Row-level security, proven by Exasol" (`GET /api/admin/rls-proof`) runs that SELECT as `CREDORA_RM`, as her AI user `CREDORA_RM_AI` and as a second manager, `CREDORA_RM002`, and shows each result and each refusal.
 

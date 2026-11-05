@@ -51,7 +51,7 @@ describe("can", () => {
 describe("what each role may open or do", () => {
   it("lets the admin generate data, read the audit and approve, but not run or train", () => {
     expect(heldBy("admin")).toEqual(
-      ["approveModels", "approvePolicy", "ask", "audit", "computeValidation", "decisions", "drafts", "generate", "loanStatus", "memo", "models", "offers", "report", "runs", "sources", "top50"].sort(),
+      ["approveModels", "approvePolicy", "ask", "audit", "computeValidation", "decisions", "drafts", "generate", "loanStatus", "memo", "models", "offers", "queue", "report", "runs", "sanction", "sources", "top50"].sort(),
     );
   });
 
@@ -62,7 +62,7 @@ describe("what each role may open or do", () => {
   });
 
   it("lets loan operations assign and check offers, but not see drafts or models", () => {
-    expect(heldBy("loanops")).toEqual(["ask", "assign", "checker", "decisions", "loanStatus", "memo", "offers", "report", "runs", "top50"].sort());
+    expect(heldBy("loanops")).toEqual(["ask", "assign", "checker", "decisions", "loanStatus", "memo", "offers", "queue", "report", "runs", "top50"].sort());
   });
 
   it("lets the relationship manager work only her own book and her offers", () => {
@@ -92,6 +92,7 @@ describe("what each role may open or do", () => {
       ["logStatus", "rm"],
       ["negotiate", "rm"],
       ["checker", "loanops"],
+      ["sanction", "admin"],
     ];
     for (const [p, r] of single) expect(rolesWith(p), p).toEqual([r]);
   });
@@ -114,6 +115,11 @@ describe("maker and checker", () => {
     for (const r of ROLES) expect(can(r, "negotiate") && can(r, "checker"), r).toBe(false);
     expect(rolesWith("negotiate")).toEqual(["rm"]);
     expect(rolesWith("checker")).toEqual(["loanops"]);
+  });
+
+  it("never lets the same role verify an offer and sanction it", () => {
+    for (const r of ROLES) expect(can(r, "checker") && can(r, "sanction"), r).toBe(false);
+    for (const r of ROLES) expect(can(r, "negotiate") && can(r, "sanction"), r).toBe(false);
   });
 
   it("never lets the same role make a run and assign its companies", () => {

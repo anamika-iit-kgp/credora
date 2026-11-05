@@ -41,7 +41,12 @@ export const CAN = {
   logStatus: ["rm"],
   offers: ["rm", "loanops", "admin"],
   negotiate: ["rm"],
+  /** Verifies what the relationship manager proposed. */
   checker: ["loanops"],
+  /** Gives the final approval on what loan operations verified. */
+  sanction: ["admin"],
+  /** The approval queue. */
+  queue: ["loanops", "admin"],
   ask: ["admin", "datasci", "loanops", "rm"],
   memo: ["admin", "datasci", "loanops", "rm"],
 } satisfies Record<string, Role[]>;
