@@ -3,8 +3,10 @@ import { BadgeCheck, Ban, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOffers } from "../../api/hooks";
 import type { Offer } from "../../api/types";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { Empty, ErrorState, Grade, Loading, PageHeader, Panel, Segmented, Stage } from "../../components/ui";
 import { num, pct, relative, rupeesShort } from "../../lib/format";
+import { offerStageRank, type SortColumns } from "../../lib/sort";
 import { allowedActions, CheckerDialog } from "./CheckerActions";
 
 type Tab = "verify" | "sanction";
@@ -17,6 +19,17 @@ function breaches(o: Offer) {
   return b;
 }
 
+const SORT: SortColumns<Offer> = {
+  legal_name: (o) => o.legal_name,
+  stage: (o) => offerStageRank(o.stage),
+  grade: (o) => o.grade,
+  agreed_amount: (o) => o.agreed_amount,
+  agreed_roi: (o) => o.agreed_roi,
+  agreed_tenure: (o) => o.agreed_tenure,
+  limit: (o) => breaches(o).length,
+  updated_at: (o) => o.updated_at,
+};
+
 export function QueuePage() {
   const q = useOffers();
   const [tab, setTab] = useState<Tab>("verify");
@@ -24,7 +37,9 @@ export function QueuePage() {
   const all = q.data ?? [];
   const toVerify = all.filter((o) => (o.stage === "NEGOTIATING" && o.agreed_amount != null) || o.stage === "ESCALATED");
   const toSanction = all.filter((o) => o.stage === "VERIFIED");
-  const rows = (tab === "verify" ? toVerify : toSanction).sort((a, b) => (a.stage === "ESCALATED" ? -1 : 0) - (b.stage === "ESCALATED" ? -1 : 0));
+  const queued = (tab === "verify" ? toVerify : toSanction).sort((a, b) => (a.stage === "ESCALATED" ? -1 : 0) - (b.stage === "ESCALATED" ? -1 : 0));
+  const sort = useSort(queued, SORT);
+  const rows = sort.rows;
 
   return (
     <div className="page">
@@ -56,14 +71,14 @@ export function QueuePage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th scope="col">Company</th>
-                    <th scope="col">Stage</th>
-                    <th scope="col">Grade</th>
-                    <th scope="col" className="r">Agreed amount</th>
-                    <th scope="col" className="r">ROI (floor)</th>
-                    <th scope="col" className="r">Tenure (max)</th>
-                    <th scope="col">Limit</th>
-                    <th scope="col">Updated</th>
+                    <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+                    <SortableTh sortKey="stage" control={sort}>Stage</SortableTh>
+                    <SortableTh sortKey="grade" control={sort}>Grade</SortableTh>
+                    <SortableTh sortKey="agreed_amount" control={sort} className="r">Agreed amount</SortableTh>
+                    <SortableTh sortKey="agreed_roi" control={sort} className="r">ROI (floor)</SortableTh>
+                    <SortableTh sortKey="agreed_tenure" control={sort} className="r">Tenure (max)</SortableTh>
+                    <SortableTh sortKey="limit" control={sort}>Limit</SortableTh>
+                    <SortableTh sortKey="updated_at" control={sort}>Updated</SortableTh>
                     <th scope="col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>

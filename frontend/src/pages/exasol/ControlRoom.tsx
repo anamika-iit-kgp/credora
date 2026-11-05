@@ -19,11 +19,13 @@ import {
 } from "lucide-react";
 import { api } from "../../api/client";
 import { NOT_CONFIGURED, useControlRoom, useRlsProof, type ControlRoom, type CrSchema, type RlsProofRow, type Section } from "../../api/exasol";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { ErrorState, Loading, PageHeader, Panel } from "../../components/ui";
 import { Explain, WithExplain } from "../../explain/Explain";
 import { EXTENSIONS, SCHEMA_EXTENSION } from "../../explain/extensions";
 import { ms } from "../../explain/ExasolConsole";
 import { num } from "../../lib/format";
+import type { SortColumns } from "../../lib/sort";
 
 /* ---------- small parts ---------- */
 
@@ -221,6 +223,167 @@ function scriptKind(type: string, input: string | null, language: string) {
   return `${lang} ${input ?? ""} UDF`.replace(/\s+/g, " ");
 }
 
+type ScriptRow = Extract<ControlRoom["scripts"], { ok: true }>["data"]["items"][number];
+const SCRIPT_SORT: SortColumns<ScriptRow> = {
+  name: (s) => s.name,
+  kind: (s) => scriptKind(s.type, s.input, s.language),
+  language: (s) => s.language,
+};
+
+function ScriptsTable({ items }: { items: ScriptRow[] }) {
+  const sort = useSort(items, SCRIPT_SORT);
+  return (
+    <div className="table-wrap">
+      <table className="table">
+        <thead>
+          <tr>
+            <SortableTh sortKey="name" control={sort}>Script</SortableTh>
+            <SortableTh sortKey="kind" control={sort} explain="scalar-vs-set-udf">Kind</SortableTh>
+            <SortableTh sortKey="language" control={sort} explain="slc">Language</SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sort.rows.map((s) => (
+            <tr key={s.schema + s.name}>
+              <td>
+                <code className="cr-script">{s.name}</code>
+              </td>
+              <td>
+                {scriptKind(s.type, s.input, s.language)}
+                <div className="muted small">{s.result}</div>
+              </td>
+              <td>
+                <span className={`cr-lang cr-lang-${s.language.toLowerCase()}`}>{s.language}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+type ModelRow = Extract<ControlRoom["models"], { ok: true }>["data"][number];
+const REGISTRY_SORT: SortColumns<ModelRow> = {
+  version: (m) => m.version,
+  auc: (m) => m.auc,
+};
+
+function RegistryTable({ rows }: { rows: ModelRow[] }) {
+  const sort = useSort(rows, REGISTRY_SORT);
+  return (
+    <div className="table-wrap">
+      <table className="table">
+        <thead>
+          <tr>
+            <SortableTh sortKey="version" control={sort}>Version</SortableTh>
+            <SortableTh sortKey="auc" control={sort} className="r">AUC</SortableTh>
+            <th scope="col">
+              <WithExplain id="pickle-model">Pickle in BucketFS</WithExplain>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sort.rows.map((m) => (
+            <tr key={m.version} className={m.active ? "cr-active" : ""}>
+              <td className="nowrap">
+                <code className="strong">{m.version}</code> {m.active && <span className="cr-you">active</span>}
+                <div className="muted small">{m.algorithm}</div>
+              </td>
+              <td className="r num">{m.auc != null ? m.auc.toFixed(3) : "–"}</td>
+              <td>
+                <code className="cr-path">{m.path}</code>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+type MetricRow = Extract<ControlRoom["semantic"], { ok: true }>["data"]["metrics"][number];
+const METRIC_SORT: SortColumns<MetricRow> = { name: (m) => m.name };
+
+function MetricsTable({ rows }: { rows: MetricRow[] }) {
+  const sort = useSort(rows, METRIC_SORT);
+  return (
+    <div className="table-wrap cr-metrics">
+      <table className="table">
+        <thead>
+          <tr>
+            <SortableTh sortKey="name" control={sort} explain="certified-metric">Metric</SortableTh>
+            <th scope="col">Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sort.rows.map((m) => (
+            <tr key={m.name}>
+              <td>
+                <code className="strong">{m.name}</code> {m.certified && <span className="cr-cert">certified</span>}
+                <div className="muted small">{m.display}</div>
+              </td>
+              <td>
+                <code className="cr-expr">
+                  {m.expression}
+                  {m.filter ? ` WHERE ${m.filter}` : ""}
+                </code>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+type SessionRow = Extract<NonNullable<ControlRoom["sessions"]>, { ok: true }>["data"][number];
+const SESSION_SORT: SortColumns<SessionRow> = {
+  user: (s) => s.user,
+  client: (s) => s.client,
+  status: (s) => s.status,
+  consumer_group: (s) => s.consumer_group,
+  duration: (s) => s.duration,
+};
+
+function SessionsTable({ rows }: { rows: SessionRow[] }) {
+  const sort = useSort(rows, SESSION_SORT);
+  return (
+    <div className="table-wrap table-wrap-tall">
+      <table className="table">
+        <thead>
+          <tr>
+            <SortableTh sortKey="user" control={sort}>User</SortableTh>
+            <SortableTh sortKey="client" control={sort}>Client</SortableTh>
+            <SortableTh sortKey="status" control={sort}>Status</SortableTh>
+            <SortableTh sortKey="consumer_group" control={sort} explain="consumer-group">Consumer group</SortableTh>
+            <SortableTh sortKey="duration" control={sort} className="r">Duration</SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sort.rows.map((s) => (
+            <tr key={s.session_id}>
+              <td>
+                <code>{s.user}</code>
+              </td>
+              <td>
+                <code className="cr-client">{s.client}</code>
+                <div className="muted small">{s.driver}</div>
+              </td>
+              <td className="nowrap">
+                {s.status}
+                {s.command && s.command !== "NOT SPECIFIED" && <span className="muted"> · {s.command}</span>}
+              </td>
+              <td>{s.consumer_group ? <code>{s.consumer_group}</code> : <span className="muted">–</span>}</td>
+              <td className="r num">{s.duration}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function ScriptsPanel({ cr }: { cr: ControlRoom }) {
   const [schema, setSchema] = useState<string>("CREDORA");
   const who = cr.exasol_user;
@@ -248,37 +411,7 @@ function ScriptsPanel({ cr }: { cr: ControlRoom }) {
               {items.length === 0 ? (
                 <p className="pad muted">No scripts of the Credora schemas are visible to <code>{who}</code>. Your role executes none of them.</p>
               ) : (
-                <div className="table-wrap">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Script</th>
-                        <th>
-                          <WithExplain id="scalar-vs-set-udf">Kind</WithExplain>
-                        </th>
-                        <th>
-                          <WithExplain id="slc">Language</WithExplain>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((s) => (
-                        <tr key={s.schema + s.name}>
-                          <td>
-                            <code className="cr-script">{s.name}</code>
-                          </td>
-                          <td>
-                            {scriptKind(s.type, s.input, s.language)}
-                            <div className="muted small">{s.result}</div>
-                          </td>
-                          <td>
-                            <span className={`cr-lang cr-lang-${s.language.toLowerCase()}`}>{s.language}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <ScriptsTable items={items} />
               )}
               {adapters.length > 0 && (
                 <p className="cr-note">
@@ -638,35 +771,7 @@ export function ControlRoomPage() {
           <div className="grid-2 cr-grid">
             <Panel title={<WithExplain id="model-registry">Model registry</WithExplain>} icon={FlaskConical} flush>
               <SectionBody s={cr.models} who={cr.exasol_user} what="CREDORA.MODEL_REGISTRY">
-                {(d) => (
-                  <div className="table-wrap">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Version</th>
-                          <th className="r">AUC</th>
-                          <th>
-                            <WithExplain id="pickle-model">Pickle in BucketFS</WithExplain>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {d.map((m) => (
-                          <tr key={m.version} className={m.active ? "cr-active" : ""}>
-                            <td className="nowrap">
-                              <code className="strong">{m.version}</code> {m.active && <span className="cr-you">active</span>}
-                              <div className="muted small">{m.algorithm}</div>
-                            </td>
-                            <td className="r num">{m.auc != null ? m.auc.toFixed(3) : "–"}</td>
-                            <td>
-                              <code className="cr-path">{m.path}</code>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                {(d) => <RegistryTable rows={d} />}
               </SectionBody>
             </Panel>
             <SecurityPanel cr={cr} />
@@ -683,34 +788,7 @@ export function ControlRoomPage() {
                         {d.version && <> · Semantic Views {d.version}</>}
                       </p>
                     ))}
-                    <div className="table-wrap cr-metrics">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>
-                              <WithExplain id="certified-metric">Metric</WithExplain>
-                            </th>
-                            <th>Definition</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {d.metrics.map((m) => (
-                            <tr key={m.name}>
-                              <td>
-                                <code className="strong">{m.name}</code> {m.certified && <span className="cr-cert">certified</span>}
-                                <div className="muted small">{m.display}</div>
-                              </td>
-                              <td>
-                                <code className="cr-expr">
-                                  {m.expression}
-                                  {m.filter ? ` WHERE ${m.filter}` : ""}
-                                </code>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <MetricsTable rows={d.metrics} />
                   </>
                 )}
               </SectionBody>
@@ -773,42 +851,7 @@ export function ControlRoomPage() {
               aside={<span className="muted small">EXA_DBA_SESSIONS · admin only</span>}
             >
               <SectionBody s={cr.sessions} who={cr.exasol_user} what="EXA_DBA_SESSIONS">
-                {(d) => (
-                  <div className="table-wrap table-wrap-tall">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>User</th>
-                          <th>Client</th>
-                          <th>Status</th>
-                          <th>
-                            <WithExplain id="consumer-group">Consumer group</WithExplain>
-                          </th>
-                          <th className="r">Duration</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {d.map((s) => (
-                          <tr key={s.session_id}>
-                            <td>
-                              <code>{s.user}</code>
-                            </td>
-                            <td>
-                              <code className="cr-client">{s.client}</code>
-                              <div className="muted small">{s.driver}</div>
-                            </td>
-                            <td className="nowrap">
-                              {s.status}
-                              {s.command && s.command !== "NOT SPECIFIED" && <span className="muted"> · {s.command}</span>}
-                            </td>
-                            <td>{s.consumer_group ? <code>{s.consumer_group}</code> : <span className="muted">–</span>}</td>
-                            <td className="r num">{s.duration}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                {(d) => <SessionsTable rows={d} />}
               </SectionBody>
             </Panel>
           )}

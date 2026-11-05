@@ -6,10 +6,12 @@ import type { ApiError } from "../../api/client";
 import type { CreditMemo, Feature, Pricing, KeyFacts, Reason, Report, ReportStep } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
 import { CodeBlock } from "../../components/CodeBlock";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { SourceTag } from "../../components/SourceTag";
 import { DecisionBadge, Empty, ErrorState, Grade, KV, Loading, PageHeader, Panel } from "../../components/ui";
 import { dateTime, duration, num, pct, pctFromRatio, rupees, rupeesShort } from "../../lib/format";
 import { can } from "../../lib/roles";
+import type { SortColumns } from "../../lib/sort";
 import { Explain, WithExplain } from "../../explain/Explain";
 import { ExaBadgeGroup } from "../../explain/ExaBadge";
 
@@ -500,21 +502,28 @@ function featureValue(f: Feature) {
   }
 }
 
+const FEATURE_SORT: SortColumns<Feature> = {
+  label: (f) => f.label,
+  source: (f) => f.source,
+};
+
+/** Value is not sortable, because it holds rupees, percentages, years and ratios, which have no order between them. */
 function Features({ features }: { features: Feature[] }) {
+  const sort = useSort(features, FEATURE_SORT);
   return (
     <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th scope="col">Feature</th>
+            <SortableTh sortKey="label" control={sort}>Feature</SortableTh>
             <th scope="col" className="r">
               Value
             </th>
-            <th scope="col">From</th>
+            <SortableTh sortKey="source" control={sort}>From</SortableTh>
           </tr>
         </thead>
         <tbody>
-          {features.map((f) => (
+          {sort.rows.map((f) => (
             <tr key={f.name}>
               <td>
                 {f.label}

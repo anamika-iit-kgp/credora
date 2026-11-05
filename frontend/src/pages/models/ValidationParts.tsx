@@ -6,9 +6,11 @@ import { Activity, LoaderCircle, RefreshCw, Target } from "lucide-react";
 import { useCalibration, useComputeCalibration, useComputePsi, usePsi } from "../../api/hooks";
 import type { Calibration, CalibrationDecile, Model, Psi, PsiBand, PsiFeature } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { Empty, ErrorState, Loading, Panel } from "../../components/ui";
 import { dateTime, num, pctFromRatio } from "../../lib/format";
 import { can } from "../../lib/roles";
+import { ordinal, type SortColumns } from "../../lib/sort";
 import { WithExplain } from "../../explain/Explain";
 
 const f3 = (v: number | null | undefined) => (v == null ? "–" : v.toFixed(3));
@@ -211,9 +213,17 @@ export function PsiPanel() {
   );
 }
 
+const PSI_SORT: SortColumns<PsiFeature> = {
+  feature: (f) => f.feature,
+  psi: (f) => f.psi,
+  band: (f) => ordinal(["stable", "shift", "significant"], f.band),
+};
+
+/** The two mean columns are not sortable, because each feature has its own unit and there is no order between them. */
 function PsiBody({ psi }: { psi: Psi }) {
   const { counts, thresholds: t } = psi;
   const total = psi.features.length;
+  const sort = useSort(psi.features, PSI_SORT);
   return (
     <div className="val">
       <p className="val-read">
@@ -232,12 +242,12 @@ function PsiBody({ psi }: { psi: Psi }) {
       </p>
       <div className="table-wrap">
         <table className="table">
-          <caption className="sr-only">Population stability index per model feature, largest shift first</caption>
+          <caption className="sr-only">Population stability index per model feature, largest shift first until you sort a column</caption>
           <thead>
             <tr>
-              <th scope="col">Feature</th>
-              <th scope="col" className="r">PSI</th>
-              <th scope="col">Shift</th>
+              <SortableTh sortKey="feature" control={sort}>Feature</SortableTh>
+              <SortableTh sortKey="psi" control={sort} className="r">PSI</SortableTh>
+              <SortableTh sortKey="band" control={sort}>Shift</SortableTh>
               <th scope="col">
                 <span className="small muted">0 to {t.significant * 2}, ticks at {t.some_shift} and {t.significant}</span>
               </th>
@@ -247,7 +257,7 @@ function PsiBody({ psi }: { psi: Psi }) {
             </tr>
           </thead>
           <tbody>
-            {psi.features.map((f) => (
+            {sort.rows.map((f) => (
               <PsiRow key={f.feature} f={f} psi={psi} />
             ))}
           </tbody>

@@ -2,6 +2,10 @@
 
 All notable changes to Credora. Dates are in IST.
 
+## Unreleased
+
+- The data tables sort by column. A click on a header goes ascending, then descending, then back to the table's own order, and empty values stay last both ways. The Data explorer and Decisions lists are paginated, so the server sorts them across every page. `GET /api/companies` and `GET /api/decisions` take `sort` and `order`, with a fixed list of columns.
+
 ## 2.0.2, 2 November 2026
 
 - Sign-in is rate limited. After 10 failed attempts from one address or for one username inside 5 minutes the next attempt gets 429 for the rest of the window, and a success clears the username's count.

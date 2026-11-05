@@ -4,10 +4,12 @@ import { useWhatIf } from "../../api/hooks";
 import { useProposals, useSaveWhatIfRun, useWhatIfRuns } from "../../api/policy";
 import type { Decision, DecisionMix, PolicyProposal, WhatIfRun } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { DecisionBadge, Empty, ErrorState, Loading, MixBar, PageHeader, Panel } from "../../components/ui";
 import { csvName, downloadCsv, type CsvColumn } from "../../lib/csv";
 import { dateTime, duration, num, rupeesShort } from "../../lib/format";
 import { can } from "../../lib/roles";
+import type { SortColumns } from "../../lib/sort";
 import { changesOf, LeverDiff, pctLever, ProposalStatus, ProposeDialog, sameBaseline } from "./PolicyParts";
 import { Explain, WithExplain } from "../../explain/Explain";
 import { ExaBadge } from "../../explain/ExaBadge";
@@ -260,6 +262,22 @@ const RUN_CSV: CsvColumn<WhatIfRun>[] = [
   { header: "Proposal", value: proposalWord },
 ];
 
+const RUN_SORT: SortColumns<WhatIfRun> = {
+  run_id: (r) => r.run_id,
+  created_at: (r) => r.created_at,
+  created_by: (r) => r.created_by,
+  model_version: (r) => r.model_version,
+  hurdle_pct: (r) => r.levers.hurdle_pct,
+  eblr_pct: (r) => r.levers.eblr_pct,
+  max_gst_share_pct: (r) => r.levers.max_gst_share_pct,
+  approve: (r) => r.after.APPROVE,
+  refer: (r) => r.after.REFER,
+  decline: (r) => r.after.DECLINE,
+  after_amount: (r) => r.after_amount,
+  ms: (r) => r.ms,
+  proposal: (r) => r.proposal?.status,
+};
+
 function EarlierRuns({
   runs,
   loading,
@@ -275,6 +293,7 @@ function EarlierRuns({
   canPropose: boolean;
   onPropose: (r: WhatIfRun) => void;
 }) {
+  const sort = useSort(runs ?? [], RUN_SORT);
   return (
     <Panel
       title="Earlier runs"
@@ -284,7 +303,7 @@ function EarlierRuns({
         <button
           className="btn btn-quiet btn-sm"
           disabled={!runs?.length}
-          onClick={() => runs && downloadCsv(csvName("whatif-runs"), RUN_CSV, runs)}
+          onClick={() => runs && downloadCsv(csvName("whatif-runs"), RUN_CSV, [...sort.rows])}
           title="Download the rows below as a CSV file"
         >
           <Download aria-hidden="true" />
@@ -304,23 +323,23 @@ function EarlierRuns({
           <table className="table">
             <thead>
               <tr>
-                <th scope="col">Run</th>
-                <th scope="col">Started</th>
-                <th scope="col">By</th>
-                <th scope="col">Model</th>
-                <th scope="col" className="r">Hurdle</th>
-                <th scope="col" className="r">EBLR</th>
-                <th scope="col" className="r">GST share</th>
-                <th scope="col" className="r">Approve</th>
-                <th scope="col" className="r">Refer</th>
-                <th scope="col" className="r">Decline</th>
-                <th scope="col" className="r">Pre-approved</th>
-                <th scope="col" className="r">Time</th>
-                <th scope="col">Proposal</th>
+                <SortableTh sortKey="run_id" control={sort}>Run</SortableTh>
+                <SortableTh sortKey="created_at" control={sort}>Started</SortableTh>
+                <SortableTh sortKey="created_by" control={sort}>By</SortableTh>
+                <SortableTh sortKey="model_version" control={sort}>Model</SortableTh>
+                <SortableTh sortKey="hurdle_pct" control={sort} className="r">Hurdle</SortableTh>
+                <SortableTh sortKey="eblr_pct" control={sort} className="r">EBLR</SortableTh>
+                <SortableTh sortKey="max_gst_share_pct" control={sort} className="r">GST share</SortableTh>
+                <SortableTh sortKey="approve" control={sort} className="r">Approve</SortableTh>
+                <SortableTh sortKey="refer" control={sort} className="r">Refer</SortableTh>
+                <SortableTh sortKey="decline" control={sort} className="r">Decline</SortableTh>
+                <SortableTh sortKey="after_amount" control={sort} className="r">Pre-approved</SortableTh>
+                <SortableTh sortKey="ms" control={sort} className="r">Time</SortableTh>
+                <SortableTh sortKey="proposal" control={sort}>Proposal</SortableTh>
               </tr>
             </thead>
             <tbody>
-              {runs.map((r) => {
+              {sort.rows.map((r) => {
                 const proposable = changesOf(r).length > 0;
                 const current = sameBaseline(r, policy);
                 return (
@@ -377,7 +396,15 @@ function EarlierRuns({
   );
 }
 
+const PROPOSAL_SORT: SortColumns<PolicyProposal> = {
+  proposal_id: (x) => x.proposal_id,
+  created_at: (x) => x.created_at,
+  status: (x) => x.status,
+  decided_at: (x) => x.decided_at,
+};
+
 function MyProposals({ list, loading, error }: { list: PolicyProposal[] | undefined; loading: boolean; error: unknown }) {
+  const sort = useSort(list ?? [], PROPOSAL_SORT);
   return (
     <Panel title="My policy proposals" icon={FileCheck} flush aside={<span className="small muted">The admin approves or rejects each one</span>}>
       {loading && <Loading rows={2} />}
@@ -392,15 +419,15 @@ function MyProposals({ list, loading, error }: { list: PolicyProposal[] | undefi
           <table className="table">
             <thead>
               <tr>
-                <th scope="col">Proposal</th>
-                <th scope="col">Sent</th>
+                <SortableTh sortKey="proposal_id" control={sort}>Proposal</SortableTh>
+                <SortableTh sortKey="created_at" control={sort}>Sent</SortableTh>
                 <th scope="col">Changes</th>
-                <th scope="col">Status</th>
-                <th scope="col">Decision</th>
+                <SortableTh sortKey="status" control={sort}>Status</SortableTh>
+                <SortableTh sortKey="decided_at" control={sort}>Decision</SortableTh>
               </tr>
             </thead>
             <tbody>
-              {list.map((x) => (
+              {sort.rows.map((x) => (
                 <tr key={x.proposal_id}>
                   <td>
                     <span className="strong">#{x.proposal_id}</span>

@@ -456,6 +456,53 @@
 .table td.r {
   text-align: right;
 }
+/* A sortable header. The icon sits in the header cell's left padding, which is always there, so it adds no width.
+   Nothing moves when the sort changes, tables do not grow, and labels stay in line with the values below them. */
+.th-sort {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.th-sort:hover,
+.table th[aria-sort="ascending"] .th-sort,
+.table th[aria-sort="descending"] .th-sort {
+  color: var(--ink);
+}
+.th-sort-icon {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  margin-right: 1px;
+  stroke-width: 2;
+  opacity: 0.4;
+}
+.table-dense .th-sort-icon {
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+}
+.th-sort:hover .th-sort-icon {
+  opacity: 0.8;
+}
+.table th[aria-sort="ascending"] .th-sort-icon,
+.table th[aria-sort="descending"] .th-sort-icon {
+  opacity: 1;
+  color: var(--sapphire);
+}
+@media print {
+  .th-sort-icon {
+    display: none;
+  }
+}
 .table tbody tr:last-child td {
   border-bottom: 0;
 }

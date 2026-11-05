@@ -1,14 +1,37 @@
+import { useMemo } from "react";
 import { useSources } from "../../api/hooks";
 import { RefreshCw, Table2 } from "lucide-react";
+import type { SourceHealth } from "../../api/types";
 import { PushdownProof } from "../../components/PushdownProof";
 import { SourceHealthStrip } from "../../components/SourceHealth";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { SourceTag } from "../../components/SourceTag";
 import { ErrorState, Loading, PageHeader, Panel } from "../../components/ui";
 import { num } from "../../lib/format";
+import type { SortColumns } from "../../lib/sort";
 import { KIND_LABEL } from "../../lib/sources";
+
+interface TableRow {
+  s: SourceHealth;
+  t: SourceHealth["tables"][number];
+  first: boolean;
+}
+
+const SORT: SortColumns<TableRow> = {
+  source: (r) => r.s.source,
+  kind: (r) => KIND_LABEL[r.s.kind],
+  table: (r) => r.t.name,
+  rows: (r) => r.t.rows,
+  latency: (r) => r.s.latency_ms,
+  status: (r) => r.s.status,
+};
 
 export function SourcesPage() {
   const q = useSources();
+  const rows = useMemo(() => (q.data ?? []).flatMap((s) => s.tables.map((t, i) => ({ s, t, first: i === 0 }))), [q.data]);
+  const sort = useSort(rows, SORT);
+  // In the original order rows group under their source. Once sorted they scatter, so each row names its source.
+  const grouped = !sort.sort;
   return (
     <div className="page">
       <PageHeader
@@ -34,31 +57,28 @@ export function SourcesPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th scope="col">Source</th>
-                    <th scope="col">Kind</th>
-                    <th scope="col">Table</th>
-                    <th scope="col" className="r">
-                      Rows
-                    </th>
-                    <th scope="col" className="r">
-                      Latency
-                    </th>
-                    <th scope="col">Status</th>
+                    <SortableTh sortKey="source" control={sort}>Source</SortableTh>
+                    <SortableTh sortKey="kind" control={sort}>Kind</SortableTh>
+                    <SortableTh sortKey="table" control={sort}>Table</SortableTh>
+                    <SortableTh sortKey="rows" control={sort} className="r">Rows</SortableTh>
+                    <SortableTh sortKey="latency" control={sort} className="r">Latency</SortableTh>
+                    <SortableTh sortKey="status" control={sort}>Status</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
-                  {q.data.flatMap((s) =>
-                    s.tables.map((t, i) => (
-                      <tr key={s.source + t.name} className={i === 0 ? "row-group-start" : ""}>
-                        <td>{i === 0 ? <SourceTag source={s.source} /> : null}</td>
-                        <td className="muted">{i === 0 ? KIND_LABEL[s.kind] : ""}</td>
+                  {sort.rows.map(({ s, t, first }) => {
+                    const show = first || !grouped;
+                    return (
+                      <tr key={s.source + t.name} className={grouped && first ? "row-group-start" : ""}>
+                        <td>{show ? <SourceTag source={s.source} /> : null}</td>
+                        <td className="muted">{show ? KIND_LABEL[s.kind] : ""}</td>
                         <td>
                           <code>{t.name}</code>
                         </td>
                         <td className="r num">{num(t.rows)}</td>
-                        <td className="r num muted">{i === 0 && s.latency_ms != null ? `${s.latency_ms} ms` : ""}</td>
+                        <td className="r num muted">{show && s.latency_ms != null ? `${s.latency_ms} ms` : ""}</td>
                         <td>
-                          {i === 0 && (
+                          {show && (
                             <span className="status">
                               <span className={`dot dot-${s.status}`} aria-hidden="true" />
                               {s.status === "up" ? "Up" : "Down"}
@@ -66,8 +86,8 @@ export function SourcesPage() {
                           )}
                         </td>
                       </tr>
-                    )),
-                  )}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

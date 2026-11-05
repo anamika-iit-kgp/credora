@@ -78,6 +78,8 @@ export interface CompanyFilter {
   decision?: string;
   page?: number;
   size?: number;
+  sort?: string;
+  order?: string;
 }
 
 export const useCompanies = (f: CompanyFilter) =>
@@ -107,7 +109,7 @@ export const useReport = (cif: string) =>
 export const useRuns = (enabled = true) =>
   useQuery({ queryKey: ["runs"], queryFn: async () => asList(await api<MaybeList<Run>>("/runs")), enabled });
 
-export const useDecisions = (f: { decision?: string; grade?: string; assigned?: string; page?: number }) =>
+export const useDecisions = (f: { decision?: string; grade?: string; assigned?: string; page?: number; sort?: string; order?: string }) =>
   useQuery({
     queryKey: ["decisions", f],
     queryFn: () => api<Page<DecisionRow>>(`/decisions${qs(f)}`),

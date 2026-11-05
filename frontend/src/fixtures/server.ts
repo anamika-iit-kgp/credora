@@ -38,6 +38,7 @@ import type {
 import type { PolicyLeverChange, PolicyProposal, Pricing, WhatIfRun } from "../api/types";
 import type { ActivationRequest, LoanStatus, LoanStatusEvent, LoanStatusRow } from "../api/types";
 import { num, rupeesShort } from "../lib/format";
+import { decisionRank, GST_STAGE_ORDER, ordinal, sortRows, type SortColumns } from "../lib/sort";
 import { buildFeatures, buildReasons, buildSteps } from "./report";
 import type { RlsProofRow } from "../api/exasol";
 import { exasolFixture, recordFixture, recordRlsProof } from "./exasol";
@@ -956,6 +957,40 @@ on("GET", "/api/admin/purge-log", ({ u }) => {
   return rows;
 });
 
+// The same keys and orders as backend/app/routes/explorer.py and analysis.py. Blanks go last and a bad key is refused.
+function sortedForQuery<T>(rows: T[], q: URLSearchParams, columns: SortColumns<T>): T[] {
+  const key = q.get("sort");
+  if (!key) return rows;
+  if (!Object.hasOwn(columns, key)) throw new HttpError(422, `Cannot sort by ${key}`);
+  return sortRows(rows, columns[key], q.get("order") === "desc" ? "desc" : "asc");
+}
+
+const COMPANY_SORT: SortColumns<CompanyRow> = {
+  cif_id: (r) => r.cif_id,
+  legal_name: (r) => r.legal_name,
+  industry: (r) => r.industry,
+  city: (r) => r.city,
+  stage: (r) => ordinal(GST_STAGE_ORDER, r.stage),
+  partners: (r) => r.partners,
+  rm_id: (r) => r.rm_id,
+  decision: (r) => decisionRank(r.decision),
+  rank_no: (r) => r.rank_no,
+  offer_amount: (r) => r.offer_amount,
+};
+
+const DECISION_SORT: SortColumns<DecisionRow> = {
+  rank_no: (r) => r.rank_no,
+  legal_name: (r) => r.legal_name,
+  decision: (r) => decisionRank(r.decision),
+  grade: (r) => r.grade,
+  pd: (r) => r.pd,
+  raroc: (r) => r.raroc,
+  offer_amount: (r) => r.offer_amount,
+  offer_roi: (r) => r.offer_roi,
+  offer_tenure: (r) => r.offer_tenure,
+  assigned_rm_id: (r) => r.assigned_rm_id,
+};
+
 on("GET", "/api/companies", ({ u, q }) => {
   const sc = S.analysed ? scored() : null;
   const term = (q.get("q") ?? "").trim().toLowerCase();
@@ -983,6 +1018,7 @@ on("GET", "/api/companies", ({ u, q }) => {
   if (term) rows = rows.filter((r) => r.legal_name.toLowerCase().includes(term) || r.cif_id.toLowerCase().includes(term) || r.city.toLowerCase().includes(term));
   if (stage) rows = rows.filter((r) => r.stage === stage);
   if (decision) rows = rows.filter((r) => r.decision === decision);
+  rows = sortedForQuery(rows, q, COMPANY_SORT);
   return { items: rows.slice((page - 1) * size, page * size), total: rows.length, page, size };
 });
 
@@ -1086,6 +1122,7 @@ on("GET", "/api/decisions", ({ u, q }) => {
   if (a === "yes") rows = rows.filter((r) => r.assigned_rm_id);
   if (a === "no") rows = rows.filter((r) => !r.assigned_rm_id);
   rows.sort((a, b) => a.rank_no - b.rank_no);
+  rows = sortedForQuery(rows, q, DECISION_SORT);
   const page = Math.max(1, Number(q.get("page") ?? 1));
   const size = 50;
   return { items: rows.slice((page - 1) * size, page * size), total: rows.length, page, size };

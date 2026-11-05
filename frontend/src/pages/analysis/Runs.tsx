@@ -6,10 +6,12 @@ import type { Run } from "../../api/types";
 import { usePublishRun } from "../../api/workflow";
 import { useUser } from "../../auth/AuthContext";
 import { JobProgress } from "../../components/JobProgress";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { Dialog, Empty, ErrorState, Loading, MixBar, PageHeader, Panel } from "../../components/ui";
 import { csvName, downloadCsv, type CsvColumn } from "../../lib/csv";
 import { dateTime, duration, num } from "../../lib/format";
 import { can } from "../../lib/roles";
+import type { SortColumns } from "../../lib/sort";
 import { usePersistentJob } from "../../lib/usePersistentJob";
 import { Explain } from "../../explain/Explain";
 
@@ -166,6 +168,18 @@ const RUN_CSV: CsvColumn<Run>[] = [
   { header: "Published at", value: (r) => r.published_at ?? "" },
 ];
 
+const RUN_SORT: SortColumns<Run> = {
+  run_id: (r) => r.run_id,
+  started_at: (r) => r.started_at,
+  started_by: (r) => r.started_by,
+  model_version: (r) => r.model_version,
+  approve: (r) => r.approve,
+  refer: (r) => r.refer,
+  decline: (r) => r.decline,
+  time: runMs,
+  published: (r) => (r.status !== "done" ? null : r.published === false ? "Draft" : "Published"),
+};
+
 function PublishButton({ r, onPublish }: { r: Run; onPublish: (r: Run) => void }) {
   const user = useUser();
   if (!can(user.role, "publish") || r.status !== "done" || r.published !== false) return null;
@@ -184,6 +198,7 @@ function RunList({ runs, onPublish }: { runs: Run[]; onPublish: (r: Run) => void
   const longest = Math.max(...runs.map((r) => r.stages.reduce((a, s) => a + s.ms, 0)));
   const [latest, ...older] = runs;
   const total = latest.stages.reduce((a, s) => a + s.ms, 0);
+  const sort = useSort(older, RUN_SORT);
   return (
     <>
       <Panel
@@ -246,7 +261,7 @@ function RunList({ runs, onPublish }: { runs: Run[]; onPublish: (r: Run) => void
           icon={History}
           flush
           aside={
-            <button className="btn btn-quiet btn-sm" onClick={() => downloadCsv(csvName("analysis-runs"), RUN_CSV, older)} title="Download the rows below as a CSV file">
+            <button className="btn btn-quiet btn-sm" onClick={() => downloadCsv(csvName("analysis-runs"), RUN_CSV, [...sort.rows])} title="Download the rows below as a CSV file">
               <Download aria-hidden="true" />
               Export CSV
             </button>
@@ -256,20 +271,20 @@ function RunList({ runs, onPublish }: { runs: Run[]; onPublish: (r: Run) => void
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col">Run</th>
-                  <th scope="col">Started</th>
-                  <th scope="col">By</th>
-                  <th scope="col">Model</th>
-                  <th scope="col" className="r">Approve</th>
-                  <th scope="col" className="r">Refer</th>
-                  <th scope="col" className="r">Decline</th>
-                  <th scope="col" className="r">Time</th>
+                  <SortableTh sortKey="run_id" control={sort}>Run</SortableTh>
+                  <SortableTh sortKey="started_at" control={sort}>Started</SortableTh>
+                  <SortableTh sortKey="started_by" control={sort}>By</SortableTh>
+                  <SortableTh sortKey="model_version" control={sort}>Model</SortableTh>
+                  <SortableTh sortKey="approve" control={sort} className="r">Approve</SortableTh>
+                  <SortableTh sortKey="refer" control={sort} className="r">Refer</SortableTh>
+                  <SortableTh sortKey="decline" control={sort} className="r">Decline</SortableTh>
+                  <SortableTh sortKey="time" control={sort} className="r">Time</SortableTh>
                   <th scope="col" style={{ width: "26%" }}>By stage</th>
-                  <th scope="col">Published</th>
+                  <SortableTh sortKey="published" control={sort}>Published</SortableTh>
                 </tr>
               </thead>
               <tbody>
-                {older.map((r) => (
+                {sort.rows.map((r) => (
                   <tr key={r.run_id}>
                     <td>
                       <code>{r.run_id}</code>
