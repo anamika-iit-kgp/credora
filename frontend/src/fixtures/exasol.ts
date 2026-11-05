@@ -288,7 +288,7 @@ WHEN NOT MATCHED THEN INSERT VALUES (s.CIF_ID, s.RM_ID, s.EXA_USER, s.ASSIGNED_B
   } else if (method === "POST" && (hit = m(/^\/api\/companies\/([^/]+)\/memo$/))) {
     sql(u, session, "Credit memo", `SELECT CONNECTION_NAME FROM EXA_ALL_CONNECTIONS WHERE CONNECTION_NAME = 'AI_LLM'`, 4, 1, SVC);
     sql(u, session, "Credit memo", `SELECT CREDORA.CREDIT_MEMO('AI_LLM', 'claude-sonnet-5-5', '${hit[1]}', '{"decision":"APPROVE","grade":"A2","pd":0.021, ...}')`, 7400, 1, SVC);
-  } else if (method === "POST" && path === "/api/ai/ask") {
+  } else if (method === "POST" && (path === "/api/ai/ask" || path === "/api/ai/ask/stream")) {
     const via = `Claude → exasol-mcp-server (EC2 app host) → Exasol as ${EXA_USER[u.role]}`;
     push(u, session, "Ask Credora", {
       kind: "mcp",

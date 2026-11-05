@@ -2,6 +2,10 @@
 
 All notable changes to Credora. Dates are in IST.
 
+## Unreleased
+
+- Ask Credora streams. The answer appears as Claude writes it, each MCP call appears as it finishes, and the panel says what is happening now. `POST /api/ai/ask/stream` sends one JSON event per line. `POST /api/ai/ask` still answers in one piece.
+
 ## 2.0.2, 2 November 2026
 
 - Sign-in is rate limited. After 10 failed attempts from one address or for one username inside 5 minutes the next attempt gets 429 for the rest of the window, and a success clears the username's count.

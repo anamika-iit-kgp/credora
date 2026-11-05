@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app import ai, assistant, memo
+from app import ai, assistant, crm, memo
 from app.auth import issue_token, make_user
 from app.main import app
 
@@ -135,6 +135,96 @@ def test_tool_loop_stops_at_the_budget_and_records_steps():
     assert steps[0] == {"tool": "execute_exasol_query", "input": {"query": "SELECT 42"},
                         "result_preview": '{"columns":["N"],"rows":[[42]]}', "is_error": False}
     assert client.choices[-1] == "none" and client.choices.count("none") == 1
+
+
+class FakeStreamingClient:
+    """Writes a preamble and a tool call in the first turn, then the answer in two pieces."""
+
+    def __init__(self):
+        self.messages = self
+        self.turn = 0
+
+    def stream(self, **kw):
+        self.turn += 1
+        first = self.turn == 1
+        pieces = ["Let me check."] if first else ["42 ", "companies."]
+        final = (NS(stop_reason="tool_use", content=[
+                    NS(type="text", text="Let me check."),
+                    NS(type="tool_use", id="a1", name="execute_exasol_query", input={"query": "SELECT 42"})])
+                 if first else NS(stop_reason="end_turn", content=[NS(type="text", text="42 companies.")]))
+
+        class Stream:
+            text_stream = pieces
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def get_final_message(self):
+                return final
+
+        return Stream()
+
+
+def test_streamed_loop_sends_text_and_steps_in_order():
+    events, steps = [], []
+    answer = asyncio.run(assistant._loop(FakeStreamingClient(), FakeSession(), "sys", [{"name": "x"}],
+                                         [{"role": "user", "content": "q"}], steps, events.append))
+    assert answer == "42 companies."
+    assert [e["type"] for e in events] == ["text", "reset", "tool", "step", "text", "text"]
+    assert events[2] == {"type": "tool", "tool": "execute_exasol_query", "input": {"query": "SELECT 42"}}
+    assert events[3]["step"] == steps[0]
+    assert "".join(e["text"] for e in events[4:]) == "42 companies."
+
+
+def _collect(gen):
+    async def run():
+        return [e async for e in gen]
+    return asyncio.run(run())
+
+
+def test_stream_events_end_in_done_or_error(monkeypatch):
+    async def fine(q, role, emit):
+        emit({"type": "text", "text": "hi"})
+        return {"answer": "hi", "steps": []}
+
+    monkeypatch.setattr(assistant, "ask", fine)
+    assert _collect(assistant.stream_events("q")) == [{"type": "text", "text": "hi"},
+                                                      {"type": "done", "answer": "hi", "steps": []}]
+
+    async def fails(q, role, emit):
+        emit({"type": "text", "text": "partial"})
+        raise RuntimeError("provider detail that must not reach the browser")
+
+    monkeypatch.setattr(assistant, "ask", fails)
+    out = _collect(assistant.stream_events("q"))
+    assert out[-1] == {"type": "error", "status": 502, "detail": "The AI provider did not answer. Try again shortly."}
+
+
+def test_stream_route_sends_one_json_event_per_line_and_audits_once(monkeypatch):
+    async def events(q, role):
+        yield {"type": "text", "text": "₹42 L"}
+        yield {"type": "done", "answer": "₹42 L", "steps": []}
+
+    audited = []
+    monkeypatch.setattr(assistant, "enabled", lambda: True)
+    monkeypatch.setattr(assistant, "check_question", lambda q, role: (q, "CREDORA_RM_AI"))
+    monkeypatch.setattr(assistant, "stream_events", events)
+    monkeypatch.setattr(crm, "audit", lambda *a: audited.append(a[1:]))
+    r = TestClient(app).post("/api/ai/ask/stream", json={"question": "q"}, headers=_auth("rm"))
+    assert r.status_code == 200 and r.headers["content-type"].startswith("application/x-ndjson")
+    assert [json.loads(line)["type"] for line in r.text.splitlines()] == ["text", "done"]
+    assert "₹42 L" in r.text
+    assert audited == [("ASK_CREDORA", "", "q")]
+
+
+def test_stream_route_answers_errors_before_streaming(monkeypatch):
+    c = TestClient(app)
+    assert c.post("/api/ai/ask/stream", json={"question": "x"}).status_code == 401
+    monkeypatch.setattr(ai, "enabled", lambda: False)
+    assert c.post("/api/ai/ask/stream", json={"question": "x"}, headers=_auth()).status_code == 503
 
 
 REPORT = {

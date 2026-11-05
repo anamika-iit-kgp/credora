@@ -1,8 +1,12 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, api, asList } from "./client";
+import { ApiError, api, apiStream, asList } from "./client";
 import type {
   AiStatus,
   AskAnswer,
+  AskEvent,
+  AskStage,
+  AskStep,
   AuditEntry,
   Calibration,
   CompanyRow,
@@ -191,8 +195,80 @@ export const useCreditMemo = (cif: string, enabled = true) =>
 
 /* ---------- mutations ---------- */
 
-export const useAsk = () =>
-  useMutation({ mutationFn: (question: string) => api<AskAnswer>("/ai/ask", { body: { question } }) });
+export interface AskLive {
+  stage: AskStage | null;
+  /** The tool running now, null between calls. */
+  tool: string | null;
+  text: string;
+  steps: AskStep[];
+}
+
+const NOTHING_YET: AskLive = { stage: null, tool: null, text: "", steps: [] };
+
+/** Pure: the live view after one event of the answer stream. */
+export function applyAskEvent(live: AskLive, e: AskEvent): AskLive {
+  switch (e.type) {
+    case "status":
+      return { ...live, stage: e.stage };
+    case "text":
+      return { ...live, text: live.text + e.text };
+    case "reset":
+      return { ...live, text: "" };
+    case "tool":
+      return { ...live, tool: e.tool };
+    case "step":
+      return { ...live, tool: null, steps: [...live.steps, e.step] };
+    default:
+      return live;
+  }
+}
+
+/** Ask Credora, with the answer shown as it is written. A new question or leaving the page stops the old one. */
+export function useAskStream() {
+  const [isPending, setPending] = useState(false);
+  const [live, setLive] = useState<AskLive>(NOTHING_YET);
+  const [data, setData] = useState<AskAnswer | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const current = useRef<AbortController | null>(null);
+
+  useEffect(() => () => current.current?.abort(), []);
+
+  const mutate = useCallback(async (question: string) => {
+    current.current?.abort();
+    const ctl = new AbortController();
+    current.current = ctl;
+    setPending(true);
+    setLive(NOTHING_YET);
+    setData(null);
+    setError(null);
+    let finished = false;
+    try {
+      await apiStream<AskEvent>(
+        "/ai/ask/stream",
+        { question },
+        (e) => {
+          if (ctl.signal.aborted) return;
+          setLive((l) => applyAskEvent(l, e));
+          if (e.type === "done") {
+            finished = true;
+            setData(e);
+          } else if (e.type === "error") {
+            finished = true;
+            setError(new ApiError(e.status, e.detail));
+          }
+        },
+        ctl.signal,
+      );
+      if (!finished && !ctl.signal.aborted) setError(new ApiError(0, "The answer stopped before it finished. Try again."));
+    } catch (e) {
+      if (!ctl.signal.aborted) setError(e as Error);
+    } finally {
+      if (!ctl.signal.aborted) setPending(false);
+    }
+  }, []);
+
+  return { mutate, isPending, live, data, error, isError: error !== null };
+}
 
 export const useGenerateMemo = (cif: string) => {
   const qc = useQueryClient();

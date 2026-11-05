@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from .. import assistant, crm, exa, memo
@@ -41,6 +44,32 @@ async def ask(body: AskBody, user: User = Depends(current_user)):
     except Exception:  # noqa: BLE001 - CRM down: the answer still returns
         pass
     return out
+
+
+@router.post("/ai/ask/stream")
+async def ask_stream(body: AskBody, user: User = Depends(current_user)):
+    """Ask Credora, sent as it happens: one JSON event per line, ending in a done or an error event."""
+    if not assistant.enabled():
+        raise HTTPException(503, "Ask Credora is off on this server: no AI provider is configured.")
+    try:
+        assistant.check_question(body.question, user.role)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    except assistant.AssistantUnavailable as e:
+        raise HTTPException(503, str(e)) from e
+
+    async def lines():
+        async for event in assistant.stream_events(body.question, user.role):
+            if event["type"] == "done":
+                try:
+                    await asyncio.to_thread(crm.audit, user, "ASK_CREDORA", "", body.question[:200])
+                except Exception:  # noqa: BLE001 - CRM down: the answer still returns
+                    pass
+            yield json.dumps(event, default=str, ensure_ascii=False) + "\n"
+
+    # This content type stays out of Caddy's compression, which would hold the text back.
+    return StreamingResponse(lines(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
 
 def _run_for(user: User, cif: str) -> str:
