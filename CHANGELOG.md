@@ -2,6 +2,10 @@
 
 All notable changes to Credora. Dates are in IST.
 
+## Unreleased
+
+- The `CREDIT_MEMO` script allows 4,000 output tokens instead of 400. The model's thinking counts against this limit, so at 400 it could use the whole allowance and the Credit memo panel reported an empty memo.
+
 ## 2.0.2, 2 November 2026
 
 - Sign-in is rate limited. After 10 failed attempts from one address or for one username inside 5 minutes the next attempt gets 429 for the rest of the window, and a success clears the username's count.
