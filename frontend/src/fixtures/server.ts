@@ -1889,7 +1889,7 @@ on("GET", "/api/offers/{id}/events", ({ u, m }) => {
 
 /* ------------------------------ generative AI ------------------------------ */
 
-const AI_MODEL = "claude-sonnet-5-5";
+const AI_MODEL = "claude-opus-5-5";
 const memos: Record<string, CreditMemo> = {};
 
 on("GET", "/api/ai/status", () => ({ enabled: true, provider: "anthropic", model: AI_MODEL, assistant: true }));

@@ -5,7 +5,7 @@
 --
 -- Usage (the web app runs this as CREDORA_SVC from the Credit memo panel of the Exasol report and
 -- stores the result in CREDORA.MEMOS):
---   SELECT CREDORA.CREDIT_MEMO('AI_LLM', 'claude-sonnet-5-5', d.CIF_ID, <facts as JSON>) ...
+--   SELECT CREDORA.CREDIT_MEMO('AI_LLM', 'claude-opus-5-5', d.CIF_ID, <facts as JSON>) ...
 
 CREATE OR REPLACE PYTHON3 SCALAR SCRIPT CREDORA.CREDIT_MEMO(
   conn_name VARCHAR(100), model VARCHAR(80), cif_id VARCHAR(8), facts VARCHAR(20000))
