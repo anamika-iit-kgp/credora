@@ -7,6 +7,7 @@ All notable changes to Credora. Dates are in IST.
 - Ask Credora streams. The answer appears as Claude writes it, each MCP call appears as it finishes, and the panel says what is happening now. `POST /api/ai/ask/stream` sends one JSON event per line. `POST /api/ai/ask` still answers in one piece.
 - Ask Credora draws charts. The model picks a bar, line or share chart and names the columns, and the numbers are read from the result of its last query, so a chart cannot show a figure Exasol did not return. Each chart can open as a table. The charts use Recharts (MIT).
 - Ask Credora and the credit memo default to `claude-opus-5-5`. The topic check allows 2,000 tokens instead of 5, because thinking counts against the limit and at 5 it could leave no verdict, which let the question through.
+- The `CREDIT_MEMO` script allows 4,000 output tokens instead of 400. The model's thinking counts against this limit, so at 400 it could use the whole allowance and the Credit memo panel reported an empty memo.
 
 ## 2.0.2, 2 November 2026
 
