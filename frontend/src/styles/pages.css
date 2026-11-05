@@ -1986,3 +1986,74 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Ask Credora: the marker at the end of an answer while it is being written */
+.ask-caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: currentColor;
+  opacity: 0.6;
+  animation: ask-caret 1s steps(2) infinite;
+}
+@keyframes ask-caret {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ask-caret {
+    animation: none;
+  }
+}
+
+/* Ask Credora charts. The fixed series order is checked for colour blindness and contrast on both surfaces. */
+.ask-chart {
+  margin: 20px 0 0;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ask-chart {
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+:root[data-theme="dark"] .ask-chart {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+}
+.ask-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.ask-chart-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+.ask-chart-legend {
+  color: var(--ink-2);
+  font-size: 13px;
+}

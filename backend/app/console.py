@@ -89,7 +89,7 @@ _LABELS: list[tuple[str, re.Pattern[str], str]] = [(m, re.compile(p), label) for
     ("*", r"^/api/loan-status", "Loan status"),
     ("POST", r"^/api/offers/[^/]+/quote$", "Negotiation quote"),
     ("*", r"^/api/offers", "Offers"),
-    ("*", r"^/api/ai/ask$", "Ask Credora"),
+    ("*", r"^/api/ai/ask(/stream)?$", "Ask Credora"),
     ("*", r"^/api/admin/sources", "Sources"),
     ("*", r"^/api/admin/audit", "Audit"),
     ("*", r"^/api/admin/purge", "Purge"),

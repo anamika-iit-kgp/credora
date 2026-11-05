@@ -1,6 +1,6 @@
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { LoaderCircle, Send } from "lucide-react";
-import { useAiStatus, useAsk } from "../../api/hooks";
+import { useAiStatus, useAskStream, type AskLive } from "../../api/hooks";
 import { useAuth } from "../../auth/AuthContext";
 import type { AskAnswer, AskStep } from "../../api/types";
 import { CodeBlock } from "../../components/CodeBlock";
@@ -38,6 +38,8 @@ const SUGGESTED: Record<string, string[]> = {
   ],
 };
 
+const AskCharts = lazy(() => import("./AskChart"));
+
 const TOOL_LABEL: Record<string, string> = {
   execute_exasol_query: "Ran a query",
   describe_exasol_tables_and_views: "Read table definitions",
@@ -50,7 +52,7 @@ const TOOL_LABEL: Record<string, string> = {
 export function AskPage() {
   const { user } = useAuth();
   const status = useAiStatus();
-  const ask = useAsk();
+  const ask = useAskStream();
   const [question, setQuestion] = useState("");
   const [asked, setAsked] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -154,15 +156,53 @@ export function AskPage() {
         </div>
       </Panel>
 
-      {ask.isPending && (
-        <Panel title={asked}>
-          <Loading label="Claude is querying Exasol through the MCP server" rows={4} />
-          <p className="muted small">Claude is querying Exasol through the MCP server. This usually takes 10 to 30 seconds.</p>
-        </Panel>
-      )}
+      {ask.isPending && <LiveAnswer q={asked ?? ""} live={ask.live} />}
       {ask.isError && !ask.isPending && <ErrorState error={ask.error} retry={() => asked && ask.mutate(asked)} />}
       {ask.data && !ask.isPending && <Answer q={asked ?? ""} a={ask.data} />}
     </div>
+  );
+}
+
+const TOOL_RUNNING: Record<string, string> = {
+  execute_exasol_query: "Running a query in Exasol",
+  describe_exasol_tables_and_views: "Reading table definitions",
+  summarize_exasol_table: "Summarising a table",
+  list_exasol_tables_and_views: "Listing tables",
+  find_exasol_tables_and_views: "Searching tables",
+  list_exasol_schemas: "Listing schemas",
+};
+
+function liveLabel(live: AskLive): string {
+  if (live.tool) return TOOL_RUNNING[live.tool] ?? "Calling a tool";
+  if (live.text) return "Claude is writing the answer";
+  if (live.stage === null) return "Sending the question";
+  if (live.stage === "topic") return "Checking the question";
+  if (live.stage === "connecting") return "Connecting to Exasol through the MCP server";
+  return "Claude is working out what to query";
+}
+
+/** The answer while it is being written, and the calls made so far. */
+function LiveAnswer({ q, live }: { q: string; live: AskLive }) {
+  const label = liveLabel(live);
+  return (
+    <>
+      <Panel title={q} aside={<span className="muted small" role="status">{label}</span>}>
+        {live.text ? (
+          <div aria-busy="true">
+            <AnswerText text={live.text} />
+            <span className="ask-caret" aria-hidden="true" />
+          </div>
+        ) : (
+          <Loading label={label} rows={4} />
+        )}
+        {live.charts.length > 0 && (
+          <Suspense fallback={<Loading rows={3} />}>
+            <AskCharts charts={live.charts} />
+          </Suspense>
+        )}
+      </Panel>
+      {live.steps.length > 0 && <HowAnswered steps={live.steps} live />}
+    </>
   );
 }
 
@@ -171,6 +211,11 @@ function Answer({ q, a }: { q: string; a: AskAnswer }) {
     <>
       <Panel title={q} aside={<span className="muted small">{a.model}</span>}>
         <AnswerText text={a.answer} />
+        {!!a.charts?.length && (
+          <Suspense fallback={<Loading rows={3} />}>
+            <AskCharts charts={a.charts} />
+          </Suspense>
+        )}
       </Panel>
       <HowAnswered steps={a.steps} exasolUser={a.exasol_user} />
     </>
@@ -242,7 +287,7 @@ function stepSql(s: AskStep): string | null {
   return typeof q === "string" ? q.trim() : null;
 }
 
-function HowAnswered({ steps, exasolUser }: { steps: AskStep[]; exasolUser?: string | null }) {
+function HowAnswered({ steps, exasolUser, live = false }: { steps: AskStep[]; exasolUser?: string | null; live?: boolean }) {
   const [open, setOpen] = useState<Set<number>>(() => new Set());
   const all = steps.length > 0 && open.size === steps.length;
   const queries = steps.filter((s) => stepSql(s)).length;
@@ -257,7 +302,7 @@ function HowAnswered({ steps, exasolUser }: { steps: AskStep[]; exasolUser?: str
           <p className="muted">
             {steps.length === 0
               ? "Claude answered without calling the Exasol MCP server."
-              : `Claude made ${steps.length} ${steps.length === 1 ? "call" : "calls"} to the Exasol MCP server${
+              : `Claude ${live ? "has made" : "made"} ${steps.length} ${steps.length === 1 ? "call" : "calls"} to the Exasol MCP server${
                   queries ? `, ${queries} of them SQL ${queries === 1 ? "query" : "queries"}` : ""
                 }, logged in as ${exasolUser ?? "your AI session user"} (read-only). Open a call to see what ran and what came back.`}
           </p>

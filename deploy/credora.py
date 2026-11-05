@@ -329,7 +329,7 @@ class Deployment:
         app_headers = secure + f"\t\tContent-Security-Policy \"{app_csp}\"\n\t}}\n"
         site_headers = secure + f"\t\tContent-Security-Policy \"{site_csp}\"\n\t}}\n"
         blocks = [
-            f"{d} {{\n\tencode zstd gzip\n\thandle /api/* {{\n\t\treverse_proxy backend:8000\n\t}}\n{mocks}"
+            f"{d} {{\n\tencode zstd gzip\n\thandle /api/* {{\n\t\treverse_proxy backend:8000 {{\n\t\t\tflush_interval -1\n\t\t}}\n\t}}\n{mocks}"
             f"\thandle {{\n{static('/srv')}\t}}\n"
             f"{app_headers}}}\n",
             f"www.{d} {{\n\tredir https://{d}{{uri}} permanent\n}}\n",

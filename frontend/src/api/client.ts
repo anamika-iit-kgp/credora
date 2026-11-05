@@ -37,12 +37,10 @@ export function onUnauthorized(fn: Listener) {
   };
 }
 
-export async function api<T>(
-  path: string,
-  init: { method?: string; body?: unknown; signal?: AbortSignal } = {},
-): Promise<T> {
+/** The response when it is OK, or an ApiError. */
+async function send(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal }, accept: string): Promise<Response> {
   // The tab's id lets the backend's Exasol console show this tab its own statements (Explain mode).
-  const headers: Record<string, string> = { Accept: "application/json", "X-Credora-Session": consoleSession() };
+  const headers: Record<string, string> = { Accept: accept, "X-Credora-Session": consoleSession() };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (init.body !== undefined) headers["Content-Type"] = "application/json";
@@ -77,8 +75,43 @@ export async function api<T>(
     }
     throw new ApiError(res.status, message);
   }
+  return res;
+}
+
+export async function api<T>(
+  path: string,
+  init: { method?: string; body?: unknown; signal?: AbortSignal } = {},
+): Promise<T> {
+  const res = await send(path, init, "application/json");
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+/** Calls onLine with each complete line as it arrives. A character split across two chunks stays whole. */
+export async function readLines(body: ReadableStream<Uint8Array>, onLine: (line: string) => void): Promise<void> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let held = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    held += done ? decoder.decode() : decoder.decode(value, { stream: true });
+    const lines = held.split("\n");
+    held = done ? "" : lines.pop() ?? "";
+    for (const line of lines) if (line.trim()) onLine(line);
+    if (done) return;
+  }
+}
+
+/** POST, then hand over each JSON event of the response as it arrives. */
+export async function apiStream<E>(path: string, body: unknown, onEvent: (event: E) => void, signal?: AbortSignal): Promise<void> {
+  const res = await send(path, { method: "POST", body, signal }, "application/x-ndjson");
+  if (!res.body) throw new ApiError(0, "The Credora API sent an empty answer. Try again.");
+  try {
+    await readLines(res.body, (line) => onEvent(JSON.parse(line) as E));
+  } catch (e) {
+    if ((e as Error).name === "AbortError" || e instanceof ApiError) throw e;
+    throw new ApiError(0, "The connection dropped while the answer was coming. Try again.");
+  }
 }
 
 /** Accepts either a bare array or an `{items: [...]}` envelope. */

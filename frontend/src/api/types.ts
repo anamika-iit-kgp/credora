@@ -584,14 +584,40 @@ export interface AskStep {
   is_error?: boolean;
 }
 
+export type ChartUnit = "inr" | "percent" | "ratio" | "number";
+
+/** A chart under an answer. The backend reads its numbers from the result of the last query. */
+export interface AskChart {
+  kind: "bar" | "line" | "share";
+  title: string;
+  unit: ChartUnit;
+  x_label: string;
+  categories: string[];
+  series: { name: string; values: (number | null)[] }[];
+}
+
 export interface AskAnswer {
   answer: string;
   steps: AskStep[];
+  charts?: AskChart[];
   model: string;
   run_id?: string | null;
   /** The Exasol user the MCP server logged in as (the caller's role user). */
   exasol_user?: string | null;
 }
+
+export type AskStage = "topic" | "connecting" | "thinking";
+
+/** One line of POST /api/ai/ask/stream. The last event is a done or an error. */
+export type AskEvent =
+  | { type: "status"; stage: AskStage }
+  | { type: "text"; text: string }
+  | { type: "reset" }
+  | { type: "tool"; tool: string; input: Record<string, unknown> }
+  | { type: "step"; step: AskStep }
+  | { type: "chart"; chart: AskChart }
+  | ({ type: "done" } & AskAnswer)
+  | { type: "error"; status: number; detail: string };
 
 export type MemoEngine = "exasol-udf" | "backend";
 

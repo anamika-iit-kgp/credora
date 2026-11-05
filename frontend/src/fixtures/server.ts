@@ -3,6 +3,8 @@
 
 import type {
   AskAnswer,
+  AskChart,
+  AskEvent,
   AskStep,
   AuditEntry,
   Calibration,
@@ -1924,7 +1926,7 @@ on("GET", "/api/offers/{id}/events", ({ u, m }) => {
 
 /* ------------------------------ generative AI ------------------------------ */
 
-const AI_MODEL = "claude-sonnet-5-5";
+const AI_MODEL = "claude-opus-5-5";
 const memos: Record<string, CreditMemo> = {};
 
 on("GET", "/api/ai/status", () => ({ enabled: true, provider: "anthropic", model: AI_MODEL, assistant: true }));
@@ -1942,6 +1944,37 @@ function askFixture(question: string): AskAnswer {
     input: { query: sql },
     result_preview: JSON.stringify({ columns, rows }),
   });
+  if (q.includes("probability") && q.includes("gst")) {
+    const stages = ["New", "Mid-level", "Stable"];
+    const grades = ["A1", "A2", "B1", "B2", "C1", "C2", "D"];
+    const rows = stages.flatMap((st) =>
+      grades.flatMap((g) => {
+        const cs = all.filter((c) => c.stage === st && sc[c.idx].grade === g);
+        if (!cs.length) return [];
+        const pd = cs.reduce((a, c) => a + sc[c.idx].pd, 0) / cs.length;
+        const loss = cs.reduce((a, c) => a + sc[c.idx].pd * 0.45 * sc[c.idx].amount, 0);
+        return [[st, g, Number(pd.toFixed(4)), Math.round(loss)]];
+      }),
+    );
+    const per = (i: number) => stages.map((st) => ({ name: st, values: grades.map((g) => { const r = rows.find((x) => x[0] === st && x[1] === g); return r ? Number(r[i]) : null; }) }));
+    const charts: AskChart[] = [
+      { kind: "line", title: "Average probability of default by grade and GST stage", unit: "ratio", x_label: "GRADE", categories: grades, series: per(2) },
+      { kind: "bar", title: "Expected loss by grade and GST stage", unit: "inr", x_label: "GRADE", categories: grades, series: per(3) },
+    ];
+    return {
+      model: AI_MODEL,
+      run_id: run,
+      steps: [
+        step(
+          `SELECT gst_stage, grade, avg_pd, expected_loss FROM CREDORA_SEM.PORTFOLIO GROUP BY gst_stage, grade ORDER BY gst_stage, grade`,
+          ["GST_STAGE", "GRADE", "AVG_PD", "EXPECTED_LOSS"],
+          rows,
+        ),
+      ],
+      charts,
+      answer: `Average probability of default rises from A1 to D at every GST stage in run ${run}. The charts show each stage and grade.`,
+    };
+  }
   if (q.includes("raroc")) {
     const top = all
       .filter((c) => sc[c.idx].decision === "APPROVE")
@@ -2036,12 +2069,14 @@ function askFixture(question: string): AskAnswer {
   };
 }
 
-on("POST", "/api/ai/ask", ({ u, body }) => {
+const askRoute: Handler = ({ u, body }) => {
   const q = String(body.question ?? "").trim();
   if (!q) throw new HttpError(422, "Ask a question.");
   audit(u, "ASK_CREDORA", "", q.slice(0, 200));
   return u.role === "rm" ? askRmFixture(q) : askFixture(q);
-});
+};
+on("POST", "/api/ai/ask", askRoute);
+on("POST", "/api/ai/ask/stream", askRoute);
 
 /** The relationship manager's Ask Credora reads only the row-filtered V_RM_* views (her assigned companies). */
 function askRmFixture(question: string): AskAnswer {
@@ -2140,6 +2175,33 @@ function json(status: number, body: unknown) {
   });
 }
 
+/** The fixture answer as the live stream sends it: progress, each tool call, then the text piece by piece. */
+function askStream(a: AskAnswer) {
+  const events: AskEvent[] = [
+    { type: "status", stage: "topic" },
+    { type: "status", stage: "connecting" },
+    { type: "status", stage: "thinking" },
+    ...a.steps.flatMap((step): AskEvent[] => [
+      { type: "tool", tool: step.tool, input: step.input },
+      { type: "step", step },
+    ]),
+    ...(a.charts ?? []).map((chart): AskEvent => ({ type: "chart", chart })),
+    ...(a.answer.match(/\S+\s*/g) ?? []).map((text): AskEvent => ({ type: "text", text })),
+    { type: "done", ...a },
+  ];
+  const encoder = new TextEncoder();
+  let i = 0;
+  const body = new ReadableStream<Uint8Array>({
+    async pull(c) {
+      const e = events[i++];
+      if (!e) return c.close();
+      await new Promise((r) => setTimeout(r, e.type === "text" ? 30 : 350));
+      c.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
+    },
+  });
+  return new Response(body, { status: 200, headers: { "Content-Type": "application/x-ndjson", "X-Credora-Fixture": "1" } });
+}
+
 function userFromToken(h: Headers): User | null {
   const a = h.get("Authorization") ?? "";
   const m = /^Bearer fx\.(\w+)$/.exec(a);
@@ -2178,6 +2240,7 @@ export function installFixtures() {
       try {
         const out = h({ u, body, q: url.searchParams, m: match, tab });
         if (method !== "GET") save();
+        if (url.pathname === "/api/ai/ask/stream") return askStream(out as AskAnswer);
         return json(200, out);
       } catch (e) {
         if (e instanceof HttpError) return json(e.status, { detail: e.message });
