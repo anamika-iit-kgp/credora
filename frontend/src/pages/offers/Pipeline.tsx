@@ -3,8 +3,10 @@ import { Briefcase } from "lucide-react";
 import { useOffers } from "../../api/hooks";
 import type { Offer, OfferStage } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { DecisionBadge, Empty, ErrorState, Grade, Loading, Money, PageHeader, Panel, Stage } from "../../components/ui";
 import { num, pct, relative, rupeesShort } from "../../lib/format";
+import { decisionRank, offerStageRank, type SortColumns } from "../../lib/sort";
 
 export const STAGES: { s: OfferStage; label: string; help: string }[] = [
   { s: "OFFERED", label: "Offered", help: "Exasol's offer, not yet discussed" },
@@ -15,13 +17,27 @@ export const STAGES: { s: OfferStage; label: string; help: string }[] = [
   { s: "DECLINED", label: "Declined", help: "Rejected by loan operations" },
 ];
 
+const SORT: SortColumns<Offer> = {
+  rank_no: (o) => o.rank_no,
+  legal_name: (o) => o.legal_name,
+  decision: (o) => decisionRank(o.decision),
+  grade: (o) => o.grade,
+  offer_amount: (o) => o.offer_amount,
+  offer_roi: (o) => o.offer_roi,
+  agreed_amount: (o) => o.agreed_amount,
+  stage: (o) => offerStageRank(o.stage),
+  updated_at: (o) => o.updated_at,
+  rm_id: (o) => o.rm_id,
+};
+
 export function PipelinePage() {
   const user = useUser();
   const q = useOffers();
   const [sp, setSp] = useSearchParams();
   const stage = (sp.get("stage") ?? "") as OfferStage | "";
   const all = q.data ?? [];
-  const rows = stage ? all.filter((o) => o.stage === stage) : all;
+  const sort = useSort(stage ? all.filter((o) => o.stage === stage) : all, SORT);
+  const rows = sort.rows;
 
   return (
     <div className="page">
@@ -75,16 +91,16 @@ export function PipelinePage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th scope="col" className="r">Rank</th>
-                      <th scope="col">Company</th>
-                      <th scope="col">Decision</th>
-                      <th scope="col">Grade</th>
-                      <th scope="col" className="r">Offer</th>
-                      <th scope="col" className="r">ROI</th>
-                      <th scope="col" className="r">Agreed</th>
-                      <th scope="col">Stage</th>
-                      <th scope="col">Updated</th>
-                      {user.role !== "rm" && <th scope="col">RM</th>}
+                      <SortableTh sortKey="rank_no" control={sort} className="r">Rank</SortableTh>
+                      <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+                      <SortableTh sortKey="decision" control={sort}>Decision</SortableTh>
+                      <SortableTh sortKey="grade" control={sort}>Grade</SortableTh>
+                      <SortableTh sortKey="offer_amount" control={sort} className="r">Offer</SortableTh>
+                      <SortableTh sortKey="offer_roi" control={sort} className="r">ROI</SortableTh>
+                      <SortableTh sortKey="agreed_amount" control={sort} className="r">Agreed</SortableTh>
+                      <SortableTh sortKey="stage" control={sort}>Stage</SortableTh>
+                      <SortableTh sortKey="updated_at" control={sort}>Updated</SortableTh>
+                      {user.role !== "rm" && <SortableTh sortKey="rm_id" control={sort}>RM</SortableTh>}
                     </tr>
                   </thead>
                   <tbody>

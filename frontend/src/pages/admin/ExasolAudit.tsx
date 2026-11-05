@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { CalendarClock, Fingerprint, ListTree, ScrollText } from "lucide-react";
 import { useAnalysisTrace, useExasolAudit, useSchedule, type AuditFilters, type AuditedStatement } from "../../api/exasolAudit";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { Empty, ErrorState, Loading, PageHeader, Panel, Segmented } from "../../components/ui";
 import { dateTime, num } from "../../lib/format";
+import type { SortColumns } from "../../lib/sort";
 import "../../styles/exasol-audit.css";
 
 const EXA_USERS = [
@@ -164,10 +166,22 @@ function AnalysisSection() {
   );
 }
 
+const STATEMENT_SORT: SortColumns<AuditedStatement> = {
+  started_at: (s) => s.started_at,
+  exa_user: (s) => s.exa_user,
+  app_user: (s) => s.app_user,
+  consumer_group: (s) => s.consumer_group,
+  cpu_pct: (s) => s.cpu_pct,
+  temp_ram_mib: (s) => s.temp_ram_mib,
+  duration_s: (s) => s.duration_s,
+  success: (s) => s.success,
+};
+
 function StatementsSection() {
   const [f, setF] = useState<AuditFilters>({ hours: 24, success: "" });
   const set = (k: keyof AuditFilters, v: string | number) => setF((o) => ({ ...o, [k]: v }));
   const q = useExasolAudit(f);
+  const sort = useSort(q.data?.items ?? [], STATEMENT_SORT);
   return (
     <Panel title="Audited statements" icon={ScrollText} aside={<span className="muted">EXA_DBA_AUDIT_SQL + EXA_DBA_AUDIT_SESSIONS, read as CREDORA_ADMIN</span>} flush>
       <div className="filters">
@@ -221,25 +235,19 @@ function StatementsSection() {
           <table className="table xa-table">
             <thead>
               <tr>
-                <th scope="col">When</th>
-                <th scope="col">Exasol user</th>
-                <th scope="col">App user · feature</th>
-                <th scope="col">Consumer group</th>
+                <SortableTh sortKey="started_at" control={sort}>When</SortableTh>
+                <SortableTh sortKey="exa_user" control={sort}>Exasol user</SortableTh>
+                <SortableTh sortKey="app_user" control={sort}>App user · feature</SortableTh>
+                <SortableTh sortKey="consumer_group" control={sort}>Consumer group</SortableTh>
                 <th scope="col">SQL</th>
-                <th scope="col" className="r">
-                  CPU %
-                </th>
-                <th scope="col" className="r">
-                  Temp RAM MiB
-                </th>
-                <th scope="col" className="r">
-                  Seconds
-                </th>
-                <th scope="col">Result</th>
+                <SortableTh sortKey="cpu_pct" control={sort} className="r">CPU %</SortableTh>
+                <SortableTh sortKey="temp_ram_mib" control={sort} className="r">Temp RAM MiB</SortableTh>
+                <SortableTh sortKey="duration_s" control={sort} className="r">Seconds</SortableTh>
+                <SortableTh sortKey="success" control={sort}>Result</SortableTh>
               </tr>
             </thead>
             <tbody>
-              {q.data.items.map((s) => (
+              {sort.rows.map((s) => (
                 <tr key={`${s.session_id}-${s.stmt_id}`}>
                   <td className="nowrap muted">{dateTime(s.started_at)}</td>
                   <td>

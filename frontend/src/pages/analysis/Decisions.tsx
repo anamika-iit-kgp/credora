@@ -5,11 +5,13 @@ import { useDecisions } from "../../api/hooks";
 import { useUser } from "../../auth/AuthContext";
 import { AssignBar, AssignDialog, AssignedRm, SelectCell } from "../../components/Assign";
 import { PublishedNotice } from "../../components/PublishedNotice";
+import { SortableTh, useUrlSort } from "../../components/SortableTh";
 import { DecisionBadge, Empty, ErrorState, Grade, Loading, Money, PageHeader, Pager, Panel, Segmented } from "../../components/ui";
 import { months, num, pct, pctFromRatio } from "../../lib/format";
 import { can } from "../../lib/roles";
-import { WithExplain } from "../../explain/Explain";
 
+// The list is paginated, so the server sorts it. backend/app/routes/analysis.py holds the same keys.
+const SORT_KEYS = ["rank_no", "legal_name", "decision", "grade", "pd", "raroc", "offer_amount", "offer_roi", "offer_tenure", "assigned_rm_id"];
 const GRADES = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2"];
 
 export function DecisionsPage() {
@@ -20,7 +22,8 @@ export function DecisionsPage() {
   const grade = sp.get("grade") ?? "";
   const assigned = sp.get("assigned") ?? "";
   const page = Number(sp.get("page") ?? 1);
-  const q = useDecisions({ decision, grade, assigned, page });
+  const sort = useUrlSort(SORT_KEYS);
+  const q = useDecisions({ decision, grade, assigned, page, sort: sort.sort?.key, order: sort.sort?.dir });
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [assignFor, setAssignFor] = useState<string[] | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -124,32 +127,16 @@ export function DecisionsPage() {
                         />
                       </th>
                     )}
-                    <th scope="col" className="r">
-                      <WithExplain id="rank">Rank</WithExplain>
-                    </th>
-                    <th scope="col">Company</th>
-                    <th scope="col">
-                      <WithExplain id="approve-refer-decline">Decision</WithExplain>
-                    </th>
-                    <th scope="col">
-                      <WithExplain id="grade">Grade</WithExplain>
-                    </th>
-                    <th scope="col" className="r">
-                      <WithExplain id="pd">PD</WithExplain>
-                    </th>
-                    <th scope="col" className="r">
-                      <WithExplain id="raroc">RAROC</WithExplain>
-                    </th>
-                    <th scope="col" className="r">
-                      <WithExplain id="pre-approved-offer">Offer</WithExplain>
-                    </th>
-                    <th scope="col" className="r">
-                      <WithExplain id="roi">ROI</WithExplain>
-                    </th>
-                    <th scope="col" className="r">Tenure</th>
-                    <th scope="col">
-                      <WithExplain id="rm-assignment">RM</WithExplain>
-                    </th>
+                    <SortableTh sortKey="rank_no" control={sort} className="r" explain="rank">Rank</SortableTh>
+                    <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+                    <SortableTh sortKey="decision" control={sort} explain="approve-refer-decline">Decision</SortableTh>
+                    <SortableTh sortKey="grade" control={sort} explain="grade">Grade</SortableTh>
+                    <SortableTh sortKey="pd" control={sort} className="r" explain="pd">PD</SortableTh>
+                    <SortableTh sortKey="raroc" control={sort} className="r" explain="raroc">RAROC</SortableTh>
+                    <SortableTh sortKey="offer_amount" control={sort} className="r" explain="pre-approved-offer">Offer</SortableTh>
+                    <SortableTh sortKey="offer_roi" control={sort} className="r" explain="roi">ROI</SortableTh>
+                    <SortableTh sortKey="offer_tenure" control={sort} className="r">Tenure</SortableTh>
+                    <SortableTh sortKey="assigned_rm_id" control={sort} explain="rm-assignment">RM</SortableTh>
                     <th scope="col"><span className="sr-only">Report</span></th>
                   </tr>
                 </thead>

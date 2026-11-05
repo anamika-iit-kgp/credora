@@ -5,8 +5,10 @@ import { Ban, FileCheck, Power, ShieldCheck, TriangleAlert } from "lucide-react"
 import { useActivationRequests, useDecideActivation, useRequestActivation } from "../../api/workflow";
 import type { ActivationRequest, Model, ModelMetricsCard } from "../../api/types";
 import { useUser } from "../../auth/AuthContext";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { Dialog, Empty, ErrorState, Loading, Panel } from "../../components/ui";
 import { dateTime } from "../../lib/format";
+import type { SortColumns } from "../../lib/sort";
 import { ProposalStatus } from "./PolicyParts";
 import { Explain } from "../../explain/Explain";
 
@@ -123,9 +125,18 @@ function Decision({ r }: { r: ActivationRequest }) {
   );
 }
 
+const REQUEST_SORT: SortColumns<ActivationRequest> = {
+  request_id: (r) => r.request_id,
+  created_at: (r) => r.created_at,
+  model_version: (r) => r.model_version,
+  status: (r) => r.status,
+  decided_at: (r) => r.decided_at,
+};
+
 /** Data scientist: their requests and what the admin decided. */
 export function MyActivationRequests() {
   const q = useActivationRequests();
+  const sort = useSort(q.data ?? [], REQUEST_SORT);
   if (!q.data?.length) return null;
   return (
     <Panel title="My activation requests" icon={FileCheck} flush aside={<span className="small muted">The admin approves or rejects each one</span>}>
@@ -133,15 +144,15 @@ export function MyActivationRequests() {
         <table className="table">
           <thead>
             <tr>
-              <th scope="col">Request</th>
-              <th scope="col">Sent</th>
-              <th scope="col">Model</th>
-              <th scope="col">Status</th>
-              <th scope="col">Decision</th>
+              <SortableTh sortKey="request_id" control={sort}>Request</SortableTh>
+              <SortableTh sortKey="created_at" control={sort}>Sent</SortableTh>
+              <SortableTh sortKey="model_version" control={sort}>Model</SortableTh>
+              <SortableTh sortKey="status" control={sort}>Status</SortableTh>
+              <SortableTh sortKey="decided_at" control={sort}>Decision</SortableTh>
             </tr>
           </thead>
           <tbody>
-            {q.data.map((r) => (
+            {sort.rows.map((r) => (
               <tr key={r.request_id}>
                 <td className="strong">#{r.request_id}</td>
                 <td className="nowrap">{dateTime(r.created_at)}</td>

@@ -1,9 +1,12 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FileSearch } from "lucide-react";
 import { useNode } from "../api/hooks";
 import type { Cell, NodeRecords } from "../api/types";
 import { cell, humanize, isNumericColumn, num } from "../lib/format";
+import type { SortColumns } from "../lib/sort";
 import { sourceMeta } from "../lib/sources";
+import { SortableTh, useSort } from "./SortableTh";
 import { SourceGlyph, SourceTag } from "./SourceTag";
 import { ErrorState, Loading } from "./ui";
 import { ExaBadge } from "../explain/ExaBadge";
@@ -60,6 +63,60 @@ function where(r: NodeRecords): string | null {
 
 const META_HIDDEN = new Set(["endpoint", "table", "database"]);
 
+/** Columns whose cell is a picture of many values, with nothing to sort by. */
+const NOT_SORTABLE = new Set(["dpd_36m"]);
+
+/**
+ * The records of one node. The whole list is in the browser, so the sort covers every row, and only then is the list cut
+ * down to what the page shows. The rows carry their original position as their key because records have no id of their own.
+ */
+function RecordsTable({ r }: { r: NodeRecords }) {
+  const numericCols = r.columns.map((c) => isNumericColumn(c, r.rows.find((row) => row[r.columns.indexOf(c)] != null)?.[r.columns.indexOf(c)]));
+  const rows = useMemo(() => r.rows.map((row, id) => ({ row, id })), [r.rows]);
+  const columns = useMemo<SortColumns<{ row: Cell[] }>>(() => Object.fromEntries(r.columns.map((c, i) => [c, (x: { row: Cell[] }) => x.row[i] as string | number | boolean | null])), [r.columns]);
+  const sort = useSort<{ row: Cell[]; id: number }>(rows, columns);
+  const shown = sort.rows.slice(0, MAX_ROWS);
+  return (
+    <>
+      <div className="table-wrap table-wrap-tall">
+        <table className="table table-dense">
+          <thead>
+            <tr>
+              {r.columns.map((c, i) =>
+                NOT_SORTABLE.has(c) ? (
+                  <th key={c} scope="col" className={numericCols[i] ? "r" : ""}>
+                    <code>{c}</code>
+                  </th>
+                ) : (
+                  <SortableTh key={c} sortKey={c} control={sort} className={numericCols[i] ? "r" : ""}>
+                    <code>{c}</code>
+                  </SortableTh>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map(({ row, id }) => (
+              <tr key={id}>
+                {row.map((v, ci) => (
+                  <td key={ci} className={`${numericCols[ci] ? "r num" : ""} nowrap`}>
+                    {renderCell(r.columns[ci], v)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="record-foot muted">
+        {r.rows.length > MAX_ROWS
+          ? `Showing the ${sort.sort ? "first" : "latest"} ${num(MAX_ROWS)} of ${num(r.rows.length)} rows${sort.sort ? " in this order" : ""}.`
+          : `${num(r.rows.length)} rows.`}
+      </p>
+    </>
+  );
+}
+
 export function NodeDetail({ nodeId, cif, reportAllowed }: { nodeId: string; cif: string; reportAllowed: boolean }) {
   const q = useNode(nodeId);
   if (q.isLoading) return <Loading rows={8} label="Loading records" />;
@@ -68,8 +125,6 @@ export function NodeDetail({ nodeId, cif, reportAllowed }: { nodeId: string; cif
   const m = sourceMeta(r.source);
   const single = r.rows.length === 1;
   const meta = Object.entries(r.meta ?? {}).filter(([k]) => !META_HIDDEN.has(k));
-  const shown = r.rows.slice(0, MAX_ROWS);
-  const numericCols = r.columns.map((c) => isNumericColumn(c, r.rows.find((row) => row[r.columns.indexOf(c)] != null)?.[r.columns.indexOf(c)]));
 
   return (
     <article className={`record rk-${m?.kind ?? "none"}`} aria-live="polite">
@@ -115,37 +170,7 @@ export function NodeDetail({ nodeId, cif, reportAllowed }: { nodeId: string; cif
         </dl>
       )}
 
-      {!single && r.rows.length > 0 && (
-        <>
-          <div className="table-wrap table-wrap-tall">
-            <table className="table table-dense">
-              <thead>
-                <tr>
-                  {r.columns.map((c, i) => (
-                    <th key={c} scope="col" className={numericCols[i] ? "r" : ""}>
-                      <code>{c}</code>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((row, ri) => (
-                  <tr key={ri}>
-                    {row.map((v, ci) => (
-                      <td key={ci} className={`${numericCols[ci] ? "r num" : ""} nowrap`}>
-                        {renderCell(r.columns[ci], v)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="record-foot muted">
-            {r.rows.length > MAX_ROWS ? `Showing the latest ${num(MAX_ROWS)} of ${num(r.rows.length)} rows.` : `${num(r.rows.length)} rows.`}
-          </p>
-        </>
-      )}
+      {!single && r.rows.length > 0 && <RecordsTable key={nodeId} r={r} />}
 
       {r.source === "exasol" && reportAllowed && (
         <div className="pad">

@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CircleCheck, Code, Trophy } from "lucide-react";
+import type { Top50Row } from "../../api/types";
 import { useRuns, useTop50 } from "../../api/hooks";
 import { useUser } from "../../auth/AuthContext";
 import { AssignBar, AssignDialog, AssignedRm, SelectCell } from "../../components/Assign";
 import { CodeBlock } from "../../components/CodeBlock";
 import { PublishedNotice } from "../../components/PublishedNotice";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { Empty, ErrorState, Grade, Loading, Money, PageHeader, Panel, Stage } from "../../components/ui";
 import { dateTime, num, pct, pctFromRatio } from "../../lib/format";
 import { can } from "../../lib/roles";
+import { offerStageRank, type SortColumns } from "../../lib/sort";
 import { WithExplain } from "../../explain/Explain";
 import { ExaBadge } from "../../explain/ExaBadge";
 
@@ -18,6 +21,17 @@ WHERE  RUN_ID = :run AND DECISION <> 'DECLINE'
 PREFERRING LOW PD
        PLUS HIGH RAROC_PCT
        PLUS HIGH OFFER_AMOUNT;`;
+
+const SORT: SortColumns<Top50Row> = {
+  rank_no: (r) => r.rank_no,
+  legal_name: (r) => r.legal_name,
+  grade: (r) => r.grade,
+  pd: (r) => r.pd,
+  raroc: (r) => r.raroc,
+  offer_amount: (r) => r.offer_amount,
+  stage: (r) => offerStageRank(r.stage),
+  assigned_rm_id: (r) => r.assigned_rm_id,
+};
 
 export function Top50Page() {
   const user = useUser();
@@ -32,6 +46,7 @@ export function Top50Page() {
   const options = official ? [official, ...done.filter((r) => r !== official)] : done;
   const shown = runId ? done.find((r) => r.run_id === runId) : official;
   const q = useTop50(runId);
+  const sort = useSort(q.data ?? [], SORT);
   const maxPd = Math.max(0.0001, ...(q.data ?? []).map((r) => r.pd));
   const maxR = Math.max(1, ...(q.data ?? []).map((r) => r.raroc));
   // Assignments are made from the official run only.
@@ -110,30 +125,18 @@ export function Top50Page() {
                         />
                       </th>
                     )}
-                    <th scope="col" className="r">
-                      <WithExplain id="preferring-skyline">Rank</WithExplain>
-                    </th>
-                    <th scope="col">Company</th>
-                    <th scope="col">
-                      <WithExplain id="grade">Grade</WithExplain>
-                    </th>
-                    <th scope="col">
-                      <WithExplain id="pd">PD</WithExplain>
-                    </th>
-                    <th scope="col">
-                      <WithExplain id="raroc">RAROC</WithExplain>
-                    </th>
-                    <th scope="col" className="r">Offer</th>
-                    <th scope="col">
-                      <WithExplain id="offer-stages">Stage</WithExplain>
-                    </th>
-                    <th scope="col">
-                      <WithExplain id="rm-assignment">RM</WithExplain>
-                    </th>
+                    <SortableTh sortKey="rank_no" control={sort} className="r" explain="preferring-skyline">Rank</SortableTh>
+                    <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+                    <SortableTh sortKey="grade" control={sort} explain="grade">Grade</SortableTh>
+                    <SortableTh sortKey="pd" control={sort} explain="pd">PD</SortableTh>
+                    <SortableTh sortKey="raroc" control={sort} explain="raroc">RAROC</SortableTh>
+                    <SortableTh sortKey="offer_amount" control={sort} className="r">Offer</SortableTh>
+                    <SortableTh sortKey="stage" control={sort} explain="offer-stages">Stage</SortableTh>
+                    <SortableTh sortKey="assigned_rm_id" control={sort} explain="rm-assignment">RM</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
-                  {q.data.map((r) => (
+                  {sort.rows.map((r) => (
                     <tr key={r.cif_id} className={sel.has(r.cif_id) ? "is-selected" : undefined}>
                       {assignable && <SelectCell checked={sel.has(r.cif_id)} onChange={(v) => toggle(r.cif_id, v)} label={`Select ${r.legal_name}`} />}
                       <td className="r num strong">{r.rank_no}</td>

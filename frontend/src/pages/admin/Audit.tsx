@@ -1,13 +1,37 @@
 import { useAudit, usePurgeLog } from "../../api/hooks";
 import { Eraser, ScrollText } from "lucide-react";
+import type { AuditEntry, PurgeEntry } from "../../api/types";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { SourceTag } from "../../components/SourceTag";
 import { Empty, ErrorState, Loading, PageHeader, Panel } from "../../components/ui";
 import { dateTime, num } from "../../lib/format";
 import { ROLE_LABEL } from "../../lib/roles";
+import type { SortColumns } from "../../lib/sort";
+
+const AUDIT_LIMIT = 200;
+
+const PURGE_SORT: SortColumns<PurgeEntry> = {
+  purged_at: (p) => p.purged_at,
+  table_name: (p) => p.table_name,
+  source: (p) => p.source,
+  rows: (p) => p.rows,
+  purge_due: (p) => p.purge_due,
+};
+
+const AUDIT_SORT: SortColumns<AuditEntry> = {
+  at: (a) => a.at,
+  username: (a) => a.username,
+  role: (a) => a.role,
+  action: (a) => a.action,
+  target: (a) => a.target,
+  detail: (a) => a.detail,
+};
 
 export function AuditPage() {
-  const audit = useAudit(200);
+  const audit = useAudit(AUDIT_LIMIT);
   const purge = usePurgeLog();
+  const purgeSort = useSort(purge.data ?? [], PURGE_SORT);
+  const auditSort = useSort(audit.data ?? [], AUDIT_SORT);
   return (
     <div className="page">
       <PageHeader
@@ -24,18 +48,16 @@ export function AuditPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col">Purged</th>
-                  <th scope="col">Table</th>
-                  <th scope="col">Data from</th>
-                  <th scope="col" className="r">
-                    Rows
-                  </th>
-                  <th scope="col">Due</th>
+                  <SortableTh sortKey="purged_at" control={purgeSort}>Purged</SortableTh>
+                  <SortableTh sortKey="table_name" control={purgeSort}>Table</SortableTh>
+                  <SortableTh sortKey="source" control={purgeSort}>Data from</SortableTh>
+                  <SortableTh sortKey="rows" control={purgeSort} className="r">Rows</SortableTh>
+                  <SortableTh sortKey="purge_due" control={purgeSort}>Due</SortableTh>
                   <th scope="col">SHA-256 of deleted rows</th>
                 </tr>
               </thead>
               <tbody>
-                {purge.data.map((p, i) => {
+                {purgeSort.rows.map((p, i) => {
                   const late = new Date(p.purged_at).getTime() - new Date(p.purge_due).getTime();
                   return (
                     <tr key={i}>
@@ -63,7 +85,7 @@ export function AuditPage() {
           </div>
         )}
       </Panel>
-      <Panel title="Audit log" icon={ScrollText} flush>
+      <Panel title="Audit log" icon={ScrollText} aside={<span className="muted">The latest {AUDIT_LIMIT} entries</span>} flush>
         {audit.isLoading && <Loading rows={6} />}
         {audit.isError && <ErrorState error={audit.error} retry={() => audit.refetch()} />}
         {audit.data && audit.data.length === 0 && <Empty title="No activity recorded yet" icon={ScrollText} />}
@@ -72,16 +94,16 @@ export function AuditPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col">When</th>
-                  <th scope="col">User</th>
-                  <th scope="col">Role</th>
-                  <th scope="col">Action</th>
-                  <th scope="col">Target</th>
-                  <th scope="col">Detail</th>
+                  <SortableTh sortKey="at" control={auditSort}>When</SortableTh>
+                  <SortableTh sortKey="username" control={auditSort}>User</SortableTh>
+                  <SortableTh sortKey="role" control={auditSort}>Role</SortableTh>
+                  <SortableTh sortKey="action" control={auditSort}>Action</SortableTh>
+                  <SortableTh sortKey="target" control={auditSort}>Target</SortableTh>
+                  <SortableTh sortKey="detail" control={auditSort}>Detail</SortableTh>
                 </tr>
               </thead>
               <tbody>
-                {audit.data.map((a, i) => (
+                {auditSort.rows.map((a, i) => (
                   <tr key={i}>
                     <td className="nowrap">{dateTime(a.at)}</td>
                     <td>

@@ -5,7 +5,7 @@ AI_PROVIDER=bedrock    Claude on Amazon Bedrock through the Anthropic SDK's Bedr
                        credentials come from the standard AWS environment or the EC2 instance role,
                        the region from AWS_REGION (else AWS_DEFAULT_REGION), and no API key is stored.
                        The model is BEDROCK_MODEL_ID, or "anthropic." + AI_MODEL when that is blank,
-                       so AI_MODEL=claude-sonnet-5-5 becomes anthropic.claude-sonnet-5-5.
+                       so AI_MODEL=claude-opus-5-5 becomes anthropic.claude-opus-5-5.
 AI_MODEL               the Anthropic API model id, which the CREDIT_MEMO UDF inside Exasol also calls
 
 Ask Credora and the backend credit memo work with either provider. The memo written inside Exasol

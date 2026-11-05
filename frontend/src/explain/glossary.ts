@@ -967,7 +967,7 @@ end)`,
     r = requests.post(
         f"{conn.address}/v1/messages",
         headers={"x-api-key": conn.password, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        json={"model": ctx.model, "max_tokens": 400, "system": SYSTEM,
+        json={"model": ctx.model, "max_tokens": 4000, "system": SYSTEM,
               "messages": [{"role": "user", "content": ctx.facts}]},
         timeout=60,`,
     },
@@ -1015,7 +1015,7 @@ except asyncio.TimeoutError:
     """A one-word classification call before any tool use; unrelated questions never reach Exasol."""
     try:
         resp = await asyncio.to_thread(
-            client.messages.create, model=ai.model(), max_tokens=5, system=SCOPE_PROMPT,
+            client.messages.create, model=ai.model(), max_tokens=TOPIC_MAX_TOKENS, system=SCOPE_PROMPT,
             messages=[{"role": "user", "content": question}])
     except Exception as e:  # noqa: BLE001 - if the filter itself fails, the main prompt's scope rule decides
         log.warning("topic check failed: %s", e)

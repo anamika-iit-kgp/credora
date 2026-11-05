@@ -4,11 +4,21 @@ import { BookUser, CircleCheck, FileText, History, PencilLine } from "lucide-rea
 import type { LoanStatus, LoanStatusRow } from "../../api/types";
 import { LOAN_STATUS_LABEL, NEXT_STATUS, RM_STATUSES, useLoanStatus, useLogStatus } from "../../api/workflow";
 import { useUser } from "../../auth/AuthContext";
+import { SortableTh, useSort } from "../../components/SortableTh";
 import { DecisionBadge, Dialog, Empty, ErrorState, Loading, Money, PageHeader, Panel } from "../../components/ui";
 import { dateTime, num } from "../../lib/format";
-import { LoanStatusBadge, StatusHistory } from "./LoanStatus";
-import { WithExplain } from "../../explain/Explain";
+import { decisionRank, ordinal, type SortColumns } from "../../lib/sort";
+import { LOAN_STATUS_ORDER, LoanStatusBadge, StatusHistory } from "./LoanStatus";
 import { ExaBadge } from "../../explain/ExaBadge";
+
+const SORT: SortColumns<LoanStatusRow> = {
+  rank_no: (r) => r.rank_no,
+  legal_name: (r) => r.legal_name || r.cif_id,
+  decision: (r) => decisionRank(r.decision),
+  offer_amount: (r) => r.offer_amount,
+  status: (r) => ordinal(LOAN_STATUS_ORDER, r.status),
+  updated_at: (r) => r.updated_at,
+};
 
 /** Relationship manager: the companies loan operations assigned to her, and their loan status. */
 export function MyBookPage() {
@@ -19,6 +29,7 @@ export function MyBookPage() {
   const [saved, setSaved] = useState<string | null>(null);
   const rows = q.data ?? [];
   const open = rows.filter((r) => r.status !== "DISBURSED" && r.status !== "NOT_INTERESTED").length;
+  const sort = useSort(rows, SORT);
   return (
     <div className="page">
       <PageHeader
@@ -64,25 +75,17 @@ export function MyBookPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col" className="r">
-                    <WithExplain id="rank">Rank</WithExplain>
-                  </th>
-                  <th scope="col">Company</th>
-                  <th scope="col">
-                    <WithExplain id="approve-refer-decline">Decision</WithExplain>
-                  </th>
-                  <th scope="col" className="r">
-                    <WithExplain id="pre-approved-offer">Pre-approved offer</WithExplain>
-                  </th>
-                  <th scope="col">
-                    <WithExplain id="loan-status">Loan status</WithExplain>
-                  </th>
-                  <th scope="col">Last update</th>
+                  <SortableTh sortKey="rank_no" control={sort} className="r" explain="rank">Rank</SortableTh>
+                  <SortableTh sortKey="legal_name" control={sort}>Company</SortableTh>
+                  <SortableTh sortKey="decision" control={sort} explain="approve-refer-decline">Decision</SortableTh>
+                  <SortableTh sortKey="offer_amount" control={sort} className="r" explain="pre-approved-offer">Pre-approved offer</SortableTh>
+                  <SortableTh sortKey="status" control={sort} explain="loan-status">Loan status</SortableTh>
+                  <SortableTh sortKey="updated_at" control={sort}>Last update</SortableTh>
                   <th scope="col"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {sort.rows.map((r) => (
                   <tr key={r.cif_id}>
                     <td className="r num">{r.rank_no ?? "–"}</td>
                     <td>

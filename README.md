@@ -264,7 +264,7 @@ All data is synthetic and made by Credora's own generator ([mocks/generator](moc
 
 The three mock APIs are written for this project ([mocks/](mocks)). They follow the shape of the real services, but no real CIBIL, GSTN or Account Aggregator API is called, and no credentials for them are needed. Their contracts are in [docs/API.md](docs/API.md).
 
-Ask Credora and the credit memos call Claude through the Anthropic API (model `claude-sonnet-5-5`), under Anthropic's commercial terms. Amazon Bedrock can be used instead. Without an AI key the rest of the app works.
+Ask Credora and the credit memos call Claude through the Anthropic API (model `claude-opus-5-5`), under Anthropic's commercial terms. Amazon Bedrock can be used instead. Without an AI key the rest of the app works.
 
 The third-party tools and their licences are below.
 
