@@ -61,6 +61,8 @@ MAX_TOOL_CALLS = 8
 MAX_RESULT_CHARS = 12000  # per tool result sent back to Claude
 PREVIEW_CHARS = 1200  # per tool result returned to the UI
 MAX_QUESTION_CHARS = 1000
+# The model thinks before it answers and thinking counts against this limit, so one word needs room.
+TOPIC_MAX_TOKENS = 2000
 
 _slots = asyncio.Semaphore(2)  # at most two MCP server processes at a time
 
@@ -474,7 +476,7 @@ async def _on_topic(client: Any, question: str) -> bool:
     """A one-word classification call before any tool use; unrelated questions never reach Exasol."""
     try:
         resp = await asyncio.to_thread(
-            client.messages.create, model=ai.model(), max_tokens=5, system=SCOPE_PROMPT,
+            client.messages.create, model=ai.model(), max_tokens=TOPIC_MAX_TOKENS, system=SCOPE_PROMPT,
             messages=[{"role": "user", "content": question}])
     except Exception as e:  # noqa: BLE001 - if the filter itself fails, the main prompt's scope rule decides
         log.warning("topic check failed: %s", e)

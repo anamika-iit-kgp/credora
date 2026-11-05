@@ -127,7 +127,7 @@ variable "anthropic_api_key" {
 
 variable "ai_model" {
   type    = string
-  default = "claude-sonnet-5-5"
+  default = "claude-opus-5-5"
 }
 
 variable "bedrock_model_id" {

@@ -85,7 +85,7 @@ class Settings:
     ai_model: str = field(default_factory=lambda: _env("AI_MODEL"))
     anthropic_api_key: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
     # The model id or inference profile sent to Amazon Bedrock. Blank means "anthropic." followed by
-    # AI_MODEL, which is the Bedrock id of the current models (anthropic.claude-sonnet-5-5).
+    # AI_MODEL, which is the Bedrock id of the current models (anthropic.claude-opus-5-5).
     bedrock_model_id: str = field(default_factory=lambda: _env("BEDROCK_MODEL_ID"))
     # Bedrock's region, from AWS_REGION, else AWS_DEFAULT_REGION, else Mumbai.
     aws_region: str = field(default_factory=lambda: _env("AWS_REGION", _env("AWS_DEFAULT_REGION", "ap-south-1")))

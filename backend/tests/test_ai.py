@@ -379,3 +379,20 @@ def test_the_model_sent_to_the_provider_is_the_providers_model_id(monkeypatch):
     assert memo._generate_backend("{}") == "IN"
     assert asyncio.run(assistant._on_topic(Fake(), "How many companies were approved?")) is True
     assert sent == ["anthropic.claude-sonnet-5-5", "anthropic.claude-sonnet-5-5"]
+
+
+def test_topic_check_leaves_room_for_thinking_and_reads_the_verdict():
+    sent = {}
+
+    class Topic:
+        def __init__(self, text):
+            self.messages = self
+            self.text = text
+
+        def create(self, **kw):
+            sent.update(kw)
+            return NS(content=[NS(type="thinking", thinking=""), NS(type="text", text=self.text)])
+
+    assert asyncio.run(assistant._on_topic(Topic("OUT"), "Tell me a joke")) is False
+    assert sent["max_tokens"] >= 1000
+    assert asyncio.run(assistant._on_topic(Topic("IN"), "Average PD by grade")) is True
