@@ -4,6 +4,7 @@ import { ApiError, api, apiStream, asList } from "./client";
 import type {
   AiStatus,
   AskAnswer,
+  AskChart,
   AskEvent,
   AskStage,
   AskStep,
@@ -201,9 +202,10 @@ export interface AskLive {
   tool: string | null;
   text: string;
   steps: AskStep[];
+  charts: AskChart[];
 }
 
-const NOTHING_YET: AskLive = { stage: null, tool: null, text: "", steps: [] };
+const NOTHING_YET: AskLive = { stage: null, tool: null, text: "", steps: [], charts: [] };
 
 /** Pure: the live view after one event of the answer stream. */
 export function applyAskEvent(live: AskLive, e: AskEvent): AskLive {
@@ -218,6 +220,8 @@ export function applyAskEvent(live: AskLive, e: AskEvent): AskLive {
       return { ...live, tool: e.tool };
     case "step":
       return { ...live, tool: null, steps: [...live.steps, e.step] };
+    case "chart":
+      return { ...live, charts: [...live.charts, e.chart] };
     default:
       return live;
   }

@@ -3,6 +3,7 @@
 
 import type {
   AskAnswer,
+  AskChart,
   AskEvent,
   AskStep,
   AuditEntry,
@@ -1906,6 +1907,37 @@ function askFixture(question: string): AskAnswer {
     input: { query: sql },
     result_preview: JSON.stringify({ columns, rows }),
   });
+  if (q.includes("probability") && q.includes("gst")) {
+    const stages = ["New", "Mid-level", "Stable"];
+    const grades = ["A1", "A2", "B1", "B2", "C1", "C2", "D"];
+    const rows = stages.flatMap((st) =>
+      grades.flatMap((g) => {
+        const cs = all.filter((c) => c.stage === st && sc[c.idx].grade === g);
+        if (!cs.length) return [];
+        const pd = cs.reduce((a, c) => a + sc[c.idx].pd, 0) / cs.length;
+        const loss = cs.reduce((a, c) => a + sc[c.idx].pd * 0.45 * sc[c.idx].amount, 0);
+        return [[st, g, Number(pd.toFixed(4)), Math.round(loss)]];
+      }),
+    );
+    const per = (i: number) => stages.map((st) => ({ name: st, values: grades.map((g) => { const r = rows.find((x) => x[0] === st && x[1] === g); return r ? Number(r[i]) : null; }) }));
+    const charts: AskChart[] = [
+      { kind: "line", title: "Average probability of default by grade and GST stage", unit: "ratio", x_label: "GRADE", categories: grades, series: per(2) },
+      { kind: "bar", title: "Expected loss by grade and GST stage", unit: "inr", x_label: "GRADE", categories: grades, series: per(3) },
+    ];
+    return {
+      model: AI_MODEL,
+      run_id: run,
+      steps: [
+        step(
+          `SELECT gst_stage, grade, avg_pd, expected_loss FROM CREDORA_SEM.PORTFOLIO GROUP BY gst_stage, grade ORDER BY gst_stage, grade`,
+          ["GST_STAGE", "GRADE", "AVG_PD", "EXPECTED_LOSS"],
+          rows,
+        ),
+      ],
+      charts,
+      answer: `Average probability of default rises from A1 to D at every GST stage in run ${run}. The charts show each stage and grade.`,
+    };
+  }
   if (q.includes("raroc")) {
     const top = all
       .filter((c) => sc[c.idx].decision === "APPROVE")
@@ -2116,6 +2148,7 @@ function askStream(a: AskAnswer) {
       { type: "tool", tool: step.tool, input: step.input },
       { type: "step", step },
     ]),
+    ...(a.charts ?? []).map((chart): AskEvent => ({ type: "chart", chart })),
     ...(a.answer.match(/\S+\s*/g) ?? []).map((text): AskEvent => ({ type: "text", text })),
     { type: "done", ...a },
   ];

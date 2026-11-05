@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { LoaderCircle, Send } from "lucide-react";
 import { useAiStatus, useAskStream, type AskLive } from "../../api/hooks";
 import { useAuth } from "../../auth/AuthContext";
@@ -37,6 +37,8 @@ const SUGGESTED: Record<string, string[]> = {
     "What is the pre-approved amount of my assigned companies by industry?",
   ],
 };
+
+const AskCharts = lazy(() => import("./AskChart"));
 
 const TOOL_LABEL: Record<string, string> = {
   execute_exasol_query: "Ran a query",
@@ -193,6 +195,11 @@ function LiveAnswer({ q, live }: { q: string; live: AskLive }) {
         ) : (
           <Loading label={label} rows={4} />
         )}
+        {live.charts.length > 0 && (
+          <Suspense fallback={<Loading rows={3} />}>
+            <AskCharts charts={live.charts} />
+          </Suspense>
+        )}
       </Panel>
       {live.steps.length > 0 && <HowAnswered steps={live.steps} live />}
     </>
@@ -204,6 +211,11 @@ function Answer({ q, a }: { q: string; a: AskAnswer }) {
     <>
       <Panel title={q} aside={<span className="muted small">{a.model}</span>}>
         <AnswerText text={a.answer} />
+        {!!a.charts?.length && (
+          <Suspense fallback={<Loading rows={3} />}>
+            <AskCharts charts={a.charts} />
+          </Suspense>
+        )}
       </Panel>
       <HowAnswered steps={a.steps} exasolUser={a.exasol_user} />
     </>
