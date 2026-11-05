@@ -5,6 +5,7 @@ All notable changes to Credora. Dates are in IST.
 ## Unreleased
 
 - Ask Credora streams. The answer appears as Claude writes it, each MCP call appears as it finishes, and the panel says what is happening now. `POST /api/ai/ask/stream` sends one JSON event per line. `POST /api/ai/ask` still answers in one piece.
+- The `CREDIT_MEMO` script allows 4,000 output tokens instead of 400. The model's thinking counts against this limit, so at 400 it could use the whole allowance and the Credit memo panel reported an empty memo.
 
 ## 2.0.2, 2 November 2026
 

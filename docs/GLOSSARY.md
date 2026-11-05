@@ -1964,7 +1964,7 @@ def run(ctx):
     r = requests.post(
         f"{conn.address}/v1/messages",
         headers={"x-api-key": conn.password, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        json={"model": ctx.model, "max_tokens": 400, "system": SYSTEM,
+        json={"model": ctx.model, "max_tokens": 4000, "system": SYSTEM,
               "messages": [{"role": "user", "content": ctx.facts}]},
         timeout=60,
 ```
