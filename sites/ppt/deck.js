@@ -235,7 +235,8 @@
       t.textContent = "company 1 of 1,000";
       var iv = setInterval(function () { n++; t.textContent = "company " + n + " of 1,000"; }, 8400);
       timers.push(iv);
-    }
+    },
+    final: function (s) { $("#s2count", s).textContent = "company 1 of 1,000"; }
   };
 
   /* slide 8: 16 UDF instances (run 4 at a time on 4 cores) and their fan-out to the CONNECTION objects */
@@ -279,7 +280,7 @@
     final: function (s) {
       $("#s9clock", s).innerHTML = DATA.RUN_SECONDS + "<small>s</small>";
       $("#s9log", s).innerHTML = RUN_STEPS.slice(-6).map(logLine).join("");
-      $$(".st", s).forEach(function (li) { li.classList.add("done"); li.classList.remove("live"); });
+      $$(".st", s).forEach(function (li) { li.classList.add("done"); li.classList.remove("live"); li.querySelector(".sb i").style.transform = ""; });
     },
     play: function (s) {
       var lis = $$(".st", s), clock = $("#s9clock", s), log = $("#s9log", s);
@@ -412,10 +413,15 @@
   };
 
   /* slide 16: the command types itself, then each deploy stage lights */
+  var S16_CMD = "python deploy/credora.py deploy --env <name>";
   scenes.s16 = {
-    init: function (s) { $$(".deps div", s).forEach(function (d) { d.classList.add("lit"); }); },
+    init: function (s) { this.final(s); },
+    final: function (s) {
+      $("#s16cmd", s).textContent = S16_CMD;
+      $$(".deps div", s).forEach(function (d) { d.classList.add("lit"); });
+    },
     play: function (s) {
-      var el = $("#s16cmd", s), full = "python deploy/credora.py deploy --env <name>", n = 0;
+      var el = $("#s16cmd", s), full = S16_CMD, n = 0;
       el.textContent = "";
       after(900, function () {
         var iv = setInterval(function () { n++; el.textContent = full.slice(0, n); if (n >= full.length) clearInterval(iv); }, 22);
@@ -577,18 +583,19 @@
     if (sc && sc.final) sc.final(s);
     s.classList.remove("on");
   }
-  function go(i, back) {
+  /* done: show the slide finished, with every step revealed and nothing left to play */
+  function go(i, back, done) {
     i = Math.max(0, Math.min(N - 1, i));
     if (i === cur && !back) return;
     if (cur >= 0) leave(slides[cur]);
     cur = i;
     var s = slides[i];
     s.classList.add("on");
-    step = back || ALL ? maxStep(s) : 0;
+    step = back || ALL || done ? maxStep(s) : 0;
     setFragments(s, step);
     var sc = scenes[s.id];
     if (sc && sc.enter) sc.enter(s, step);
-    if (!STILL) {
+    if (!STILL && !done) {
       $$("[data-a]", s).forEach(function (e) { if (!fragOf(e)) play(e, 0); });
       startPackets($$("[data-pk]", s).filter(function (p) { return !fragOf(p) || fragOf(p) <= step; }));
       if (sc && sc.play) sc.play(s);
@@ -614,10 +621,13 @@
     } else if (cur > 0) go(cur - 1, true);
   }
 
+  function skip() { if (cur < N - 1) go(cur + 1, false, true); }
+
   var countEl = document.getElementById("count"), prog = document.getElementById("prog");
   var notes = document.getElementById("notes"), notesBody = document.getElementById("notesBody"), notesTitle = document.getElementById("notesTitle");
   function ui() {
     countEl.textContent = (cur + 1) + " / " + N;
+    document.getElementById("bSkip").disabled = cur === N - 1;
     prog.style.transform = "scaleX(" + ((cur + 1) / N) + ")";
     var h = "#" + (cur + 1);
     if (location.hash !== h) history.replaceState(null, "", location.pathname + location.search + h);
@@ -629,6 +639,27 @@
   function fromHash() {
     var m = /^#s?(\d+)/.exec(location.hash);
     return m ? (+m[1] - 1) : 0;
+  }
+
+  /* ---------------------------------------------------------------- light and dark */
+  var LOGOS = [["Exasol_Logo_2025_Bright.svg", "Exasol_Logo_2025_Dark.svg"], ["exasol-x-on-dark.svg", "exasol-x.svg"]];
+  function setTheme(light) {
+    if (light) root.setAttribute("data-theme", "light"); else root.removeAttribute("data-theme");
+    $$("img, svg image").forEach(function (img) {
+      var attr = img.tagName.toLowerCase() === "img" ? "src" : "href", src = img.getAttribute(attr);
+      LOGOS.forEach(function (pair) {
+        var from = pair[light ? 0 : 1], to = pair[light ? 1 : 0];
+        if (src.indexOf(from) >= 0) img.setAttribute(attr, src.replace(from, to));
+      });
+    });
+    var b = document.getElementById("bTheme"), label = light ? "Switch to dark mode" : "Switch to light mode";
+    b.setAttribute("aria-label", label); b.title = label;
+    document.getElementById("bThemeIcon").setAttribute("href", light ? "#i-moon" : "#i-sun");
+  }
+  function toggleTheme() {
+    var light = root.getAttribute("data-theme") !== "light";
+    setTheme(light);
+    try { if (light) localStorage.setItem("credora.theme", "light"); else localStorage.removeItem("credora.theme"); } catch (e) { /* private mode: lasts for this visit */ }
   }
 
   /* ---------------------------------------------------------------- scale to fit */
@@ -671,6 +702,8 @@
   });
   document.getElementById("bNext").addEventListener("click", next);
   document.getElementById("bPrev").addEventListener("click", prev);
+  document.getElementById("bSkip").addEventListener("click", skip);
+  document.getElementById("bTheme").addEventListener("click", toggleTheme);
   document.getElementById("bNotes").addEventListener("click", toggleNotes);
   document.getElementById("bFull").addEventListener("click", toggleFull);
   var swiped = false;
@@ -706,6 +739,7 @@
   window.addEventListener("afterprint", function () { var i = cur; cur = -1; go(i); });
 
   /* ---------------------------------------------------------------- start */
+  setTheme(root.getAttribute("data-theme") === "light");
   $$("svg.dg").forEach(function (d) { d.setAttribute("preserveAspectRatio", "xMidYMin meet"); });
   slides.forEach(function (s) { var sc = scenes[s.id]; if (sc && sc.init) sc.init(s); });
   if (PRINT) {

@@ -4,6 +4,7 @@ All notable changes to Credora. Dates are in IST.
 
 ## Unreleased
 
+- The presentation has a light and dark mode button, and a second next button that opens the next slide with every animation and step already finished. Dark stays the default and the chosen mode is remembered in the browser.
 - Ask Credora's answer text shows piece by piece when the model's text reaches the backend in one burst. Status, MCP calls and charts already arrived as they happened. The words are not changed and no AI call is added.
 - Code blocks wrap long lines instead of scrolling sideways, so the pushdown SQL no longer stretches the page. Copy still gives the original text.
 - Loan operations verifies an offer and the admin sanctions it, so the two checks are always two people. Before, one loan operations login could do both, although the screen said a second person was needed. The admin sees the verified offers in the Approval queue.
