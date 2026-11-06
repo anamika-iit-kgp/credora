@@ -4,6 +4,7 @@ All notable changes to Credora. Dates are in IST.
 
 ## Unreleased
 
+- Code blocks wrap long lines instead of scrolling sideways, so the pushdown SQL no longer stretches the page. Copy still gives the original text.
 - Loan operations verifies an offer and the admin sanctions it, so the two checks are always two people. Before, one loan operations login could do both, although the screen said a second person was needed. The admin sees the verified offers in the Approval queue.
 - The data tables sort by column. A click on a header goes ascending, then descending, then back to the table's own order, and empty values stay last both ways. The Data explorer and Decisions lists are paginated, so the server sorts them across every page. `GET /api/companies` and `GET /api/decisions` take `sort` and `order`, with a fixed list of columns.
 - Ask Credora streams. The answer appears as Claude writes it, each MCP call appears as it finishes, and the panel says what is happening now. `POST /api/ai/ask/stream` sends one JSON event per line. `POST /api/ai/ask` still answers in one piece.
