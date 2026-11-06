@@ -339,6 +339,7 @@ svg .ph { fill: var(--cloud); outline: none; }
 .bar svg { width: 19px; height: 19px; }
 .bar .count { font-variant-numeric: tabular-nums; color: var(--ink-2); padding: 0 8px; font-size: 15px; min-width: 64px; text-align: center; }
 .bar [aria-pressed="true"] { background: var(--panel-3); color: var(--ink); }
+.bar button:disabled { opacity: 0.35; cursor: default; }
 :focus-visible { outline: 2px solid var(--sap); outline-offset: 2px; }
 
 .notes {
@@ -416,3 +417,71 @@ html.print .bar, html.print .progress, html.print .notes { display: none; }
 /* page-view count */
 .bar .views { font-size: 12px; opacity: .7; padding: 0 6px; white-space: nowrap; }
 .bar .views:empty { display: none; }
+
+/* ---------------------------------------------------------------- light mode
+   The diagrams are written with dark mode colours, in the page and in deck.js. The rules below
+   restyle those colours, so a slide keeps one set of markup. ?print always stays dark, so the
+   PDF does not change. */
+
+html[data-theme="light"] {
+  --bg: #ffffff;
+  --panel: #f1f5f9;
+  --panel-2: #e2e8f0;
+  --panel-3: #cbd5e1;
+  --ink: #0f172a;
+  --ink-2: #334155;
+  --muted: #526077;
+  --line: #cbd5e1;
+  --fe: #0e7490;     --fe-f: rgba(14, 116, 144, 0.1);
+  --svc: #047857;    --svc-f: rgba(4, 120, 87, 0.1);
+  --db: #6d28d9;     --db-f: rgba(109, 40, 217, 0.1);
+  --cache: #0369a1;  --cache-f: rgba(3, 105, 161, 0.1);
+  --q: #c2410c;      --q-f: rgba(194, 65, 12, 0.1);
+  --cloud: #b45309;  --cloud-f: rgba(180, 83, 9, 0.1);
+  --sec: #be123c;    --sec-f: rgba(190, 18, 60, 0.1);
+  --ext: #526077;    --ext-f: rgba(82, 96, 119, 0.1);
+  --exa: #2f7d15;    --exa-f: rgba(47, 125, 21, 0.1);
+  --sap: #2f5be8;    --sap-f: rgba(47, 91, 232, 0.1);
+  color-scheme: light;
+}
+html[data-theme="light"] .t-fe > rect, html[data-theme="light"] .t-fe > .b { fill: #e0f7fb; }
+html[data-theme="light"] .t-svc > rect, html[data-theme="light"] .t-svc > .b { fill: #dff7ec; }
+html[data-theme="light"] .t-db > rect, html[data-theme="light"] .t-db > .b { fill: #efe9fe; }
+html[data-theme="light"] .t-cache > rect, html[data-theme="light"] .t-cache > .b { fill: #e0f2fe; }
+html[data-theme="light"] .t-q > rect, html[data-theme="light"] .t-q > .b { fill: #ffedd5; }
+html[data-theme="light"] .t-cloud > rect, html[data-theme="light"] .t-cloud > .b { fill: #fef3c7; }
+html[data-theme="light"] .t-sec > rect, html[data-theme="light"] .t-sec > .b { fill: #ffe4e9; }
+html[data-theme="light"] .t-ext > rect, html[data-theme="light"] .t-ext > .b { fill: #f1f5f9; }
+html[data-theme="light"] .t-exa > rect, html[data-theme="light"] .t-exa > .b { fill: #e8f7e2; }
+html[data-theme="light"] .t-sap > rect, html[data-theme="light"] .t-sap > .b { fill: #e4ebff; }
+html[data-theme="light"] [fill="#f1f5f9"] { fill: var(--ink); } html[data-theme="light"] [stroke="#f1f5f9"] { stroke: var(--ink); } html[data-theme="light"] [style*="fill:#f1f5f9"] { fill: var(--ink) !important; } html[data-theme="light"] [style*="color:#f1f5f9"] { color: var(--ink) !important; }
+html[data-theme="light"] [fill="#94a3b8"] { fill: var(--muted); } html[data-theme="light"] [stroke="#94a3b8"] { stroke: var(--muted); } html[data-theme="light"] [style*="fill:#94a3b8"] { fill: var(--muted) !important; } html[data-theme="light"] [style*="color:#94a3b8"] { color: var(--muted) !important; }
+html[data-theme="light"] [fill="#fbbf24"] { fill: var(--cloud); } html[data-theme="light"] [stroke="#fbbf24"] { stroke: var(--cloud); } html[data-theme="light"] [style*="fill:#fbbf24"] { fill: var(--cloud) !important; } html[data-theme="light"] [style*="color:#fbbf24"] { color: var(--cloud) !important; }
+html[data-theme="light"] [fill="#fb7185"] { fill: var(--sec); } html[data-theme="light"] [stroke="#fb7185"] { stroke: var(--sec); } html[data-theme="light"] [style*="fill:#fb7185"] { fill: var(--sec) !important; } html[data-theme="light"] [style*="color:#fb7185"] { color: var(--sec) !important; }
+html[data-theme="light"] [fill="#a78bfa"] { fill: var(--db); } html[data-theme="light"] [stroke="#a78bfa"] { stroke: var(--db); } html[data-theme="light"] [style*="fill:#a78bfa"] { fill: var(--db) !important; } html[data-theme="light"] [style*="color:#a78bfa"] { color: var(--db) !important; }
+html[data-theme="light"] [fill="#34d399"] { fill: var(--svc); } html[data-theme="light"] [stroke="#34d399"] { stroke: var(--svc); } html[data-theme="light"] [style*="fill:#34d399"] { fill: var(--svc) !important; } html[data-theme="light"] [style*="color:#34d399"] { color: var(--svc) !important; }
+html[data-theme="light"] [fill="#93c5fd"] { fill: #1d4ed8; } html[data-theme="light"] [stroke="#93c5fd"] { stroke: #1d4ed8; } html[data-theme="light"] [style*="fill:#93c5fd"] { fill: #1d4ed8 !important; } html[data-theme="light"] [style*="color:#93c5fd"] { color: #1d4ed8 !important; }
+html[data-theme="light"] [fill="#5fc33b"] { fill: var(--exa); } html[data-theme="light"] [stroke="#5fc33b"] { stroke: var(--exa); } html[data-theme="light"] [style*="fill:#5fc33b"] { fill: var(--exa) !important; } html[data-theme="light"] [style*="color:#5fc33b"] { color: var(--exa) !important; }
+html[data-theme="light"] [fill="#fb923c"] { fill: var(--q); } html[data-theme="light"] [stroke="#fb923c"] { stroke: var(--q); } html[data-theme="light"] [style*="fill:#fb923c"] { fill: var(--q) !important; } html[data-theme="light"] [style*="color:#fb923c"] { color: var(--q) !important; }
+html[data-theme="light"] [fill="#22d3ee"] { fill: var(--fe); } html[data-theme="light"] [stroke="#22d3ee"] { stroke: var(--fe); } html[data-theme="light"] [style*="fill:#22d3ee"] { fill: var(--fe) !important; } html[data-theme="light"] [style*="color:#22d3ee"] { color: var(--fe) !important; }
+html[data-theme="light"] [fill="#334155"] { fill: #cbd5e1; } html[data-theme="light"] [stroke="#334155"] { stroke: #cbd5e1; } html[data-theme="light"] [style*="fill:#334155"] { fill: #cbd5e1 !important; } html[data-theme="light"] [style*="color:#334155"] { color: #cbd5e1 !important; }
+html[data-theme="light"] [fill="#facc15"] { fill: #a16207; } html[data-theme="light"] [stroke="#facc15"] { stroke: #a16207; } html[data-theme="light"] [style*="fill:#facc15"] { fill: #a16207 !important; } html[data-theme="light"] [style*="color:#facc15"] { color: #a16207 !important; }
+html[data-theme="light"] [fill="#f9a8d4"] { fill: #be185d; } html[data-theme="light"] [stroke="#f9a8d4"] { stroke: #be185d; } html[data-theme="light"] [style*="fill:#f9a8d4"] { fill: #be185d !important; } html[data-theme="light"] [style*="color:#f9a8d4"] { color: #be185d !important; }
+html[data-theme="light"] [fill="#a3e635"] { fill: #4d7c0f; } html[data-theme="light"] [stroke="#a3e635"] { stroke: #4d7c0f; } html[data-theme="light"] [style*="fill:#a3e635"] { fill: #4d7c0f !important; } html[data-theme="light"] [style*="color:#a3e635"] { color: #4d7c0f !important; }
+html[data-theme="light"] [fill="#6ee7b7"] { fill: #047857; } html[data-theme="light"] [stroke="#6ee7b7"] { stroke: #047857; } html[data-theme="light"] [style*="fill:#6ee7b7"] { fill: #047857 !important; } html[data-theme="light"] [style*="color:#6ee7b7"] { color: #047857 !important; }
+html[data-theme="light"] [fill="#0b1222"] { fill: var(--panel); } html[data-theme="light"] [stroke="#0b1222"] { stroke: var(--panel); } html[data-theme="light"] [style*="fill:#0b1222"] { fill: var(--panel) !important; } html[data-theme="light"] [style*="color:#0b1222"] { color: var(--panel) !important; }
+html[data-theme="light"] [fill="#020617"] { fill: var(--bg); } html[data-theme="light"] [stroke="#020617"] { stroke: var(--bg); } html[data-theme="light"] [style*="fill:#020617"] { fill: var(--bg) !important; } html[data-theme="light"] [style*="color:#020617"] { color: var(--bg) !important; }
+html[data-theme="light"] [fill="#07140a"] { fill: #ffffff; } html[data-theme="light"] [stroke="#07140a"] { stroke: #ffffff; } html[data-theme="light"] [style*="fill:#07140a"] { fill: #ffffff !important; } html[data-theme="light"] [style*="color:#07140a"] { color: #ffffff !important; }
+html[data-theme="light"] [fill="#04110a"] { fill: #ffffff; } html[data-theme="light"] [stroke="#04110a"] { stroke: #ffffff; } html[data-theme="light"] [style*="fill:#04110a"] { fill: #ffffff !important; } html[data-theme="light"] [style*="color:#04110a"] { color: #ffffff !important; }
+html[data-theme="light"] [fill="rgba(136,19,55,0.12)"] { fill: #fff1f3; }
+html[data-theme="light"] [fill="rgba(76,29,149,0.22)"] { fill: #f3eefe; }
+html[data-theme="light"] [fill="rgba(6,78,59,0.3)"] { fill: #e3f6ee; }
+html[data-theme="light"] .code .k { color: #1d4ed8; }
+html[data-theme="light"] .code .s { color: #be185d; }
+html[data-theme="light"] .code .c { color: #526077; }
+html[data-theme="light"] .st .lang.sql { color: #1d4ed8; background: rgba(29, 78, 216, 0.1); }
+html[data-theme="light"] .st .no { box-shadow: inset 0 0 0 1.6px #94a3b8; }
+html[data-theme="light"] .st.done .no { color: #ffffff; box-shadow: none; }
+html[data-theme="light"] .fails td { border-top-color: #cbd5e1; }
+html[data-theme="light"] .bar { background: rgba(255, 255, 255, 0.94); box-shadow: 0 0 0 1px #cbd5e1; }
+html[data-theme="light"] .notes { background: rgba(255, 255, 255, 0.98); box-shadow: 0 0 0 1px #cbd5e1, 0 24px 60px -12px rgb(15 23 42 / 0.25); }

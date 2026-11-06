@@ -291,7 +291,7 @@ Both are in this repository and on their own sites, so a person or an evaluation
 |---|---|---|
 | Demo video, 2 min 56 s with a voice-over | [media/demo.mp4](media/demo.mp4), 1080p with the captions burned in, compressed for the repository. GitHub plays it on the file page. | https://video.credora.loan plays the full quality copy, with captions the viewer can switch on. Direct file https://video.credora.loan/demo.mp4 |
 | What the video says | [media/demo-transcript.md](media/demo-transcript.md), one row per scene with the narration, plus [media/demo.srt](media/demo.srt) and [media/demo.vtt](media/demo.vtt) | https://video.credora.loan/demo.vtt |
-| Presentation, 23 slides | [media/presentation.pdf](media/presentation.pdf). GitHub shows it on the file page. | https://ppt.credora.loan, animated, and https://ppt.credora.loan/presentation.pdf to download |
+| Presentation, 23 slides | [media/presentation.pdf](media/presentation.pdf). GitHub shows it on the file page. | https://ppt.credora.loan, animated, with light and dark mode, and https://ppt.credora.loan/presentation.pdf to download |
 | Live app with four demo logins | | https://credora.loan |
 | Docs site, with the architecture and glossary | [docs/](docs/) | https://docs.credora.loan |
 | 3rd party data APIs | [mocks/](mocks/) | https://credora.link |
