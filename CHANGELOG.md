@@ -2,7 +2,7 @@
 
 All notable changes to Credora. Dates are in IST.
 
-## Unreleased
+## 2.1.0, 6 November 2026
 
 - The presentation has a light and dark mode button, and a second next button that opens the next slide with every animation and step already finished. Dark stays the default and the chosen mode is remembered in the browser.
 - Ask Credora's answer text shows piece by piece when the model's text reaches the backend in one burst. Status, MCP calls and charts already arrived as they happened. The words are not changed and no AI call is added.
