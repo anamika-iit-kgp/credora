@@ -63,6 +63,8 @@ PREVIEW_CHARS = 1200  # per tool result returned to the UI
 MAX_QUESTION_CHARS = 1000
 # The model thinks before it answers and thinking counts against this limit, so one word needs room.
 TOPIC_MAX_TOKENS = 2000
+TEXT_PIECE_SECONDS = 0.04  # the longest gap between the pieces of a burst of answer text
+TEXT_BURST_SECONDS = 4.0  # a long burst takes about this long in all
 
 _slots = asyncio.Semaphore(2)  # at most two MCP server processes at a time
 
@@ -594,6 +596,10 @@ async def stream_events(question: str, role: str = "rm") -> AsyncIterator[dict]:
     try:
         while (event := await queue.get()) is not None:
             yield event
+            # The model's text can reach us in one burst, so a burst goes out piece by piece and reads as it
+            # would when written. Text that arrives steadily leaves the queue empty and is not slowed.
+            if event["type"] == "text" and queue.qsize():
+                await asyncio.sleep(min(TEXT_PIECE_SECONDS, TEXT_BURST_SECONDS / queue.qsize()))
     finally:
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)

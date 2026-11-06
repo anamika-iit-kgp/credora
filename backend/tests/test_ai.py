@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import json
+import time
 from types import SimpleNamespace as NS
 
 import pytest
@@ -201,6 +202,29 @@ def test_stream_events_end_in_done_or_error(monkeypatch):
     monkeypatch.setattr(assistant, "ask", fails)
     out = _collect(assistant.stream_events("q"))
     assert out[-1] == {"type": "error", "status": 502, "detail": "The AI provider did not answer. Try again shortly."}
+
+
+def test_a_burst_of_text_goes_out_piece_by_piece_and_in_order(monkeypatch):
+    pieces = [f"word{i} " for i in range(20)]
+
+    async def burst(q, role, emit):
+        for p in pieces:
+            emit({"type": "text", "text": p})
+        return {"answer": "".join(pieces), "steps": []}
+
+    monkeypatch.setattr(assistant, "ask", burst)
+
+    async def run():
+        stamps, events = [], []
+        async for e in assistant.stream_events("q"):
+            stamps.append(time.perf_counter())
+            events.append(e)
+        return stamps, events
+
+    stamps, events = asyncio.run(run())
+    assert "".join(e["text"] for e in events if e["type"] == "text") == "".join(pieces)
+    assert events[-1]["type"] == "done" and events[-1]["answer"] == "".join(pieces)
+    assert stamps[-2] - stamps[0] >= 0.3  # 19 gaps of up to 0.04 s, and a burst this size is not cut short
 
 
 def test_stream_route_sends_one_json_event_per_line_and_audits_once(monkeypatch):
