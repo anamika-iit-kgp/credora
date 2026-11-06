@@ -1659,7 +1659,7 @@ The back-office team that checks the agreed terms and sanctions the loan.
 
 One person makes a change and a second person checks and approves it. No one can push a decision through alone.
 
-**In Exasol.** For offers, the RM proposes terms and loan operations verifies and sanctions. For policy, the data scientist proposes and the admin approves. Each step is a separate login and a separate Exasol user.
+**In Exasol.** For offers, the RM proposes terms, loan operations verifies and the admin sanctions. For policy, the data scientist proposes and the admin approves. Each step is a separate login and a separate Exasol user.
 
 **See also.** [Offer stages](#offer-stages), [Policy proposal](#policy-proposal), [Model activation approval](#model-activation-approval)
 

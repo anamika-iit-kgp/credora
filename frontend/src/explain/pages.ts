@@ -110,7 +110,7 @@ export const PAGE_EXPLAIN: Record<string, PageExplain> = {
     terms: ["negotiation-limit", "floor-roi", "raroc", "hurdle-rate", "term-loan", "working-capital", "maker-checker", "loan-status"],
   },
   "/queue": {
-    headline: "Loan operations checks offers the RMs negotiated. Exasol's limits travel with each offer.",
+    headline: "Loan operations verifies offers the RMs negotiated and the admin sanctions them. Exasol's limits travel with each offer.",
     exasol: [
       "Verify and sanction change the CRM only. The analysis run fixed the numbers.",
     ],

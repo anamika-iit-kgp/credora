@@ -76,7 +76,7 @@ TAKEN = ("LOAN_TAKEN", "IN_PROGRESS", "DISBURSED")
 def offer_block(offer: dict | None, escalated: bool) -> str | None:
     """Pure: why the company's offer does not yet allow Loan taken, or None when it does.
     The terms count as agreed when the relationship manager agreed them within the negotiation limits
-    (stage NEGOTIATING, or VERIFIED without an escalation), or when loan operations sanctioned them."""
+    (stage NEGOTIATING, or VERIFIED without an escalation), or when the admin sanctioned them."""
     if offer is None:
         return "There is no pre-approved offer for this company in the CRM."
     stage = offer.get("stage")
@@ -87,7 +87,7 @@ def offer_block(offer: dict | None, escalated: bool) -> str | None:
     if stage == "OFFERED" or offer.get("agreed_amount") is None:
         return "No terms are agreed yet. Agree the terms on the offer screen first."
     if stage == "ESCALATED" or (stage == "VERIFIED" and escalated):
-        return "The agreed terms are above the negotiation limits. Loan operations must sanction them first."
+        return "The agreed terms are above the negotiation limits. Loan operations must verify them and the admin must sanction them first."
     return None  # NEGOTIATING, or VERIFIED within the limits
 
 

@@ -369,6 +369,44 @@ def test_rm_cannot_check_her_own_offer():
         assert c.post(f"/api/offers/7/{action}", json={"note": "x"}, headers=h("rm")).status_code == 403
 
 
+def _offer_at(monkeypatch, stage):
+    from app.routes import offers as offer_routes
+
+    done = []
+    monkeypatch.setattr(offer_routes.crm, "get_offer", lambda i: {"offer_id": i, "cif_id": "C000001", "stage": stage,
+                                                                  "agreed_amount": 1e7})
+    monkeypatch.setattr(offer_routes.crm, "transition", lambda i, f, to, ev, *a: done.append((to, ev[0]["actor"])) or {"stage": to})
+    monkeypatch.setattr(offer_routes.crm, "audit", lambda *a, **k: None)
+    monkeypatch.setattr(offer_routes, "loan_status_of", lambda user, cif: None)
+    return done
+
+
+def test_loan_operations_verifies_and_the_admin_sanctions(monkeypatch):
+    done = _offer_at(monkeypatch, "ESCALATED")
+    assert c.post("/api/offers/7/verify", json={"note": "x"}, headers=h("admin")).status_code == 403
+    assert c.post("/api/offers/7/verify", json={"note": "x"}, headers=h("loanops")).status_code == 200
+    assert done == [("VERIFIED", "loanops")]
+
+    done = _offer_at(monkeypatch, "VERIFIED")
+    assert c.post("/api/offers/7/sanction", json={"note": "x"}, headers=h("loanops")).status_code == 403
+    assert c.post("/api/offers/7/sanction", json={"note": "x"}, headers=h("admin")).status_code == 200
+    assert done == [("SANCTIONED", "admin")]
+
+
+def test_the_admin_cannot_sanction_before_verification(monkeypatch):
+    _offer_at(monkeypatch, "ESCALATED")
+    assert c.post("/api/offers/7/sanction", json={"note": "x"}, headers=h("admin")).status_code == 409
+
+
+def test_the_admin_can_reject_only_after_verification(monkeypatch):
+    done = _offer_at(monkeypatch, "ESCALATED")
+    assert c.post("/api/offers/7/reject", json={"note": "x"}, headers=h("admin")).status_code == 403
+    assert done == []
+    done = _offer_at(monkeypatch, "VERIFIED")
+    assert c.post("/api/offers/7/reject", json={"note": "x"}, headers=h("admin")).status_code == 200
+    assert done == [("DECLINED", "admin")]
+
+
 def test_rm_logs_status_only_for_assigned_companies(monkeypatch):
     logged = []
     monkeypatch.setattr(rmbook, "assigned_cifs", lambda db: {"C000001"})

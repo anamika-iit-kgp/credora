@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BadgeCheck, Ban, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOffers } from "../../api/hooks";
+import { useAuth } from "../../auth/AuthContext";
 import type { Offer } from "../../api/types";
 import { SortableTh, useSort } from "../../components/SortableTh";
 import { Empty, ErrorState, Grade, Loading, PageHeader, Panel, Segmented, Stage } from "../../components/ui";
@@ -32,7 +33,11 @@ const SORT: SortColumns<Offer> = {
 
 export function QueuePage() {
   const q = useOffers();
-  const [tab, setTab] = useState<Tab>("verify");
+  const { user } = useAuth();
+  const admin = user?.role === "admin";
+  const [picked, setTab] = useState<Tab>("verify");
+  // The admin only ever sanctions, so the admin has no verify tab.
+  const tab: Tab = admin ? "sanction" : picked;
   const [pending, setPending] = useState<{ o: Offer; a: "verify" | "sanction" | "reject" } | null>(null);
   const all = q.data ?? [];
   const toVerify = all.filter((o) => (o.stage === "NEGOTIATING" && o.agreed_amount != null) || o.stage === "ESCALATED");
@@ -45,15 +50,19 @@ export function QueuePage() {
     <div className="page">
       <PageHeader
         title="Approval queue"
-        lede="Offers with terms proposed by relationship managers. Escalated ones are outside Exasol's negotiation limit and come first."
+        lede={
+          admin
+            ? "Offers loan operations has verified. Sanction gives the final approval. Terms outside Exasol's negotiation limit show here as outside."
+            : "Offers with terms proposed by relationship managers. Escalated ones are outside Exasol's negotiation limit and come first. Once you verify an offer, the admin sanctions it."
+        }
         actions={
-          <Segmented
+          admin ? undefined : <Segmented
             label="Queue"
             value={tab}
             onChange={setTab}
             options={[
               { value: "verify", label: <>To verify <span className="num muted">{toVerify.length}</span></> },
-              { value: "sanction", label: <>To sanction <span className="num muted">{toSanction.length}</span></> },
+              { value: "sanction", label: <>With the admin <span className="num muted">{toSanction.length}</span></> },
             ]}
           />
         }
@@ -64,7 +73,7 @@ export function QueuePage() {
         <Panel flush>
           {rows.length === 0 ? (
             <Empty title={tab === "verify" ? "Nothing to verify" : "Nothing to sanction"}>
-              {tab === "verify" ? "Proposals from relationship managers will appear here." : "Verified offers wait here for a second checker."}
+              {tab === "verify" ? "Proposals from relationship managers will appear here." : admin ? "Offers appear here once loan operations has verified them." : "Offers you verified wait here for the admin to sanction them."}
             </Empty>
           ) : (
             <div className="table-wrap table-wrap-tall">
@@ -122,7 +131,7 @@ export function QueuePage() {
                         <td className="muted nowrap">{relative(o.updated_at)}</td>
                         <td>
                           <div className="btn-row btn-row-tight">
-                            {allowedActions(o).map((a) => (
+                            {allowedActions(o, user?.role).map((a) => (
                               <button
                                 key={a}
                                 className={`btn btn-sm ${a === "reject" ? "btn-danger-quiet" : "btn-quiet"}`}

@@ -1,21 +1,23 @@
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useOfferAction } from "../../api/hooks";
-import type { Offer } from "../../api/types";
+import type { Offer, Role } from "../../api/types";
 import { Dialog, Panel } from "../../components/ui";
 import { Explain } from "../../explain/Explain";
 
 type Act = "verify" | "sanction" | "reject";
 const WORD: Record<Act, { verb: string; done: string; help: string }> = {
-  verify: { verb: "Verify", done: "Verified", help: "Confirms the terms, KYC and documents. A second person sanctions." },
-  sanction: { verb: "Sanction", done: "Sanctioned", help: "Final approval. Must be a different person from the one who verified." },
+  verify: { verb: "Verify", done: "Verified", help: "Confirms the terms, KYC and documents. The admin then sanctions." },
+  sanction: { verb: "Sanction", done: "Sanctioned", help: "Final approval by the admin, after loan operations has verified." },
   reject: { verb: "Reject", done: "Rejected", help: "Ends the offer. The customer is told by their RM." },
 };
 
-export function allowedActions(o: Offer): Act[] {
+/** Loan operations verifies and the admin sanctions, so the two checks are always two people. */
+export function allowedActions(o: Offer, role: Role | undefined): Act[] {
+  if (role === "admin") return o.stage === "VERIFIED" ? ["sanction", "reject"] : [];
+  if (role !== "loanops") return [];
   if (o.stage === "NEGOTIATING" || o.stage === "ESCALATED") return ["verify", "reject"];
-  if (o.stage === "VERIFIED") return ["sanction", "reject"];
-  if (o.stage === "OFFERED") return ["reject"];
+  if (o.stage === "VERIFIED" || o.stage === "OFFERED") return ["reject"];
   return [];
 }
 
@@ -75,13 +77,17 @@ export function CheckerDialog({ offer, act, onClose }: { offer: Offer; act: Act 
   );
 }
 
-export function CheckerActions({ offer }: { offer: Offer }) {
+export function CheckerActions({ offer, role }: { offer: Offer; role: Role }) {
   const [act, setAct] = useState<Act | null>(null);
-  const acts = allowedActions(offer);
+  const acts = allowedActions(offer, role);
+  const none =
+    role === "admin" && (offer.stage === "NEGOTIATING" || offer.stage === "ESCALATED")
+      ? "Loan operations verifies this offer first. Then it comes to you to sanction."
+      : `No action is open at stage ${offer.stage.toLowerCase()}.`;
   return (
-    <Panel title="Checker decision" icon={ShieldCheck} aside={<span className="small muted">Maker-checker. The RM proposes, loan operations verifies and a second checker sanctions.</span>}>
+    <Panel title="Checker decision" icon={ShieldCheck} aside={<span className="small muted">Maker-checker. The RM proposes, loan operations verifies and the admin sanctions.</span>}>
       {acts.length === 0 ? (
-        <p className="muted">No action is open at stage {offer.stage.toLowerCase()}.</p>
+        <p className="muted">{none}</p>
       ) : (
         <div className="btn-row">
           {acts.map((a) => (

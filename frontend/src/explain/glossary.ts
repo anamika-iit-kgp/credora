@@ -1761,7 +1761,7 @@ NULLIF(TRIM(BOTH ';' FROM COALESCE(FAILS, '') ||
     term: "Maker-checker",
     kind: "banking",
     plain: "One person makes a change and a second person checks and approves it. No one can push a decision through alone.",
-    inExasol: "For offers, the RM proposes terms and loan operations verifies and sanctions. For policy, the data scientist proposes and the admin approves. Each step is a separate login and a separate Exasol user.",
+    inExasol: "For offers, the RM proposes terms, loan operations verifies and the admin sanctions. For policy, the data scientist proposes and the admin approves. Each step is a separate login and a separate Exasol user.",
     related: ["offer-stages", "policy-proposal", "model-activation-approval"],
   },
   "working-capital": {

@@ -47,7 +47,7 @@ export function OfferPage() {
     <div className="page">
       <PageHeader
         crumbs={[
-          { to: user.role === "loanops" ? "/queue" : "/pipeline", label: user.role === "loanops" ? "Approval queue" : user.role === "rm" ? "My pipeline" : "Offer pipeline" },
+          { to: can(user.role, "queue") ? "/queue" : "/pipeline", label: can(user.role, "queue") ? "Approval queue" : user.role === "rm" ? "My pipeline" : "Offer pipeline" },
           { label: `Offer ${offer.offer_id}` },
         ]}
         title={offer.legal_name}
@@ -83,7 +83,7 @@ export function OfferPage() {
       <div className="grid-main-side">
         <div className="stack">
           {negotiable ? <Negotiate offer={offer} /> : <ReadOnlyTerms offer={offer} />}
-          {user.role === "loanops" && <CheckerActions offer={offer} />}
+          {can(user.role, "queue") && <CheckerActions offer={offer} role={user.role} />}
         </div>
         <Trail offerId={offer.offer_id} />
       </div>

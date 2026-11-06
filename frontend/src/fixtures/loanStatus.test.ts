@@ -228,7 +228,7 @@ describe("statuses that need an agreed offer", () => {
     expect((await log(row.cif_id, "LOAN_TAKEN")).status).toBe(200);
   });
 
-  it("keeps Loan taken shut on terms above the limit until loan operations verifies and sanctions them", async () => {
+  it("keeps Loan taken shut on terms above the limit until loan operations verifies and the admin sanctions them", async () => {
     const row = await assignedWith("ESCALATED");
     expect(row.offer_block).toContain("above the negotiation limits");
     await log(row.cif_id, "CONTACTED");
@@ -241,10 +241,11 @@ describe("statuses that need an agreed offer", () => {
     const noNote = await post("loanops", `/api/offers/${id}/verify`, { note: " " });
     expect(noNote.status).toBe(422);
     expect(detail(noNote)).toBe("A note is required.");
-    expect((await post("loanops", `/api/offers/${id}/sanction`, { note: "Too early." })).status).toBe(409);
+    expect((await post("admin", `/api/offers/${id}/sanction`, { note: "Too early." })).status).toBe(409);
     expect((await post("loanops", `/api/offers/${id}/verify`, { note: "Checked the figures." })).status).toBe(200);
     expect((await log(row.cif_id, "LOAN_TAKEN")).status).toBe(409);
-    expect((await post("loanops", `/api/offers/${id}/sanction`, { note: "Sanctioned." })).status).toBe(200);
+    expect((await post("loanops", `/api/offers/${id}/sanction`, { note: "Not my step." })).status).toBe(403);
+    expect((await post("admin", `/api/offers/${id}/sanction`, { note: "Sanctioned." })).status).toBe(200);
     expect((await log(row.cif_id, "LOAN_TAKEN")).status).toBe(200);
   });
 
