@@ -1356,6 +1356,9 @@
   margin: 0;
   padding: 12px 14px;
   overflow: auto;
+  /* Long lines wrap on screen only. Copy takes the original text, so nothing changes in what is pasted. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   max-height: 460px;
   font-size: 12.5px;
   line-height: 1.6;
